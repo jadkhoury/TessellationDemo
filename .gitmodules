@@ -1,0 +1,18 @@
+[submodule "DistancePipeline/submodules/glm"]
+	path = DistancePipeline/submodules/glm
+	url = git@github.com:g-truc/glm.git
+[submodule "DistancePipeline/submodules/dj_algebra"]
+	path = DistancePipeline/submodules/dj_algebra
+	url = git@github.com:jdupuy/dj_algebra.git
+[submodule "DistancePipeline/submodules/dj_opengl"]
+	path = DistancePipeline/submodules/dj_opengl
+	url = git@github.com:jdupuy/dj_opengl.git
+[submodule "DistancePipeline/submodules/glfw"]
+	path = DistancePipeline/submodules/glfw
+	url = git@github.com:glfw/glfw.git
+[submodule "DistancePipeline/submodules/imgui"]
+	path = DistancePipeline/submodules/imgui
+	url = git@github.com:ocornut/imgui.git
+[submodule "DistancePipeline/submodules/stb"]
+	path = DistancePipeline/submodules/stb
+	url = git@github.com:nothings/stb.git
