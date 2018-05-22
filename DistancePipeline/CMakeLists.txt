@@ -18,11 +18,11 @@ set(IMGUI_SRC_DIR submodules/imgui)
 aux_source_directory(${IMGUI_SRC_DIR} IMGUI_SRC_FILES)
 
 # ------------------------------------------------------------------------------
-project (viewer-subd-leb)
-set(SRC_DIR viewer-subd-leb)
+project (distance-tess)
+set(SRC_DIR src)
 include_directories(${SRC_DIR})
 aux_source_directory(${SRC_DIR} SRC_FILES)
-add_executable(viewer-subd-leb ${IMGUI_SRC_FILES} ${SRC_FILES} ${SRC_DIR}/glad/glad.c)
-target_link_libraries(viewer-subd-leb glfw)
+add_executable(distance-tess ${IMGUI_SRC_FILES} ${SRC_FILES} ${SRC_DIR}/glad/glad.c)
+target_link_libraries(distance-tess glfw)
 unset(SRC_FILES)
 

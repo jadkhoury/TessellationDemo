@@ -109,7 +109,7 @@ struct AppManager {
         const char *output;
     } dir;
 } g_app = {
-    /*dir*/    {"../viewer-subd-leb/shaders/", "./"},
+    /*dir*/    {"../src/shaders/", "./"},
 };
 
 struct GeometryManager {
