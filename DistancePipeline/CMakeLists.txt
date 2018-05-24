@@ -13,16 +13,20 @@ include_directories(submodules/imgui)
 include_directories(submodules/stb)
 include_directories(submodules/dj_opengl)
 include_directories(submodules/dj_algebra)
+
 # imgui source files
 set(IMGUI_SRC_DIR submodules/imgui)
 aux_source_directory(${IMGUI_SRC_DIR} IMGUI_SRC_FILES)
 
+#Shaders
+file(GLOB_RECURSE RES_FILES *.frag *.vert *.glsl)
 # ------------------------------------------------------------------------------
 project (distance-tess)
 set(SRC_DIR src)
 include_directories(${SRC_DIR})
 aux_source_directory(${SRC_DIR} SRC_FILES)
-add_executable(distance-tess ${IMGUI_SRC_FILES} ${SRC_FILES} ${SRC_DIR}/glad/glad.c)
+
+add_executable(distance-tess ${IMGUI_SRC_FILES} ${SRC_FILES} ${RES_FILES} ${SRC_DIR}/glad/glad.c)
+
 target_link_libraries(distance-tess glfw)
 unset(SRC_FILES)
-
