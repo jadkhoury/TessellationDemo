@@ -61,7 +61,6 @@ struct Transforms {
 struct OpenGLManager {
     QuadTree* quadtree;
     Mesh* mesh;
-    //    djg_font* font;
     djg_clock* clock;
     QuadtreeSettings* qts;
     QuadtreeSettings qts_backup;
@@ -72,7 +71,10 @@ struct OpenGLManager {
     float delta_T;
     bool pause;
     int w_width, w_height, gui_width, gui_height;
-} g_gl = {0};
+
+    double x0, y0;
+    bool lbutton_down, rbutton_down;
+} gl = {0};
 
 struct BenchStats {
     double tcpu, tgpu;
@@ -98,7 +100,7 @@ void SetupTransfo(uint mode)
     transforms.view = glm::lookAt(cam.pos, cam.look, cam.up);
     transforms.projection = glm::perspective(45.0f, 1.0f, 0.1f, 1024.0f);
     transforms.inv_view = glm::inverse(glm::transpose(transforms.view));
-    g_gl.quadtree->UpdateTransforms(transforms.view, transforms.projection, cam.pos);
+    gl.quadtree->UpdateTransforms(transforms.view, transforms.projection, cam.pos);
 
 }
 
@@ -114,25 +116,25 @@ void UpdateTransfo()
 {
     transforms.view = glm::lookAt(cam.pos, cam.look, cam.up);
     transforms.inv_view = glm::inverse(glm::transpose(transforms.view));
-    g_gl.quadtree->UpdateTransforms(transforms.view, transforms.projection, cam.pos);
+    gl.quadtree->UpdateTransforms(transforms.view, transforms.projection, cam.pos);
 }
 
 void Init()
 {
 
-    g_gl.quadtree = new QuadTree();
-    g_gl.mesh = new Mesh();
-    g_gl.pause = false;
-    g_gl.clock = djgc_create();
-    g_gl.mode = TERRAIN;
+    gl.quadtree = new QuadTree();
+    gl.mesh = new Mesh();
+    gl.pause = false;
+    gl.clock = djgc_create();
+    gl.mode = TERRAIN;
     INIT_CAM_POS[TERRAIN]  = vec3(0.482968, 0.519043, 0.293363);
     INIT_CAM_LOOK[TERRAIN] = vec3(-0.138606, -0.193060, -0.033065);
     INIT_CAM_POS[MESH]  = vec3(1.062696, 1.331637, 0.531743);
     INIT_CAM_LOOK[MESH] =  vec3(0.456712, 0.599636, 0.220361);
     cout << " MESH: " << MESH << " TERRAIN " << TERRAIN << endl;
 
-    g_gl.qts = g_gl.mesh->Init(g_gl.quadtree, g_gl.mode);
-    SetupTransfo(g_gl.mode);
+    gl.qts = gl.mesh->Init(gl.quadtree, gl.mode);
+    SetupTransfo(gl.mode);
 
     //    if (g_gl.font) djgf_release(g_gl.font);
     //    g_gl.font = djgf_create(GL_TEXTURE0);
@@ -149,15 +151,15 @@ void Init()
 
 void Cleanup()
 {
-    g_gl.mesh->CleanUp();
+    gl.mesh->CleanUp();
 
 }
 
 void UpdateTime()
 {
-    g_gl.current_t = glfwGetTime() * 0.001;
-    g_gl.delta_T = g_gl.current_t - g_gl.last_t;
-    g_gl.last_t = g_gl.current_t;
+    gl.current_t = glfwGetTime() * 0.001;
+    gl.delta_T = gl.current_t - gl.last_t;
+    gl.last_t = gl.current_t;
 }
 
 void UpdateStats(double cpu, double gpu)
@@ -165,7 +167,7 @@ void UpdateStats(double cpu, double gpu)
     stat.frame++;
     stat.tcpu = cpu;
     stat.tgpu = gpu;
-    stat.sec_timer += g_gl.delta_T;
+    stat.sec_timer += gl.delta_T;
     if(stat.sec_timer < 1.0) {
         stat.total_tcpu += cpu;
         stat.total_tgpu += gpu;
@@ -188,84 +190,84 @@ void ImGuiTime(string s, float tmp){
 void RenderImgui()
 {
     ImGui::SetNextWindowPos(ImVec2(0, 0)/*, ImGuiSetCond_FirstUseEver*/);
-    ImGui::SetNextWindowSize(ImVec2(g_gl.gui_width, g_gl.gui_height)/*, ImGuiSetCond_FirstUseEver*/);
-    float max_lod = (g_gl.mode == TERRAIN) ? 100.0 : 2.0;
+    ImGui::SetNextWindowSize(ImVec2(gl.gui_width, gl.gui_height)/*, ImGuiSetCond_FirstUseEver*/);
+    float max_lod = (gl.mode == TERRAIN) ? 100.0 : 2.0;
     ImGui::Begin("Window");
     {
-        static int mode = 0, prim = 0, color_mode;
+        static int mode = 0, prim = 0;
         if (ImGui::Combo("Mode", &mode, "Terrain\0Mesh\0\0")){
-            g_gl.mode = mode;
-            g_gl.mesh->setMode(mode);
+            gl.mode = mode;
+            gl.mesh->setMode(mode);
             SetupTransfo(mode);
             cout << "mode = " << mode << endl;
         }
-        if(ImGui::Checkbox("Height displace", &g_gl.qts->displace)){
-            g_gl.quadtree->ReconfigureShaders();
+        if(ImGui::Checkbox("Height displace", &gl.qts->displace)){
+            gl.quadtree->ReconfigureShaders();
         }
-        if(ImGui::Checkbox("Render MVP", &g_gl.qts->renderMVP)){
-            g_gl.quadtree->ReconfigureShaders();
+        if(ImGui::Checkbox("Render MVP", &gl.qts->renderMVP)){
+            gl.quadtree->ReconfigureShaders();
         }
         if (ImGui::Combo("Root primitive", &prim, "Triangle\0Quad\0\0")){
             if(prim == 0) {
-                g_gl.qts->prim_type = TRIANGLES;
+                gl.qts->prim_type = TRIANGLES;
             } else if(prim == 1) {
-                g_gl.qts->prim_type = QUADS;
+                gl.qts->prim_type = QUADS;
             }
-            g_gl.quadtree->ReinitQuadTree();
+            gl.quadtree->ReinitQuadTree();
         }
-        if(ImGui::Checkbox("Uniform Subdivision", &g_gl.qts->uniform)){
-            g_gl.quadtree->ReconfigureShaders();
+        if(ImGui::Checkbox("Uniform Subdivision", &gl.qts->uniform)){
+            gl.quadtree->ReconfigureShaders();
         }
-        if(ImGui::SliderInt("Uniform Level", &g_gl.qts->uni_lvl, 0, 20)){
-            g_gl.quadtree->ReconfigureShaders();
+        if(ImGui::SliderInt("Uniform Level", &gl.qts->uni_lvl, 0, 20)){
+            gl.quadtree->ReconfigureShaders();
         }
 
-        if(ImGui::Checkbox("Morph vertices", &g_gl.qts->morph)){
-            if(g_gl.qts->cpu_lod < 2)
-                g_gl.qts->morph = false;
-            g_gl.quadtree->ReconfigureShaders();
+        if(ImGui::Checkbox("Morph vertices", &gl.qts->morph)){
+            if(gl.qts->cpu_lod < 2)
+                gl.qts->morph = false;
+            gl.quadtree->ReconfigureShaders();
         }
-        if(ImGui::SliderFloat("LoD Factor", &g_gl.qts->adaptive_factor, 0.01, max_lod)){
-            g_gl.quadtree->ReconfigureShaders();
+        if(ImGui::SliderFloat("LoD Factor", &gl.qts->adaptive_factor, 0.01, max_lod)){
+            gl.quadtree->ReconfigureShaders();
         }
-        if(ImGui::SliderInt("CPU LoD", &g_gl.qts->cpu_lod, 0, 5)){
-            if(g_gl.qts->cpu_lod < 2)
-                g_gl.qts->morph = false;
-            g_gl.quadtree->ReconfigureShaders();
-            g_gl.quadtree->ReloadPrimitives();
+        if(ImGui::SliderInt("CPU LoD", &gl.qts->cpu_lod, 0, 5)){
+            if(gl.qts->cpu_lod < 2)
+                gl.qts->morph = false;
+            gl.quadtree->ReconfigureShaders();
+            gl.quadtree->ReloadPrimitives();
         }
-        if(ImGui::Checkbox("Readback primitive count", &g_gl.qts->map_primcount)){
+        if(ImGui::Checkbox("Readback primitive count", &gl.qts->map_primcount)){
         }
-        if(g_gl.qts->map_primcount){
+        if(gl.qts->map_primcount){
             ImGui::SameLine();
-            ImGui::Value("", g_gl.quadtree->GetPrimcount());
+            ImGui::Value("", gl.quadtree->GetPrimcount());
         }
-        if(ImGui::Checkbox("Debug morphing", &g_gl.qts->debug_morph)){
-            if(g_gl.qts->debug_morph){
-                g_gl.qts_backup = *(g_gl.qts);
-                g_gl.qts->uniform = true;
-                g_gl.qts->uni_lvl = 1;
-                g_gl.qts->morph = true;
+        if(ImGui::Checkbox("Debug morphing", &gl.qts->debug_morph)){
+            if(gl.qts->debug_morph){
+                gl.qts_backup = *(gl.qts);
+                gl.qts->uniform = true;
+                gl.qts->uni_lvl = 1;
+                gl.qts->morph = true;
             } else {
-                g_gl.qts_backup.debug_morph = false;
-                *(g_gl.qts) = g_gl.qts_backup;
+                gl.qts_backup.debug_morph = false;
+                *(gl.qts) = gl.qts_backup;
             }
-            g_gl.quadtree->ReconfigureShaders();
+            gl.quadtree->ReconfigureShaders();
 
         }
         ImGui::SameLine();
-        if(ImGui::SliderFloat("K", &g_gl.qts->morph_k, 0.0, 1.0)){
-            g_gl.quadtree->ReconfigureShaders();
+        if(ImGui::SliderFloat("K", &gl.qts->morph_k, 0.0, 1.0)){
+            gl.quadtree->ReconfigureShaders();
         }
-        if (ImGui::Combo("Color mode", &g_gl.qts->color_mode, "LoD\0White Wireframe\0Primitive Highlight\0\0")){
-            g_gl.quadtree->UpdateColorMode();
+        if (ImGui::Combo("Color mode", &gl.qts->color_mode, "LoD\0White Wireframe\0Primitive Highlight\0\0")){
+            gl.quadtree->UpdateColorMode();
         }
         if(ImGui::Button("Reinitialize QuadTree")){
-            g_gl.quadtree->ReinitQuadTree();
+            gl.quadtree->ReinitQuadTree();
         }
         ImGui::SameLine();
-        if(ImGui::Checkbox("Freeze", &g_gl.qts->freeze)){
-            g_gl.quadtree->ReconfigureShaders();
+        if(ImGui::Checkbox("Freeze", &gl.qts->freeze)){
+            gl.quadtree->ReconfigureShaders();
         }
         if (ImGui::Button("Take Screenshot")) {
             static int cnt = 0;
@@ -278,7 +280,7 @@ void RenderImgui()
         }
         ImGui::Text("Frame  %07i\n", stat.frame);
         ImGui::Text("FPS    %07i\n", stat.fps);
-        ImGuiTime("deltaT", g_gl.delta_T);
+        ImGuiTime("deltaT", gl.delta_T);
         ImGui::Text("\nQuadtree Perf:");
         ImGuiTime("CPU dTime      ", stat.tcpu);
         ImGuiTime("GPU dTime      ", stat.tgpu);
@@ -303,7 +305,7 @@ void RenderImgui()
             values_gpu[offset] = stat.tgpu * 1000.0;
             values_cpu[offset] = stat.tcpu * 1000.0;
             values_fps[offset] = ImGui::GetIO().Framerate;
-            values_primcount[offset] = g_gl.quadtree->GetPrimcount();
+            values_primcount[offset] = gl.quadtree->GetPrimcount();
 
             offset = (offset+1) % IM_ARRAYSIZE(values_gpu);
             refresh_time += 1.0f/30.0f;
@@ -324,7 +326,7 @@ void RenderImgui()
         ImGui::PlotLines("FPS", values_fps, IM_ARRAYSIZE(values_fps), offset,
                          std::to_string(ImGui::GetIO().Framerate).c_str(), 0.0f, 1000, ImVec2(0,80));
 
-        if(g_gl.qts->map_primcount){
+        if(gl.qts->map_primcount){
             tmp = *std::max_element(values_primcount, values_primcount+90);
             if(tmp > max_primcount || tmp < 0.2 * max_primcount)
                 max_primcount = tmp;
@@ -343,12 +345,10 @@ void Draw()
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    g_gl.mesh->Draw(g_gl.delta_T, g_gl.qts->freeze);
-//    glClearBufferfv(GL_COLOR, 0, grey);
-//    glViewport(0, 0, g_gl.w_width, g_gl.w_height);
+    gl.mesh->Draw(gl.delta_T, gl.qts->freeze);
 
     double tcpu, tgpu;
-    g_gl.quadtree->GetTicks(tcpu, tgpu);
+    gl.quadtree->GetTicks(tcpu, tgpu);
     UpdateStats(tcpu, tgpu);
 
     RenderImgui();
@@ -412,12 +412,25 @@ void Draw()
 //    }
 //}
 
+
+
 void keyboardCallback(GLFWwindow* window, int key, int scancode, int action,
                       int modsls)
 {
     ImGuiIO& io = ImGui::GetIO();
     if (io.WantCaptureKeyboard)
         return;
+
+    if (action == GLFW_PRESS) {
+        switch (key) {
+        case GLFW_KEY_ESCAPE:
+            glfwSetWindowShouldClose(window, GL_TRUE);
+            break;
+        default: break;
+        }
+    }
+
+
 }
 
 void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
@@ -425,13 +438,64 @@ void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
     ImGuiIO& io = ImGui::GetIO();
     if (io.WantCaptureMouse)
         return;
+
+
+    if (GLFW_PRESS == action) {
+
+        gl.lbutton_down = (button == GLFW_MOUSE_BUTTON_LEFT);
+        gl.rbutton_down = (button == GLFW_MOUSE_BUTTON_RIGHT);
+        glfwGetCursorPos(window, &gl.x0, &gl.y0);
+        gl.x0 -= gl.gui_width;
+    }  else if(GLFW_RELEASE == action) {
+        gl.rbutton_down = false;
+        gl.lbutton_down = false;
+    }
+
 }
 
 void mouseMotionCallback(GLFWwindow* window, double x, double y)
 {
+
     ImGuiIO& io = ImGui::GetIO();
     if (io.WantCaptureMouse)
         return;
+    x = x - gl.gui_width;
+
+    if (gl.lbutton_down)
+    {
+        double dx, dy;
+        dx = x - gl.x0;
+        dy = y - gl.y0;
+        dx /= gl.w_width;
+        dy /= gl.w_height;
+
+        mat4 h_rotation = glm::rotate(IDENTITY, float(dx), cam.up);
+        mat4 v_rotation = glm::rotate(IDENTITY, float(dy), cam.right);
+        cam.direction = glm::normalize(mat3(h_rotation) * mat3(v_rotation) * cam.direction);
+        cam.right     = glm::normalize(mat3(h_rotation) * mat3(v_rotation) * cam.right);
+        cam.up = -glm::normalize(glm::cross(cam.direction, cam.right));
+        cam.look = cam.pos + cam.direction;
+        UpdateTransfo();
+
+        gl.x0 = x;
+        gl.y0 = y;
+    }
+
+    if (gl.rbutton_down)
+    {
+        double dx, dy;
+        dx = x - gl.x0;
+        dy = y - gl.y0;
+        dx /= gl.w_width;
+        dy /= gl.w_height;
+
+        cam.pos += -cam.right * vec3(dx) + cam.up * vec3(dy);
+        cam.look = cam.pos + cam.direction;
+        UpdateTransfo();
+
+        gl.x0 = x;
+        gl.y0 = y;
+    }
 }
 
 void mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
@@ -439,14 +503,19 @@ void mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
     ImGuiIO& io = ImGui::GetIO();
     if (io.WantCaptureMouse)
         return;
+
+    vec3 forward = vec3(yoffset * 0.05) * cam.direction ;
+    cam.pos += forward;
+    cam.look = cam.pos + cam.direction;
+    UpdateTransfo();
 }
 
 int main(int argc, char **argv)
 {
-    g_gl.w_width = 1024;
-    g_gl.w_height = 1024;
-    g_gl.gui_width = 512;
-    g_gl.gui_height = g_gl.w_height;
+    gl.w_width = 1024;
+    gl.w_height = 1024;
+    gl.gui_width = 512;
+    gl.gui_height = gl.w_height;
 
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -458,7 +527,7 @@ int main(int argc, char **argv)
 
     // Create the Window
     LOG("Loading {Window-Main}\n");
-    GLFWwindow* window = glfwCreateWindow((g_gl.w_width + g_gl.gui_width), g_gl.w_height, "Hello Imgui", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow((gl.w_width + gl.gui_width), gl.w_height, "Hello Imgui", NULL, NULL);
     if (window == NULL) {
         LOG("=> Failure <=\n");
         glfwTerminate();

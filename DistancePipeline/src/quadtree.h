@@ -72,8 +72,6 @@ struct QuadtreeSettings {
 class QuadTree
 {
 public:
-
-private:
     // ****************** MEMBER VARIABLES ****************** //
 
     const int MAX_LVL = 10;
