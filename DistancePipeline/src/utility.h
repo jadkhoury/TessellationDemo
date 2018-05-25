@@ -4,16 +4,23 @@
 #include "glm/gtc/type_ptr.hpp"
 #include <sstream>
 #include <string>
-
 #include "glad/glad.h"
-
-#define LOG(fmt, ...)  fprintf(stdout, fmt, ##__VA_ARGS__); fflush(stdout);
-////////////////////////////////////////////////////////////////////////////////
-/// OPENGL DEBUG STUFF
-///
+#include "GLFW/glfw3.h"
+#include "tiny_obj_loader.h"
 
 using std::string;
 
+
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// OPENGL DEBUG
+///
+
+#define LOG(fmt, ...)  fprintf(stdout, fmt, ##__VA_ARGS__); fflush(stdout);
+#define BUFFER_OFFSET(i) ((char *)NULL + (i))
+
+const char* shader_dir = "../src/shaders/";
 
 char *strcat2(char *dst, const char *src1, const char *src2)
 {
@@ -21,30 +28,6 @@ char *strcat2(char *dst, const char *src1, const char *src2)
 
     return strcat(dst, src2);
 }
-
-////////////////////////////////////////////////////////////////////////////////
-/// Struct to facilitate the definition and maintenance of Buffers within OpenGL
-///
-typedef struct Buffer {
-    GLuint bo; //Buffer object
-    GLsizei size; //Size in bytes, typically count * sizeof(type)
-    GLuint count; //number of elements in the buffer
-
-    void Delete()
-    {
-        if(glIsBuffer(bo))  glDeleteBuffers(1, &bo);
-        bo = 0;
-        size = 0;
-        count = 0;
-    }
-
-    void Reset()
-    {
-        Delete();
-        glCreateBuffers(1, &bo);
-    }
-
-} Buffer;
 
 static void
 debug_output_logger(
@@ -99,11 +82,6 @@ void log_debug_output(void)
     glDebugMessageCallback(&debug_output_logger, NULL);
 }
 
-
-////////////////////////////////////////////////////////////////////////////////
-///
-/// Small Utility namespace
-///
 
 namespace utility {
 
@@ -168,5 +146,51 @@ string LongToString(long l)
     if (neg) s = "-" + s;
     return s;
 }
+
+void EmptyBuffer(GLuint* buf)
+{
+    if(glIsBuffer(*buf))
+        glDeleteBuffers(1, buf);
+    *buf = 0;
+}
+
+/*
+static void loadTextureFromFile(string filename, GLuint* id, bool mipmap){
+    // load texture
+    int width;
+    int height;
+    int nb_component;
+    // set stb_image to have the same coordinates as OpenGL
+    stbi_set_flip_vertically_on_load(1);
+    unsigned char* image = stbi_load(filename.c_str(), &width,
+                                     &height, &nb_component, 0);
+    if(image == nullptr) {
+        throw(string("Failed to load texture"));
+    }
+    glGenTextures(1, id);
+    glBindTexture(GL_TEXTURE_2D, *id);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    if(mipmap > 0) {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+//        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, 0.0);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 3.0);
+    } else
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    if(nb_component == 3) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0,
+                     GL_RGB, GL_UNSIGNED_BYTE, image);
+    } else if(nb_component == 4) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,
+                     GL_RGBA, GL_UNSIGNED_BYTE, image);
+    }
+    if(mipmap>0)
+        glGenerateMipmap(GL_TEXTURE_2D);
+    // cleanup
+    glBindTexture(GL_TEXTURE_2D, 0);
+    stbi_image_free(image);
+}
+*/
 }
 #endif

@@ -44,7 +44,7 @@ private:
         const uint16_t* indices;
         int num_div = int(sqrt(num_grid_quads_)) - 1;
 
-        djg_mesh* mesh = djgm_load_plane(1.0, 1.0, num_div, num_div);
+        djg_mesh* mesh = djgm_load_plane(num_div, num_div);
 
         int num;
         // Vertices
@@ -78,67 +78,68 @@ private:
         }
     }
 
-    void loadOBJ(const string& filename){
-        string error;
+    void loadOBJ(const string& filename)
+    {
+//        string error;
 
-        vector<tinyobj::material_t> materials;
+//        vector<tinyobj::material_t> materials;
 
-        bool objLoadReturn = tinyobj::LoadObj(shapes_, materials, error,
-                                              filename.c_str());
+//        bool objLoadReturn = tinyobj::LoadObj(shapes_, materials, error,
+//                                              filename.c_str());
 
-        if(!error.empty()) {
-            cerr << error << endl;
-        }
+//        if(!error.empty()) {
+//            cerr << error << endl;
+//        }
 
-        if(!objLoadReturn) {
-            exit(EXIT_FAILURE);
-        }
+//        if(!objLoadReturn) {
+//            exit(EXIT_FAILURE);
+//        }
 
-        my_data.v.count = shapes_[0].mesh.positions.size() / 3;
-        int num_normals  = shapes_[0].mesh.normals.size() / 3;
-        int num_uv =  shapes_[0].mesh.texcoords.size() / 3;
-
-
-        my_data.t_idx.count  = shapes_[0].mesh.indices.size();
+//        my_data.v.count = shapes_[0].mesh.positions.size() / 3;
+//        int num_normals  = shapes_[0].mesh.normals.size() / 3;
+//        int num_uv =  shapes_[0].mesh.texcoords.size() / 3;
 
 
-
-        Vertex* v_array_tmp = new Vertex[my_data.v.count];
-
-        int idx = 0;
-        for (uint i = 0; i < my_data.v.count; i++) {
-            idx = i * 3;
-
-            v_array_tmp[i].p = vec4(
-                        shapes_[0].mesh.positions[idx+0],
-                        shapes_[0].mesh.positions[idx+1],
-                        shapes_[0].mesh.positions[idx+2],
-                        1.0 );
-
-            if(num_normals > 0)
-                v_array_tmp[i].n = vec4(
-                        shapes_[0].mesh.normals[idx+0],
-                        shapes_[0].mesh.normals[idx+1],
-                        shapes_[0].mesh.normals[idx+2],
-                        0.0 );
-
-            if(num_uv > 0)
-                v_array_tmp[i].uv = vec2(
-                            shapes_[0].mesh.texcoords[idx+0],
-                            shapes_[0].mesh.texcoords[idx+1] );
-        }
-
-        my_data.v_array = v_array_tmp;
-
-        my_data.t_idx_array = new uint[my_data.t_idx.count];
-        for (uint i = 0; i < my_data.t_idx.count; ++i) {
-            my_data.t_idx_array[i] = uint(shapes_[0].mesh.indices[i]);
-        }
+//        my_data.t_idx.count  = shapes_[0].mesh.indices.size();
 
 
 
-        printf("Loaded mesh '%s' (#V=%d, #I=%d, #N=%d)\n", filename.c_str(),
-               my_data.v.count/3, my_data.t_idx.count, num_normals/3);
+//        Vertex* v_array_tmp = new Vertex[my_data.v.count];
+
+//        int idx = 0;
+//        for (uint i = 0; i < my_data.v.count; i++) {
+//            idx = i * 3;
+
+//            v_array_tmp[i].p = vec4(
+//                        shapes_[0].mesh.positions[idx+0],
+//                        shapes_[0].mesh.positions[idx+1],
+//                        shapes_[0].mesh.positions[idx+2],
+//                        1.0 );
+
+//            if(num_normals > 0)
+//                v_array_tmp[i].n = vec4(
+//                        shapes_[0].mesh.normals[idx+0],
+//                        shapes_[0].mesh.normals[idx+1],
+//                        shapes_[0].mesh.normals[idx+2],
+//                        0.0 );
+
+//            if(num_uv > 0)
+//                v_array_tmp[i].uv = vec2(
+//                            shapes_[0].mesh.texcoords[idx+0],
+//                            shapes_[0].mesh.texcoords[idx+1] );
+//        }
+
+//        my_data.v_array = v_array_tmp;
+
+//        my_data.t_idx_array = new uint[my_data.t_idx.count];
+//        for (uint i = 0; i < my_data.t_idx.count; ++i) {
+//            my_data.t_idx_array[i] = uint(shapes_[0].mesh.indices[i]);
+//        }
+
+
+
+//        printf("Loaded mesh '%s' (#V=%d, #I=%d, #N=%d)\n", filename.c_str(),
+//               my_data.v.count/3, my_data.t_idx.count, num_normals/3);
 
     }
 

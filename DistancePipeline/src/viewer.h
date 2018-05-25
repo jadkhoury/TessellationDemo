@@ -25,8 +25,9 @@ private:
         if(first_frame_)
             program_ = 0;
         djg_program *djp = djgp_create();
-        djgp_push_file(djp, "viewer.glsl");
-        if (!djgp_gl_upload(djp, 450, false, true, &program_))
+        char buf[1024];
+        djgp_push_file(djp, strcat2(buf, shader_dir, "viewer.glsl"));
+        if (!djgp_to_gl(djp, 450, false, true, &program_))
         {
             djgp_release(djp);
             cout << "-----> Failure" << endl;

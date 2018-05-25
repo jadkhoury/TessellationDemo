@@ -13,6 +13,8 @@ include_directories(submodules/imgui)
 include_directories(submodules/stb)
 include_directories(submodules/dj_opengl)
 include_directories(submodules/dj_algebra)
+include_directories(submodules/tinyobjloader)
+
 
 # imgui source files
 set(IMGUI_SRC_DIR submodules/imgui)

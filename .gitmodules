@@ -16,3 +16,6 @@
 [submodule "DistancePipeline/submodules/stb"]
 	path = DistancePipeline/submodules/stb
 	url = git@github.com:nothings/stb.git
+[submodule "DistancePipeline/submodules/tinyobjloader"]
+	path = DistancePipeline/submodules/tinyobjloader
+	url = git@github.com:syoyo/tinyobjloader.git
