@@ -78,6 +78,55 @@ struct BenchStats {
     int last_frame;
 } stat = {0};
 
+#ifndef QUADTREE_H
+struct Vertex {
+    vec4 p;
+    vec4 n;
+    vec2 uv;
+    vec2 align;
+};
+
+struct BufferData {
+    GLuint bo, count;
+    GLsizei size;
+};
+
+struct BufferCombo {
+    BufferData v;
+    BufferData idx;
+    GLuint vao;
+};
+
+struct Mesh_Data
+{
+    const Vertex* v_array;
+    uint* q_idx_array;
+    uint* t_idx_array;
+
+    BufferData v, q_idx, t_idx;
+    int num_triangles, num_quads;
+};
+
+struct QuadtreeSettings {
+    int uni_lvl = 0;
+    float adaptive_factor = 0.7;
+    bool uniform = false;
+    bool triangle_mode = true;
+    int prim_type = TRIANGLES;
+    bool morph = true;
+    float morph_k = 0.5;
+    bool debug_morph = false;
+    bool map_primcount = false;
+    bool freeze = false;
+    bool displace = true;
+    int cpu_lod = 2;
+    int color_mode = LOD;
+    bool renderMVP = true;
+};
+#endif
+
+
+
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// Camera and Transforms management
@@ -155,14 +204,17 @@ void UpdateStats(double cpu, double gpu)
 ///
 
 void ImGuiTime(string s, float tmp){
-    ImGui::Text("%s:  %.5f %s\n", s.c_str(), (tmp < 1. ? tmp * 1e3 : tmp), (tmp < 1. ? "ms" : " s"));
+    ImGui::Text("%s:  %.5f %s\n",
+                s.c_str(),
+                (tmp < 1. ? tmp * 1e3 : tmp),
+                (tmp < 1. ? "ms" : " s"));
 }
 
 void RenderImgui()
 {
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(ImVec2(gl.gui_width, gl.gui_height));
-    float max_lod = (gl.mode == TERRAIN) ? 100.0 : 2.0;
+    float max_lod = (gl.mode == TERRAIN) ? 200.0 : 2.0;
 
     ImGui::Begin("Window");
     {
@@ -287,24 +339,27 @@ void RenderImgui()
         if(tmp > max_gpu || tmp < 0.2 * max_gpu)
             max_gpu = tmp;
         ImGui::PlotLines("CPU dT", values_cpu, IM_ARRAYSIZE(values_cpu), offset,
-                         std::to_string(stat.tgpu * 1000.0).c_str(), 0.0f, max_gpu, ImVec2(0,80));
+                         std::to_string(stat.tgpu * 1000.0).c_str(), 0.0f,
+                         max_gpu, ImVec2(0,80));
 
         tmp = *std::max_element(values_gpu, values_gpu+90);
         if(tmp > max_cpu || tmp < 0.2 * max_cpu)
             max_cpu = tmp;
         ImGui::PlotLines("GPU dT", values_gpu, IM_ARRAYSIZE(values_gpu), offset,
-                         std::to_string(stat.tgpu * 1000.0).c_str(), 0.0f, max_cpu, ImVec2(0,80));
+                         std::to_string(stat.tgpu * 1000.0).c_str(), 0.0f,
+                         max_cpu, ImVec2(0,80));
 
 
         ImGui::PlotLines("FPS", values_fps, IM_ARRAYSIZE(values_fps), offset,
-                         std::to_string(ImGui::GetIO().Framerate).c_str(), 0.0f, 1000, ImVec2(0,80));
+                         std::to_string(ImGui::GetIO().Framerate).c_str(), 0.0f,
+                         1000, ImVec2(0,80));
 
         if(gl.qts->map_primcount){
             tmp = *std::max_element(values_primcount, values_primcount+90);
             if(tmp > max_primcount || tmp < 0.2 * max_primcount)
                 max_primcount = tmp;
-            ImGui::PlotLines("PrimCount", values_primcount, IM_ARRAYSIZE(values_primcount), offset,
-                             "", 0.0f, max_primcount, ImVec2(0,80));
+            ImGui::PlotLines("PrimCount", values_primcount, IM_ARRAYSIZE(values_primcount),
+                             offset,"", 0.0f, max_primcount, ImVec2(0,80));
         }
     }
     ImGui::End();
@@ -454,8 +509,8 @@ void Init()
     gl.pause = false;
     gl.clock = djgc_create();
     gl.mode = TERRAIN;
-    INIT_CAM_POS[TERRAIN]  = vec3(0.482968, 0.519043, 0.293363);
-    INIT_CAM_LOOK[TERRAIN] = vec3(-0.138606, -0.193060, -0.033065);
+    INIT_CAM_POS[TERRAIN]  = vec3(4.92, 5.08, 0.58);
+    INIT_CAM_LOOK[TERRAIN] = vec3(4.25, 4.25, 0.44);
     INIT_CAM_POS[MESH]  = vec3(1.062696, 1.331637, 0.531743);
     INIT_CAM_LOOK[MESH] =  vec3(0.456712, 0.599636, 0.220361);
     cout << " MESH: " << MESH << " TERRAIN " << TERRAIN << endl;
@@ -499,7 +554,8 @@ int main(int argc, char **argv)
 
     // Create the Window
     LOG("Loading {Window-Main}\n");
-    GLFWwindow* window = glfwCreateWindow((gl.w_width + gl.gui_width), gl.w_height, "Hello Imgui", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow((gl.w_width + gl.gui_width), gl.w_height,
+                                          "Hello Imgui", NULL, NULL);
     if (window == NULL) {
         LOG("=> Failure <=\n");
         glfwTerminate();

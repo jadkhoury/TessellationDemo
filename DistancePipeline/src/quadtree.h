@@ -37,18 +37,19 @@ struct BufferData {
 };
 
 struct BufferCombo {
-    BufferData v, idx;
+    BufferData v;
+    BufferData idx;
     GLuint vao;
 };
 
 struct Mesh_Data
 {
-    const Vertex* v_array;
+    Vertex* v_array;
     uint* q_idx_array;
     uint* t_idx_array;
 
     BufferData v, q_idx, t_idx;
-    int num_triangles, num_quads;
+    int triangle_count, quad_count;
 };
 
 struct QuadtreeSettings {
@@ -133,8 +134,8 @@ public:
         utility::SetUniformBool(compute_program_, "uniform_subdiv", qts.uniform);
         utility::SetUniformInt(compute_program_, "uniform_level", qts.uni_lvl);
         utility::SetUniformFloat(compute_program_, "adaptive_factor", qts.adaptive_factor);
-        utility::SetUniformInt(compute_program_, "num_mesh_tri", mesh_->num_triangles);
-        utility::SetUniformInt(compute_program_, "num_mesh_quad", mesh_->num_quads);
+        utility::SetUniformInt(compute_program_, "num_mesh_tri", mesh_->triangle_count);
+        utility::SetUniformInt(compute_program_, "num_mesh_quad", mesh_->quad_count);
 
 
         if(qts.prim_type == QUADS){
@@ -153,8 +154,8 @@ public:
         utility::SetUniformBool(cull_program_, "uniform_subdiv", qts.uniform);
         utility::SetUniformInt(cull_program_, "uniform_level", qts.uni_lvl);
         utility::SetUniformFloat(cull_program_, "adaptive_factor", qts.adaptive_factor);
-        utility::SetUniformInt(cull_program_, "num_mesh_tri", mesh_->num_triangles);
-        utility::SetUniformInt(cull_program_, "num_mesh_quad", mesh_->num_quads);
+        utility::SetUniformInt(cull_program_, "num_mesh_tri", mesh_->triangle_count);
+        utility::SetUniformInt(cull_program_, "num_mesh_quad", mesh_->quad_count);
 
         if(qts.prim_type == QUADS){
             utility::SetUniformInt(cull_program_, "prim_type", QUADS);
@@ -342,11 +343,11 @@ public:
                              (const void*)(mesh_->t_idx_array),
                              0);
 
-        mesh_->num_quads = mesh_->q_idx.count / 4;
-        mesh_->num_triangles = mesh_->t_idx.count / 3;
+        mesh_->quad_count = mesh_->q_idx.count / 4;
+        mesh_->triangle_count = mesh_->t_idx.count / 3;
 
-        cout << "Mesh has " << mesh_->num_quads << " quads, "
-             << mesh_->num_triangles << " triangles " << endl;
+        cout << "Mesh has " << mesh_->quad_count << " quads, "
+             << mesh_->triangle_count << " triangles " << endl;
 
         return (glGetError() == GL_NO_ERROR);
     }
@@ -357,11 +358,11 @@ public:
     {
         nodes_array_ = new uvec4[MAX_NUM_NODES];
         if(qts.prim_type == TRIANGLES) {
-            for (int ctr = 0; ctr < mesh_->num_triangles; ++ctr) {
+            for (int ctr = 0; ctr < mesh_->triangle_count; ++ctr) {
                 nodes_array_[ctr] = uvec4(0, 0x1, uint(ctr*3), 0);
             }
         } else if (qts.prim_type == QUADS) {
-            for (int ctr = 0; ctr < mesh_->num_quads; ++ctr) {
+            for (int ctr = 0; ctr < mesh_->quad_count; ++ctr) {
                 nodes_array_[ctr] = uvec4(0, 0x1, uint(ctr*4), 0);
             }
         }
