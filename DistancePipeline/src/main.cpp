@@ -1,18 +1,6 @@
-////////////////////////////////////////////////////////////////////////
-//
-// Complete program (this compiles): use the program API
-//
-// g++ -Wall -I ..  -I../../common/ -I../../common/imgui/ -std=c++0x program.cpp ../../common/gl_core_4_5.c ../../common/imgui/imgui*.cpp -o program -lm -lSDL2 -lGL -lpthread -ldl
-//
-
 
 // LIBRARIES
-#include <cassert>
-#include <cstdlib>
-#include <cstdio>
 #include <iostream>
-#include <vector>
-#include <stdexcept>
 #include <algorithm>    // std::min_element, std::max_element
 
 #include "glad/glad.h"
@@ -43,6 +31,11 @@ static const GLfloat one = 1.0;
 static const mat4 IDENTITY = mat4(1.0);
 static vec3 INIT_CAM_POS[2];
 static vec3 INIT_CAM_LOOK[2];
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// Struct definitions
+///
 
 struct CameraManager {
     vec3 pos;
@@ -85,6 +78,11 @@ struct BenchStats {
     int last_frame;
 } stat = {0};
 
+////////////////////////////////////////////////////////////////////////////////
+///
+/// Camera and Transforms management
+///
+
 void SetupTransfo(uint mode)
 {
     cam.pos = INIT_CAM_POS[mode];
@@ -119,41 +117,10 @@ void UpdateTransfo()
     gl.quadtree->UpdateTransforms(transforms.view, transforms.projection, cam.pos);
 }
 
-void Init()
-{
-
-    gl.quadtree = new QuadTree();
-    gl.mesh = new Mesh();
-    gl.pause = false;
-    gl.clock = djgc_create();
-    gl.mode = TERRAIN;
-    INIT_CAM_POS[TERRAIN]  = vec3(0.482968, 0.519043, 0.293363);
-    INIT_CAM_LOOK[TERRAIN] = vec3(-0.138606, -0.193060, -0.033065);
-    INIT_CAM_POS[MESH]  = vec3(1.062696, 1.331637, 0.531743);
-    INIT_CAM_LOOK[MESH] =  vec3(0.456712, 0.599636, 0.220361);
-    cout << " MESH: " << MESH << " TERRAIN " << TERRAIN << endl;
-
-    gl.qts = gl.mesh->Init(gl.quadtree, gl.mode);
-    SetupTransfo(gl.mode);
-
-    //    if (g_gl.font) djgf_release(g_gl.font);
-    //    g_gl.font = djgf_create(GL_TEXTURE0);
-
-    stat.avg_tcpu = 0;
-    stat.avg_tgpu = 0;
-    stat.frame = 0;
-    stat.total_tcpu = 0;
-    stat.total_tgpu = 0;
-    stat.sec_timer = 0;
-    stat.fps = 0;
-    stat.last_frame = 0;
-}
-
-void Cleanup()
-{
-    gl.mesh->CleanUp();
-
-}
+////////////////////////////////////////////////////////////////////////////////
+///
+/// Stats and Benching
+///
 
 void UpdateTime()
 {
@@ -182,6 +149,10 @@ void UpdateStats(double cpu, double gpu)
     }
 }
 
+////////////////////////////////////////////////////////////////////////////////
+///
+/// GUI Render
+///
 
 void ImGuiTime(string s, float tmp){
     ImGui::Text("%s:  %.5f %s\n", s.c_str(), (tmp < 1. ? tmp * 1e3 : tmp), (tmp < 1. ? "ms" : " s"));
@@ -189,9 +160,10 @@ void ImGuiTime(string s, float tmp){
 
 void RenderImgui()
 {
-    ImGui::SetNextWindowPos(ImVec2(0, 0)/*, ImGuiSetCond_FirstUseEver*/);
-    ImGui::SetNextWindowSize(ImVec2(gl.gui_width, gl.gui_height)/*, ImGuiSetCond_FirstUseEver*/);
+    ImGui::SetNextWindowPos(ImVec2(0, 0));
+    ImGui::SetNextWindowSize(ImVec2(gl.gui_width, gl.gui_height));
     float max_lod = (gl.mode == TERRAIN) ? 100.0 : 2.0;
+
     ImGui::Begin("Window");
     {
         static int mode = 0, prim = 0;
@@ -227,7 +199,8 @@ void RenderImgui()
                 gl.qts->morph = false;
             gl.quadtree->ReconfigureShaders();
         }
-        if(ImGui::SliderFloat("LoD Factor", &gl.qts->adaptive_factor, 0.01, max_lod)){
+        if(ImGui::SliderFloat("LoD Factor", &gl.qts->adaptive_factor,
+                              0.01, max_lod)){
             gl.quadtree->ReconfigureShaders();
         }
         if(ImGui::SliderInt("CPU LoD", &gl.qts->cpu_lod, 0, 5)){
@@ -236,8 +209,7 @@ void RenderImgui()
             gl.quadtree->ReconfigureShaders();
             gl.quadtree->ReloadPrimitives();
         }
-        if(ImGui::Checkbox("Readback primitive count", &gl.qts->map_primcount)){
-        }
+        ImGui::Checkbox("Readback primitive count", &gl.qts->map_primcount);
         if(gl.qts->map_primcount){
             ImGui::SameLine();
             ImGui::Value("", gl.quadtree->GetPrimcount());
@@ -259,7 +231,8 @@ void RenderImgui()
         if(ImGui::SliderFloat("K", &gl.qts->morph_k, 0.0, 1.0)){
             gl.quadtree->ReconfigureShaders();
         }
-        if (ImGui::Combo("Color mode", &gl.qts->color_mode, "LoD\0White Wireframe\0Primitive Highlight\0\0")){
+        if (ImGui::Combo("Color mode", &gl.qts->color_mode,
+                         "LoD\0White Wireframe\0Primitive Highlight\0\0")){
             gl.quadtree->UpdateColorMode();
         }
         if(ImGui::Button("Reinitialize QuadTree")){
@@ -339,79 +312,10 @@ void RenderImgui()
     ImGui::Render();
 }
 
-void Draw()
-{
-    UpdateTime();
-    glClearColor(0.0, 0.0, 0.0, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    gl.mesh->Draw(gl.delta_T, gl.qts->freeze);
-
-    double tcpu, tgpu;
-    gl.quadtree->GetTicks(tcpu, tgpu);
-    UpdateStats(tcpu, tgpu);
-
-    RenderImgui();
-
-}
-
-//void HandleEvent(const SDL_Event *event)
-//{
-//    const static float mouse_factor = 8e-4;
-//    ImGuiIO& io = ImGui::GetIO();
-//    if (io.WantCaptureKeyboard || io.WantCaptureMouse)
-//        return;
-//    //Event handling
-//    switch (event->type)
-//    {
-//    case SDL_KEYDOWN:
-//        switch(event->key.keysym.sym)
-//        {
-//        case SDLK_r:
-//            g_gl.quadtree->ReloadShaders();
-//            break;
-//        case SDLK_u:
-//            g_gl.quadtree->ReconfigureShaders();
-//        case SDLK_p:
-//            PrintCamStuff();
-//            break;
-//        case SDLK_SPACE:
-//            g_gl.pause = !g_gl.pause;
-//            break;
-//        default:
-//            break;
-//        }
-//    case SDL_MOUSEMOTION: {
-//        int x, y;
-//        unsigned int button= SDL_GetRelativeMouseState(&x, &y);
-//        //const Uint8 *state = SDL_GetKeyboardState(NULL);
-
-//        if (button & SDL_BUTTON(SDL_BUTTON_LEFT)) {
-//            mat4 h_rotation = glm::rotate(IDENTITY, float(x * mouse_factor), cam.up);
-//            mat4 v_rotation = glm::rotate(IDENTITY, float(y * mouse_factor), cam.right);
-//            cam.direction = glm::normalize(mat3(h_rotation) * mat3(v_rotation) * cam.direction);
-//            cam.right     = glm::normalize(mat3(h_rotation) * mat3(v_rotation) * cam.right);
-//            cam.up = -glm::normalize(glm::cross(cam.direction, cam.right));
-//            cam.look = cam.pos + cam.direction;
-//            UpdateTransfo();
-//        } else if (button & SDL_BUTTON(SDL_BUTTON_RIGHT)) {
-//            cam.pos += -cam.right * vec3(x * mouse_factor) + cam.up * vec3(y * mouse_factor);
-//            cam.look = cam.pos + cam.direction;
-//            UpdateTransfo();
-
-//        }
-//    } break;
-//    case SDL_MOUSEWHEEL: {
-//        vec3 forward = vec3(event->wheel.y * 0.05) * cam.direction ;
-//        cam.pos += forward;
-//        cam.look = cam.pos + cam.direction;
-//        UpdateTransfo();
-//    } break;
-//    default:
-//        break;
-//    }
-//}
-
+////////////////////////////////////////////////////////////////////////////////
+///
+/// Input Callbacks
+///
 
 
 void keyboardCallback(GLFWwindow* window, int key, int scancode, int action,
@@ -426,11 +330,22 @@ void keyboardCallback(GLFWwindow* window, int key, int scancode, int action,
         case GLFW_KEY_ESCAPE:
             glfwSetWindowShouldClose(window, GL_TRUE);
             break;
-        default: break;
+        case GLFW_KEY_R:
+            gl.quadtree->ReloadShaders();
+            break;
+        case GLFW_KEY_U:
+            gl.quadtree->ReconfigureShaders();
+            break;
+        case GLFW_KEY_P:
+            PrintCamStuff();
+            break;
+        case GLFW_KEY_SPACE:
+            gl.pause = !gl.pause;
+            break;
+        default:
+            break;
         }
     }
-
-
 }
 
 void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
@@ -508,6 +423,63 @@ void mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
     cam.pos += forward;
     cam.look = cam.pos + cam.direction;
     UpdateTransfo();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// The Main Program
+///
+
+void Draw()
+{
+    UpdateTime();
+    glClearColor(0.0, 0.0, 0.0, 1.0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    gl.mesh->Draw(gl.delta_T, gl.qts->freeze);
+
+    double tcpu, tgpu;
+    gl.quadtree->GetTicks(tcpu, tgpu);
+    UpdateStats(tcpu, tgpu);
+
+    RenderImgui();
+
+}
+
+void Init()
+{
+
+    gl.quadtree = new QuadTree();
+    gl.mesh = new Mesh();
+    gl.pause = false;
+    gl.clock = djgc_create();
+    gl.mode = TERRAIN;
+    INIT_CAM_POS[TERRAIN]  = vec3(0.482968, 0.519043, 0.293363);
+    INIT_CAM_LOOK[TERRAIN] = vec3(-0.138606, -0.193060, -0.033065);
+    INIT_CAM_POS[MESH]  = vec3(1.062696, 1.331637, 0.531743);
+    INIT_CAM_LOOK[MESH] =  vec3(0.456712, 0.599636, 0.220361);
+    cout << " MESH: " << MESH << " TERRAIN " << TERRAIN << endl;
+
+    gl.qts = gl.mesh->Init(gl.quadtree, gl.mode);
+    SetupTransfo(gl.mode);
+
+    //    if (g_gl.font) djgf_release(g_gl.font);
+    //    g_gl.font = djgf_create(GL_TEXTURE0);
+
+    stat.avg_tcpu = 0;
+    stat.avg_tgpu = 0;
+    stat.frame = 0;
+    stat.total_tcpu = 0;
+    stat.total_tgpu = 0;
+    stat.sec_timer = 0;
+    stat.fps = 0;
+    stat.last_frame = 0;
+}
+
+void Cleanup()
+{
+    gl.mesh->CleanUp();
+
 }
 
 int main(int argc, char **argv)

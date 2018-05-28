@@ -152,7 +152,6 @@ public:
         num_grid_quads_ = roundUpToSq(num_grid_quads_);
         quadtree_ = qt;
         mode_ = mode;
-        QuadtreeSettings qtest = qt->qts;
 
 
 

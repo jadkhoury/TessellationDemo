@@ -66,12 +66,13 @@ struct QuadtreeSettings {
     int cpu_lod = 2;
     int color_mode = LOD;
     bool renderMVP = true;
-} qts;
+};
 
 
 class QuadTree
 {
 public:
+
     // ****************** MEMBER VARIABLES ****************** //
 
     const int MAX_LVL = 10;
@@ -113,6 +114,8 @@ public:
     mat4 MVP_;
     vec3 cam_pos;
     bool transfo_updated;
+
+    QuadtreeSettings qts;
 
 
 
