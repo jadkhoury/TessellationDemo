@@ -23,7 +23,6 @@ using glm::mat4;
 using namespace std;
 using std::vector;
 
-
 struct Vertex {
     vec4 p;
     vec4 n;
@@ -69,11 +68,9 @@ struct QuadtreeSettings {
     bool renderMVP = true;
 };
 
-
 class QuadTree
 {
 public:
-
     // ****************** MEMBER VARIABLES ****************** //
 
     const int MAX_LVL = 10;
@@ -116,10 +113,7 @@ public:
     vec3 cam_pos;
     bool transfo_updated;
 
-    QuadtreeSettings qts;
-
-
-
+    QuadtreeSettings settings;
 
     // ****************** MEMBER FUNCTIONS ****************** //
     // ---- math functions ---- //
@@ -131,17 +125,17 @@ public:
     // ---- program functions ---- //
     void configureComputeProgram()
     {
-        utility::SetUniformBool(compute_program_, "uniform_subdiv", qts.uniform);
-        utility::SetUniformInt(compute_program_, "uniform_level", qts.uni_lvl);
-        utility::SetUniformFloat(compute_program_, "adaptive_factor", qts.adaptive_factor);
+        utility::SetUniformBool(compute_program_, "uniform_subdiv", settings.uniform);
+        utility::SetUniformInt(compute_program_, "uniform_level", settings.uni_lvl);
+        utility::SetUniformFloat(compute_program_, "adaptive_factor", settings.adaptive_factor);
         utility::SetUniformInt(compute_program_, "num_mesh_tri", mesh_->triangle_count);
         utility::SetUniformInt(compute_program_, "num_mesh_quad", mesh_->quad_count);
 
 
-        if(qts.prim_type == QUADS){
+        if(settings.prim_type == QUADS){
             utility::SetUniformInt(compute_program_, "prim_type", QUADS);
             utility::SetUniformVec3(compute_program_, "prim_centroid", QUAD_CENTROID);
-        } else if (qts.prim_type == TRIANGLES) {
+        } else if (settings.prim_type == TRIANGLES) {
 
             utility::SetUniformInt(compute_program_, "prim_type", TRIANGLES);
             utility::SetUniformVec3(compute_program_, "prim_centroid", TRI_CENTROID);
@@ -151,16 +145,16 @@ public:
     void configureCullProgram()
     {
 
-        utility::SetUniformBool(cull_program_, "uniform_subdiv", qts.uniform);
-        utility::SetUniformInt(cull_program_, "uniform_level", qts.uni_lvl);
-        utility::SetUniformFloat(cull_program_, "adaptive_factor", qts.adaptive_factor);
+        utility::SetUniformBool(cull_program_, "uniform_subdiv", settings.uniform);
+        utility::SetUniformInt(cull_program_, "uniform_level", settings.uni_lvl);
+        utility::SetUniformFloat(cull_program_, "adaptive_factor", settings.adaptive_factor);
         utility::SetUniformInt(cull_program_, "num_mesh_tri", mesh_->triangle_count);
         utility::SetUniformInt(cull_program_, "num_mesh_quad", mesh_->quad_count);
 
-        if(qts.prim_type == QUADS){
+        if(settings.prim_type == QUADS){
             utility::SetUniformInt(cull_program_, "prim_type", QUADS);
             utility::SetUniformVec3(cull_program_, "prim_centroid", QUAD_CENTROID);
-        } else if (qts.prim_type == TRIANGLES) {
+        } else if (settings.prim_type == TRIANGLES) {
 
             utility::SetUniformInt(cull_program_, "prim_type", TRIANGLES);
             utility::SetUniformVec3(cull_program_, "prim_centroid", TRI_CENTROID);
@@ -169,19 +163,19 @@ public:
 
     void configureRenderProgram()
     {
-        utility::SetUniformBool(render_program_, "render_MVP", qts.renderMVP);
-        utility::SetUniformFloat(render_program_, "adaptive_factor", qts.adaptive_factor);
-        utility::SetUniformBool(render_program_, "morph", qts.morph);
-        utility::SetUniformBool(render_program_, "debug_morph", qts.debug_morph);
-        utility::SetUniformFloat(render_program_, "morph_k", qts.morph_k);
-        utility::SetUniformBool(render_program_, "heightmap", qts.displace);
-        utility::SetUniformInt(render_program_, "cpu_lod", qts.cpu_lod);
-        utility::SetUniformInt(render_program_, "color_mode", qts.color_mode);
+        utility::SetUniformBool(render_program_, "render_MVP", settings.renderMVP);
+        utility::SetUniformFloat(render_program_, "adaptive_factor", settings.adaptive_factor);
+        utility::SetUniformBool(render_program_, "morph", settings.morph);
+        utility::SetUniformBool(render_program_, "debug_morph", settings.debug_morph);
+        utility::SetUniformFloat(render_program_, "morph_k", settings.morph_k);
+        utility::SetUniformBool(render_program_, "heightmap", settings.displace);
+        utility::SetUniformInt(render_program_, "cpu_lod", settings.cpu_lod);
+        utility::SetUniformInt(render_program_, "color_mode", settings.color_mode);
 
-        if(qts.prim_type == QUADS){
+        if(settings.prim_type == QUADS){
             utility::SetUniformInt(render_program_, "prim_type", QUADS);
             utility::SetUniformVec3(render_program_, "prim_centroid", QUAD_CENTROID);
-        } else if (qts.prim_type == TRIANGLES) {
+        } else if (settings.prim_type == TRIANGLES) {
             utility::SetUniformInt(render_program_, "prim_type", TRIANGLES);
             utility::SetUniformVec3(render_program_, "prim_centroid", TRI_CENTROID);
         }
@@ -357,11 +351,11 @@ public:
     bool loadNodesBuffers()
     {
         nodes_array_ = new uvec4[MAX_NUM_NODES];
-        if(qts.prim_type == TRIANGLES) {
+        if(settings.prim_type == TRIANGLES) {
             for (int ctr = 0; ctr < mesh_->triangle_count; ++ctr) {
                 nodes_array_[ctr] = uvec4(0, 0x1, uint(ctr*3), 0);
             }
-        } else if (qts.prim_type == QUADS) {
+        } else if (settings.prim_type == QUADS) {
             for (int ctr = 0; ctr < mesh_->quad_count; ++ctr) {
                 nodes_array_[ctr] = uvec4(0, 0x1, uint(ctr*4), 0);
             }
@@ -551,11 +545,7 @@ public:
         write_ssbo_ = nodes_bo_[1 - read_from_idx_];
     }
 
-
-
-
-public:
-    QuadtreeSettings* Init(Mesh_Data* m_data)
+    void Init(Mesh_Data* m_data)
     {
         cout << "-> QUADTREE" << endl;
         workgroup_size_ = vec3(256, 1, 1);
@@ -569,8 +559,8 @@ public:
             throw std::runtime_error("shader creation error");
 
         loadMeshBuffers();
-        loadQuadLeafBuffers(qts.cpu_lod);
-        loadTriangleLeafBuffers(qts.cpu_lod);
+        loadQuadLeafBuffers(settings.cpu_lod);
+        loadTriangleLeafBuffers(settings.cpu_lod);
         loadQuadLeafVao();
         loadTriangleLeafVao();
         loadNodesBuffers();
@@ -582,8 +572,6 @@ public:
         glUseProgram(0);
 
         cout << "-> END QUADTREE" << endl << endl;
-
-        return &qts;
     }
 
     void Draw(float deltaT)
@@ -593,7 +581,7 @@ public:
             transfo_updated = false;
         }
 
-        if(!qts.freeze)
+        if(!settings.freeze)
         {
             // ** Compute Pass ** //
             djgc_start(clock);
@@ -606,7 +594,7 @@ public:
                 //pingpong();
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, read_ssbo_);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, write_ssbo_);
-                commands_->BindForCompute(2, 3, qts.prim_type);
+                commands_->BindForCompute(2, 3, settings.prim_type);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, mesh_->v.bo);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, mesh_->q_idx.bo);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, mesh_->t_idx.bo);
@@ -617,7 +605,7 @@ public:
             }
             glUseProgram(0);
 
-            if(qts.map_primcount){
+            if(settings.map_primcount){
                 num_prim_ = commands_->getPrimCount();
             }
 
@@ -627,7 +615,7 @@ public:
                 pingpong();
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, read_ssbo_);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, write_ssbo_);
-                commands_->BindForCull(2, 3, qts.prim_type);
+                commands_->BindForCull(2, 3, settings.prim_type);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, mesh_->v.bo);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, mesh_->q_idx.bo);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, mesh_->t_idx.bo);
@@ -651,12 +639,12 @@ public:
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, mesh_->v.bo);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, mesh_->q_idx.bo);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, mesh_->t_idx.bo);
-            offset_ = commands_->BindForRender(qts.prim_type);
-            if(qts.prim_type == QUADS) {
+            offset_ = commands_->BindForRender(settings.prim_type);
+            if(settings.prim_type == QUADS) {
                 glBindVertexArray(quad_leaf.vao);
                 glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_SHORT, BUFFER_OFFSET(offset_));
 
-            } else if(qts.prim_type == TRIANGLES){
+            } else if(settings.prim_type == TRIANGLES){
                 glBindVertexArray(triangle_leaf.vao);
                 glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, BUFFER_OFFSET(offset_));
             }
@@ -729,20 +717,19 @@ public:
 
     void ReloadPrimitives()
     {
-        loadQuadLeafBuffers(qts.cpu_lod);
-        loadTriangleLeafBuffers(qts.cpu_lod);
+        loadQuadLeafBuffers(settings.cpu_lod);
+        loadTriangleLeafBuffers(settings.cpu_lod);
         loadQuadLeafVao();
         loadTriangleLeafVao();
         commands_->ReinitializeCommands(quad_leaf.idx.count, triangle_leaf.idx.count, num_workgroup_);
         loadNodesBuffers();
         configureRenderProgram();
-
     }
 
 
     void SetPrimType(int i)
     {
-        qts.prim_type = i;
+        settings.prim_type = i;
         ReinitQuadTree();
     }
 
@@ -789,7 +776,7 @@ public:
     }
     void UpdateColorMode()
     {
-        utility::SetUniformInt(render_program_, "color_mode", qts.color_mode);
+        utility::SetUniformInt(render_program_, "color_mode", settings.color_mode);
     }
 
     void UploadTransforms()
@@ -810,7 +797,7 @@ public:
         utility::SetUniformMat4(render_program_, "V", view_mat_);
         utility::SetUniformMat4(render_program_, "P", projection_mat_);
         utility::SetUniformMat4(render_program_, "MVP", MVP_);
-        if(!qts.freeze)
+        if(!settings.freeze)
             utility::SetUniformVec3(render_program_, "cam_pos", cam_pos);
     }
 };

@@ -55,7 +55,6 @@ struct OpenGLManager {
     QuadTree* quadtree;
     Mesh* mesh;
     djg_clock* clock;
-    QuadtreeSettings* qts;
     QuadtreeSettings qts_backup;
     uint mode;
 
@@ -225,65 +224,65 @@ void RenderImgui()
             SetupTransfo(mode);
             cout << "mode = " << mode << endl;
         }
-        if(ImGui::Checkbox("Height displace", &gl.qts->displace)){
+        if(ImGui::Checkbox("Height displace", &gl.quadtree->settings.displace)){
             gl.quadtree->ReconfigureShaders();
         }
-        if(ImGui::Checkbox("Render MVP", &gl.qts->renderMVP)){
+        if(ImGui::Checkbox("Render MVP", &gl.quadtree->settings.renderMVP)){
             gl.quadtree->ReconfigureShaders();
         }
         if (ImGui::Combo("Root primitive", &prim, "Triangle\0Quad\0\0")){
             if(prim == 0) {
-                gl.qts->prim_type = TRIANGLES;
+                gl.quadtree->settings.prim_type = TRIANGLES;
             } else if(prim == 1) {
-                gl.qts->prim_type = QUADS;
+                gl.quadtree->settings.prim_type = QUADS;
             }
             gl.quadtree->ReinitQuadTree();
         }
-        if(ImGui::Checkbox("Uniform Subdivision", &gl.qts->uniform)){
+        if(ImGui::Checkbox("Uniform Subdivision", &gl.quadtree->settings.uniform)){
             gl.quadtree->ReconfigureShaders();
         }
-        if(ImGui::SliderInt("Uniform Level", &gl.qts->uni_lvl, 0, 20)){
+        if(ImGui::SliderInt("Uniform Level", &gl.quadtree->settings.uni_lvl, 0, 20)){
             gl.quadtree->ReconfigureShaders();
         }
 
-        if(ImGui::Checkbox("Morph vertices", &gl.qts->morph)){
-            if(gl.qts->cpu_lod < 2)
-                gl.qts->morph = false;
+        if(ImGui::Checkbox("Morph vertices", &gl.quadtree->settings.morph)){
+            if(gl.quadtree->settings.cpu_lod < 2)
+                gl.quadtree->settings.morph = false;
             gl.quadtree->ReconfigureShaders();
         }
-        if(ImGui::SliderFloat("LoD Factor", &gl.qts->adaptive_factor,
+        if(ImGui::SliderFloat("LoD Factor", &gl.quadtree->settings.adaptive_factor,
                               0.01, max_lod)){
             gl.quadtree->ReconfigureShaders();
         }
-        if(ImGui::SliderInt("CPU LoD", &gl.qts->cpu_lod, 0, 5)){
-            if(gl.qts->cpu_lod < 2)
-                gl.qts->morph = false;
+        if(ImGui::SliderInt("CPU LoD", &gl.quadtree->settings.cpu_lod, 0, 5)){
+            if(gl.quadtree->settings.cpu_lod < 2)
+                gl.quadtree->settings.morph = false;
             gl.quadtree->ReconfigureShaders();
             gl.quadtree->ReloadPrimitives();
         }
-        ImGui::Checkbox("Readback primitive count", &gl.qts->map_primcount);
-        if(gl.qts->map_primcount){
+        ImGui::Checkbox("Readback primitive count", &gl.quadtree->settings.map_primcount);
+        if(gl.quadtree->settings.map_primcount){
             ImGui::SameLine();
             ImGui::Value("", gl.quadtree->GetPrimcount());
         }
-        if(ImGui::Checkbox("Debug morphing", &gl.qts->debug_morph)){
-            if(gl.qts->debug_morph){
-                gl.qts_backup = *(gl.qts);
-                gl.qts->uniform = true;
-                gl.qts->uni_lvl = 1;
-                gl.qts->morph = true;
+        if(ImGui::Checkbox("Debug morphing", &gl.quadtree->settings.debug_morph)){
+            if(gl.quadtree->settings.debug_morph){
+                gl.qts_backup = gl.quadtree->settings;
+                gl.quadtree->settings.uniform = true;
+                gl.quadtree->settings.uni_lvl = 1;
+                gl.quadtree->settings.morph = true;
             } else {
                 gl.qts_backup.debug_morph = false;
-                *(gl.qts) = gl.qts_backup;
+                gl.quadtree->settings = gl.qts_backup;
             }
             gl.quadtree->ReconfigureShaders();
 
         }
         ImGui::SameLine();
-        if(ImGui::SliderFloat("K", &gl.qts->morph_k, 0.0, 1.0)){
+        if(ImGui::SliderFloat("K", &gl.quadtree->settings.morph_k, 0.0, 1.0)){
             gl.quadtree->ReconfigureShaders();
         }
-        if (ImGui::Combo("Color mode", &gl.qts->color_mode,
+        if (ImGui::Combo("Color mode", &gl.quadtree->settings.color_mode,
                          "LoD\0White Wireframe\0Primitive Highlight\0\0")){
             gl.quadtree->UpdateColorMode();
         }
@@ -291,7 +290,7 @@ void RenderImgui()
             gl.quadtree->ReinitQuadTree();
         }
         ImGui::SameLine();
-        if(ImGui::Checkbox("Freeze", &gl.qts->freeze)){
+        if(ImGui::Checkbox("Freeze", &gl.quadtree->settings.freeze)){
             gl.quadtree->ReconfigureShaders();
         }
         if (ImGui::Button("Take Screenshot")) {
@@ -354,7 +353,7 @@ void RenderImgui()
                          std::to_string(ImGui::GetIO().Framerate).c_str(), 0.0f,
                          1000, ImVec2(0,80));
 
-        if(gl.qts->map_primcount){
+        if(gl.quadtree->settings.map_primcount){
             tmp = *std::max_element(values_primcount, values_primcount+90);
             if(tmp > max_primcount || tmp < 0.2 * max_primcount)
                 max_primcount = tmp;
@@ -491,14 +490,13 @@ void Draw()
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    gl.mesh->Draw(gl.delta_T, gl.qts->freeze);
+    gl.mesh->Draw(gl.delta_T, gl.quadtree->settings.freeze);
 
     double tcpu, tgpu;
     gl.quadtree->GetTicks(tcpu, tgpu);
     UpdateStats(tcpu, tgpu);
 
     RenderImgui();
-
 }
 
 void Init()
@@ -515,11 +513,8 @@ void Init()
     INIT_CAM_LOOK[MESH] =  vec3(0.456712, 0.599636, 0.220361);
     cout << " MESH: " << MESH << " TERRAIN " << TERRAIN << endl;
 
-    gl.qts = gl.mesh->Init(gl.quadtree, gl.mode);
+    gl.quadtree = gl.mesh->Init(gl.mode);
     SetupTransfo(gl.mode);
-
-    //    if (g_gl.font) djgf_release(g_gl.font);
-    //    g_gl.font = djgf_create(GL_TEXTURE0);
 
     stat.avg_tcpu = 0;
     stat.avg_tgpu = 0;

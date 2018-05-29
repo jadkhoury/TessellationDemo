@@ -8,11 +8,6 @@
 #include <fstream>
 #include <glm/gtx/component_wise.hpp>
 
-//#include "obj_loader.h"
-
-// #define TINYOBJLOADER_IMPLEMENTATION
-// #include "tiny_obj_loader.h"
-
 using glm::vec2;
 using glm::vec3;
 using glm::vec4;
@@ -79,7 +74,6 @@ private:
     Mesh_Data my_data;
     QuadTree* quadtree_;
     uint mode_;
-    QuadtreeSettings* qts;
 
     std::vector<tinyobj::shape_t> shapes_;
 
@@ -103,21 +97,17 @@ private:
         my_data.v_array = vertices;
         my_data.v.count = 4;
 
-        uint quad_indices[4] = {0,2,3,1};
-        my_data.q_idx.count = 4;
+        std::vector<uint> quad_indices = {0,2,3,1};
         my_data.q_idx_array = new uint[4];
+        std::copy(quad_indices.begin(), quad_indices.end(), my_data.q_idx_array);
+        my_data.q_idx.count = 4;
         my_data.quad_count = 1;
-        for (int i  = 0; i < 4; ++i) {
-            my_data.q_idx_array[i] = quad_indices[i];
-        }
 
-        uint triangle_indices[6] = {0,2,1,1,2,3};
+        std::vector<uint> triangle_indices = {0,2,1,1,2,3};
+        my_data.t_idx_array = new uint[6];
+        std::copy(triangle_indices.begin(), triangle_indices.end(), my_data.t_idx_array);
         my_data.t_idx.count = 6;
         my_data.triangle_count = 2;
-        my_data.t_idx_array = new uint[6];
-        for (int i  = 0; i < 6; ++i) {
-            my_data.t_idx_array[i] = triangle_indices[i];
-        }
     }
 
     static char const * sgets( char * s, int size, char ** stream ) {
@@ -138,15 +128,14 @@ private:
         return 0;
     }
 
-    bool ParseObj(string file_path, int axis, Mesh_Data* mesh_data)
+    bool ParseObj(string file_path, int axis, Mesh_Data& mesh_data)
     {
         // Opening file and stuff
         ifstream instream(file_path);
         string contents((istreambuf_iterator<char>(instream)), istreambuf_iterator<char>());
-        if (contents.empty()){
-            cerr << "ERROR in ParseOBJ: Could not read OBJ" << endl;
+
+        if (contents.empty())
             return false;
-        }
 
         char const* shapestr = contents.c_str();
 
@@ -262,21 +251,21 @@ private:
 
         //Putting data in Mesh_data structure
         if (nvertsPerFace == 3) {
-            mesh_data->t_idx_array = new uint[idx_vector.size()];
-            std::copy(idx_vector.begin(), idx_vector.end(), mesh_data->t_idx_array);
-            mesh_data->t_idx.count = idx_vector.size();
-            mesh_data->q_idx.count = 0;
+            mesh_data.t_idx_array = new uint[idx_vector.size()];
+            std::copy(idx_vector.begin(), idx_vector.end(), mesh_data.t_idx_array);
+            mesh_data.t_idx.count = idx_vector.size();
+            mesh_data.q_idx.count = 0;
         } else {
-            mesh_data->q_idx_array = new uint[idx_vector.size()];
-            std::copy(idx_vector.begin(), idx_vector.end(), mesh_data->q_idx_array);
-            mesh_data->q_idx.count = idx_vector.size();
-            mesh_data->t_idx.count = 0;
+            mesh_data.q_idx_array = new uint[idx_vector.size()];
+            std::copy(idx_vector.begin(), idx_vector.end(), mesh_data.q_idx_array);
+            mesh_data.q_idx.count = idx_vector.size();
+            mesh_data.t_idx.count = 0;
         }
-        mesh_data->v_array = new Vertex[vert_vector.size()];
-        std::copy(vert_vector.begin(), vert_vector.end(), mesh_data->v_array);
-        mesh_data->v.count = vert_vector.size();
-        mesh_data->triangle_count = mesh_data->t_idx.count / 3;
-        mesh_data->quad_count = mesh_data->q_idx.count / 4;
+        mesh_data.v_array = new Vertex[vert_vector.size()];
+        std::copy(vert_vector.begin(), vert_vector.end(), mesh_data.v_array);
+        mesh_data.v.count = vert_vector.size();
+        mesh_data.triangle_count = mesh_data.t_idx.count / 3;
+        mesh_data.quad_count = mesh_data.q_idx.count / 4;
 
         // Deleting old data structures
         verts.clear();
@@ -291,38 +280,43 @@ private:
     }
 
     void loadOBJ(const string file_path){
-        bool success = ParseObj(file_path, 0, &my_data);
-//        if (!success)
-//            loadGrid();
+        bool success = ParseObj(file_path, 0, my_data);
+        if (!success){
+            loadGrid();
+            cerr << "Could not read file, loading grid" << endl;
+        }
+        if (my_data.quad_count > 0)
+            quadtree_->SetPrimType(QUADS);
+        else if (my_data.triangle_count > 0)
+            quadtree_->SetPrimType(TRIANGLES);
+        else
+            cerr << "Could not map obj file" << endl;
     }
 
 public:
 
-    QuadtreeSettings* Init(QuadTree* qt, uint mode)
+    QuadTree* Init(uint mode)
     {
-
-        quadtree_ = qt;
+        quadtree_ = new QuadTree();
         mode_ = mode;
-        QuadtreeSettings qtest = qt->qts;
-
-
 
         if(mode == TERRAIN)
             loadGrid();
         else if(mode == MESH)
             loadOBJ("../src/objs/bigguy.obj");
 
-        qts = quadtree_->Init(&my_data);
+        quadtree_->Init(&my_data);
+
         if(mode == TERRAIN){
-            qts->displace = true;
-            qts->adaptive_factor = 0.0;
+            quadtree_->settings.displace = true;
+            quadtree_->settings.adaptive_factor = 0.0;
         }else if(mode == MESH){
-            qts->displace = false;
-            qts->adaptive_factor = 0.0;
+            quadtree_->settings.displace = false;
+            quadtree_->settings.adaptive_factor = 0.0;
         }
         quadtree_->ReconfigureShaders();
 
-        return qts;
+        return quadtree_;
 
     }
 
@@ -348,13 +342,13 @@ public:
         mode_ = mode;
         if (mode_ == TERRAIN){
             loadGrid();
-            qts->displace = true;
-            qts->adaptive_factor = 2.0;
+            quadtree_->settings.displace = true;
+            quadtree_->settings.adaptive_factor = 2.0;
             quadtree_->Reinitialize();
         } else if (mode_ == MESH){
             loadOBJ("../src/objs/bigguy.obj");
-            qts->displace = false;
-            qts->adaptive_factor = 0.7;
+            quadtree_->settings.displace = false;
+            quadtree_->settings.adaptive_factor = 0.7;
             quadtree_->Reinitialize();
         }
         quadtree_->SetModel(mat4(1.0));
