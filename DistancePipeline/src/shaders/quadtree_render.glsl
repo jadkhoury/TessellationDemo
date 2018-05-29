@@ -28,8 +28,8 @@ vec4 toScreenSpace(vec3 v)
 
 #ifdef VERTEX_SHADER
 
-layout (location = 0) in vec3 quad_p;
-layout (location = 1) in vec3 tri_p;
+layout (location = 0) in vec2 quad_p;
+layout (location = 1) in vec2 tri_p;
 
 layout (std430, binding = 0) readonly buffer Data_In
 {
@@ -108,7 +108,7 @@ void main()
     else if(prim_type == TRIANGLES)
     {
         lt_get_triangle_xform_2_30(key, xform);
-        prim_v_pos = tri_p.xy;
+        prim_v_pos = tri_p;
         getMeshTriangle(tree_nodes[gl_InstanceID][2], t);
     }
     node_v_pos = xform * vec3(prim_v_pos, 1.0);

@@ -60,50 +60,23 @@ struct BenchStats {
     int last_frame;
 } stat = {0};
 
+// Reminder of the content of the settings
 #ifndef QUADTREE_H
-struct Vertex {
-    vec4 p;
-    vec4 n;
-    vec2 uv;
-    vec2 align;
-};
-
-struct BufferData {
-    GLuint bo, count;
-    GLsizei size;
-};
-
-struct BufferCombo {
-    BufferData v;
-    BufferData idx;
-    GLuint vao;
-};
-
-struct Mesh_Data
-{
-    const Vertex* v_array;
-    uint* q_idx_array;
-    uint* t_idx_array;
-
-    BufferData v, q_idx, t_idx;
-    int num_triangles, num_quads;
-};
-
 struct QuadtreeSettings {
-    int uni_lvl = 0;
-    float adaptive_factor = 0.7;
-    bool uniform = false;
-    bool triangle_mode = true;
-    int prim_type = TRIANGLES;
-    bool morph = true;
-    float morph_k = 0.5;
-    bool debug_morph = false;
-    bool map_primcount = false;
-    bool freeze = false;
-    bool displace = true;
-    int cpu_lod = 2;
-    int color_mode = LOD;
-    bool renderMVP = true;
+    int uni_lvl;
+    float adaptive_factor;
+    bool uniform;
+    bool triangle_mode;
+    int prim_type;
+    bool morph;
+    float morph_k;
+    bool debug_morph;
+    bool map_primcount;
+    bool freeze;
+    bool displace;
+    int cpu_lod;
+    int color_mode;
+    bool renderMVP;
 };
 #endif
 
@@ -113,10 +86,10 @@ struct QuadtreeSettings {
 /// Camera and Transforms management
 ///
 
-void SetupTransfo(uint mode)
+void ResetTransfo()
 {
-    cam.pos = INIT_CAM_POS[mode];
-    cam.look = INIT_CAM_LOOK[mode];
+    cam.pos = INIT_CAM_POS[gl.mode];
+    cam.look = INIT_CAM_LOOK[gl.mode];
 
     cam.up = vec3(0.0f, 0.0f, 1.0f);
     cam.direction = glm::normalize(cam.look - cam.pos);
@@ -194,7 +167,7 @@ void ImGuiTime(string s, float tmp){
 
 void RenderImgui()
 {
-    QuadtreeSettings& qts = gl.quadtree->settings_;
+    QuadtreeSettings& qts = gl.quadtree->settings;
 
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(ImVec2(gl.gui_width, gl.gui_height));
@@ -204,7 +177,7 @@ void RenderImgui()
     {
         if (ImGui::Combo("Mode", &gl.mode, "Terrain\0Mesh\0\0")){
             gl.mesh->setMode(gl.mode);
-            SetupTransfo(gl.mode);
+            ResetTransfo();
             cout << "mode = " << gl.mode << endl;
         }
         if(ImGui::Checkbox("Height displace", &qts.displace)){
@@ -243,7 +216,7 @@ void RenderImgui()
         ImGui::Checkbox("Readback primitive count", &qts.map_primcount);
         if(qts.map_primcount){
             ImGui::SameLine();
-            ImGui::Value("", gl.quadtree->prim_count_);
+            ImGui::Value("", gl.quadtree->prim_count);
         }
         if(ImGui::Checkbox("Debug morphing", &qts.debug_morph)){
             if(qts.debug_morph){
@@ -309,7 +282,7 @@ void RenderImgui()
             values_gpu[offset] = stat.tgpu * 1000.0;
             values_cpu[offset] = stat.tcpu * 1000.0;
             values_fps[offset] = ImGui::GetIO().Framerate;
-            values_primcount[offset] = gl.quadtree->prim_count_;
+            values_primcount[offset] = gl.quadtree->prim_count;
 
             offset = (offset+1) % IM_ARRAYSIZE(values_gpu);
             refresh_time += 1.0f/30.0f;
@@ -470,16 +443,15 @@ void Draw()
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    gl.mesh->Draw(gl.delta_T, gl.quadtree->settings_.freeze);
+    gl.mesh->Draw(gl.delta_T, gl.quadtree->settings.freeze);
 
-    UpdateStats(gl.quadtree->_, gl.quadtree->tgpu_);
+    UpdateStats(gl.quadtree->tcpu, gl.quadtree->tgpu);
 
     RenderImgui();
 }
 
 void Init()
 {
-
     gl.quadtree = new QuadTree();
     gl.mesh = new Mesh();
     gl.pause = false;
@@ -489,10 +461,10 @@ void Init()
     INIT_CAM_LOOK[TERRAIN] = vec3(4.25, 4.25, 0.44);
     INIT_CAM_POS[MESH]  = vec3(1.062696, 1.331637, 0.531743);
     INIT_CAM_LOOK[MESH] =  vec3(0.456712, 0.599636, 0.220361);
-    cout << " MESH: " << MESH << " TERRAIN " << TERRAIN << endl;
 
-    gl.quadtree = gl.mesh->Init(gl.mode);
-    SetupTransfo(gl.mode);
+    gl.mesh->Init(gl.mode);
+    gl.quadtree = gl.mesh->GetQuadtreePointer();
+    ResetTransfo();
 
     stat.avg_tcpu = 0;
     stat.avg_tgpu = 0;
@@ -507,7 +479,6 @@ void Init()
 void Cleanup()
 {
     gl.mesh->CleanUp();
-
 }
 
 int main(int argc, char **argv)

@@ -23,14 +23,12 @@ struct QuadtreeSettings {
 
 class QuadTree
 {
-public:
-    // ****************** MEMBER VARIABLES ****************** //
-
+private:
     const int MAX_LVL = 10;
     const uint MAX_NUM_NODES = powOf2(2 * MAX_LVL);
     const GLsizei MAX_DATA_SIZE = MAX_NUM_NODES * sizeof(uvec4);
     const vec3 QUAD_CENTROID = vec3(0.5, 0.5, 1.0);
-    const vec3 TRI_CENTROID = vec3(1.0/3.0, 1.0/3.0, 1.0);
+    const vec3 TRIANGLE_CENTROID = vec3(1.0/3.0, 1.0/3.0, 1.0);
 
     // Buffers and Arrays
     GLuint nodes_bo_[2];
@@ -52,85 +50,87 @@ public:
     int num_workgroup_;
     vec3 workgroup_size_;
 
-    uint prim_count_;
     vec3 prim_centroid_;
 
     Commands* commands_;
     uint offset_;
 
-    djg_clock* clock_;
-    double _, tgpu_;
+public:
+    djg_clock* clock;
+    double tcpu, tgpu;
 
-    mat4 model_mat_, view_mat_, projection_mat_;
-    mat4 MVP_;
+    mat4 model_mat, view_mat, projection_mat;
+    mat4 MVP;
     vec3 cam_pos;
     bool transfo_updated;
 
-    QuadtreeSettings settings_;
+    uint prim_count;
+    QuadtreeSettings settings;
 
-    // ****************** MEMBER FUNCTIONS ****************** //
-    // ---- math functions ---- //
-    inline int powOf2(int exp)
-    {
-        return (1 << exp);
-    }
+private:
 
-    // ---- program functions ---- //
+    inline int powOf2(int exp) {  return (1 << exp); }
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// Shader Management Function
+    ///
+
     void configureComputeProgram()
     {
-        utility::SetUniformBool(compute_program_, "uniform_subdiv", settings_.uniform);
-        utility::SetUniformInt(compute_program_, "uniform_level", settings_.uni_lvl);
-        utility::SetUniformFloat(compute_program_, "adaptive_factor", settings_.adaptive_factor);
+        utility::SetUniformBool(compute_program_, "uniform_subdiv", settings.uniform);
+        utility::SetUniformInt(compute_program_, "uniform_level", settings.uni_lvl);
+        utility::SetUniformFloat(compute_program_, "adaptive_factor", settings.adaptive_factor);
         utility::SetUniformInt(compute_program_, "num_mesh_tri", mesh_->triangle_count);
         utility::SetUniformInt(compute_program_, "num_mesh_quad", mesh_->quad_count);
 
 
-        if(settings_.prim_type == QUADS){
+        if(settings.prim_type == QUADS){
             utility::SetUniformInt(compute_program_, "prim_type", QUADS);
             utility::SetUniformVec3(compute_program_, "prim_centroid", QUAD_CENTROID);
-        } else if (settings_.prim_type == TRIANGLES) {
+        } else if (settings.prim_type == TRIANGLES) {
 
             utility::SetUniformInt(compute_program_, "prim_type", TRIANGLES);
-            utility::SetUniformVec3(compute_program_, "prim_centroid", TRI_CENTROID);
+            utility::SetUniformVec3(compute_program_, "prim_centroid", TRIANGLE_CENTROID);
         }
     }
 
     void configureCullProgram()
     {
 
-        utility::SetUniformBool(cull_program_, "uniform_subdiv", settings_.uniform);
-        utility::SetUniformInt(cull_program_, "uniform_level", settings_.uni_lvl);
-        utility::SetUniformFloat(cull_program_, "adaptive_factor", settings_.adaptive_factor);
+        utility::SetUniformBool(cull_program_, "uniform_subdiv", settings.uniform);
+        utility::SetUniformInt(cull_program_, "uniform_level", settings.uni_lvl);
+        utility::SetUniformFloat(cull_program_, "adaptive_factor", settings.adaptive_factor);
         utility::SetUniformInt(cull_program_, "num_mesh_tri", mesh_->triangle_count);
         utility::SetUniformInt(cull_program_, "num_mesh_quad", mesh_->quad_count);
 
-        if(settings_.prim_type == QUADS){
+        if(settings.prim_type == QUADS){
             utility::SetUniformInt(cull_program_, "prim_type", QUADS);
             utility::SetUniformVec3(cull_program_, "prim_centroid", QUAD_CENTROID);
-        } else if (settings_.prim_type == TRIANGLES) {
+        } else if (settings.prim_type == TRIANGLES) {
 
             utility::SetUniformInt(cull_program_, "prim_type", TRIANGLES);
-            utility::SetUniformVec3(cull_program_, "prim_centroid", TRI_CENTROID);
+            utility::SetUniformVec3(cull_program_, "prim_centroid", TRIANGLE_CENTROID);
         }
     }
 
     void configureRenderProgram()
     {
-        utility::SetUniformBool(render_program_, "render_MVP", settings_.renderMVP);
-        utility::SetUniformFloat(render_program_, "adaptive_factor", settings_.adaptive_factor);
-        utility::SetUniformBool(render_program_, "morph", settings_.morph);
-        utility::SetUniformBool(render_program_, "debug_morph", settings_.debug_morph);
-        utility::SetUniformFloat(render_program_, "morph_k", settings_.morph_k);
-        utility::SetUniformBool(render_program_, "heightmap", settings_.displace);
-        utility::SetUniformInt(render_program_, "cpu_lod", settings_.cpu_lod);
-        utility::SetUniformInt(render_program_, "color_mode", settings_.color_mode);
+        utility::SetUniformBool(render_program_, "render_MVP", settings.renderMVP);
+        utility::SetUniformFloat(render_program_, "adaptive_factor", settings.adaptive_factor);
+        utility::SetUniformBool(render_program_, "morph", settings.morph);
+        utility::SetUniformBool(render_program_, "debug_morph", settings.debug_morph);
+        utility::SetUniformFloat(render_program_, "morph_k", settings.morph_k);
+        utility::SetUniformBool(render_program_, "heightmap", settings.displace);
+        utility::SetUniformInt(render_program_, "cpu_lod", settings.cpu_lod);
+        utility::SetUniformInt(render_program_, "color_mode", settings.color_mode);
 
-        if(settings_.prim_type == QUADS){
+        if(settings.prim_type == QUADS){
             utility::SetUniformInt(render_program_, "prim_type", QUADS);
             utility::SetUniformVec3(render_program_, "prim_centroid", QUAD_CENTROID);
-        } else if (settings_.prim_type == TRIANGLES) {
+        } else if (settings.prim_type == TRIANGLES) {
             utility::SetUniformInt(render_program_, "prim_type", TRIANGLES);
-            utility::SetUniformVec3(render_program_, "prim_centroid", TRI_CENTROID);
+            utility::SetUniformVec3(render_program_, "prim_centroid", TRIANGLE_CENTROID);
         }
     }
 
@@ -233,9 +233,11 @@ public:
         return v;
     }
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// Leaf & Mesh Geometry Functions
+    ///
 
-
-    // Allows the algorithm to alway subdiv in the hypothenus direction
     void reorderIndices(uint* i_array, const Vertex* v, uint count){
         uint  i0, i1, i2;
         float d01, d02, d12, max_d;
@@ -262,7 +264,72 @@ public:
         }
     }
 
-    // ---- Mesh buffer functions ---- //
+    vector<vec2> getTrianglePrimVertices(uint level)
+    {
+        vector<vec2> vertices;
+        uint num_row = 1 << level;
+        uint col = 0, row = 0;
+        float d = 1.0 / float (num_row);
+        while(row <= num_row)
+        {
+            while (col <= row)
+            {
+                vertices.push_back(vec2(col * d, 1.0 - row * d));
+                col ++;
+            }
+            row ++;
+            col = 0;
+        }
+        return vertices;
+    }
+
+    vector<uvec3> getTrianglePrimIndices(uint level)
+    {
+        vector<uvec3> indices;
+        uint col = 0, row = 0;
+        uint elem = 0, num_col = 1;
+        uint orientation;
+        uint num_row = 1 << level;
+
+        auto new_triangle = [&]() {
+            if (orientation == 0)
+                return uvec3(elem, elem + num_col, elem + num_col + 1);
+            else if (orientation == 1)
+                return uvec3(elem, elem - 1, elem + num_col);
+            else if (orientation == 2)
+                return uvec3(elem, elem + num_col, elem + 1);
+            else if (orientation == 3)
+                return uvec3(elem, elem + num_col - 1, elem + num_col);
+            else
+                throw std::runtime_error("Bad orientation error");
+        };
+
+        while (row < num_row)
+        {
+            orientation = (row % 2 == 0) ? 0 : 2;
+            while (col < num_col)
+            {
+                indices.push_back(new_triangle());
+                orientation = (orientation + 1) % 4;
+                if (col > 0) {
+                    indices.push_back(new_triangle());
+                    orientation = (orientation + 1) % 4;
+                }
+                col++;
+                elem++;
+            }
+            col = 0;
+            num_col++;
+            row++;
+        }
+        return indices;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// Buffer Management Functions
+    ///
+
     bool loadMeshBuffers()
     {
         if(glIsBuffer(mesh_->v.bo))
@@ -299,16 +366,14 @@ public:
         return (glGetError() == GL_NO_ERROR);
     }
 
-    // ---- buffer functions ---- //
-
     bool loadNodesBuffers()
     {
         nodes_array_ = new uvec4[MAX_NUM_NODES];
-        if(settings_.prim_type == TRIANGLES) {
+        if(settings.prim_type == TRIANGLES) {
             for (int ctr = 0; ctr < mesh_->triangle_count; ++ctr) {
                 nodes_array_[ctr] = uvec4(0, 0x1, uint(ctr*3), 0);
             }
-        } else if (settings_.prim_type == QUADS) {
+        } else if (settings.prim_type == QUADS) {
             for (int ctr = 0; ctr < mesh_->quad_count; ++ctr) {
                 nodes_array_[ctr] = uvec4(0, 0x1, uint(ctr*4), 0);
             }
@@ -323,76 +388,13 @@ public:
         return (glGetError() == GL_NO_ERROR);
     }
 
-
-
-    uvec3 tr(uint elem, uint num_col, uint orientation){
-        if (orientation == 0)
-            return uvec3(elem, elem + num_col, elem + num_col + 1);
-        else if (orientation == 1)
-            return uvec3(elem, elem - 1, elem + num_col);
-        else if (orientation == 2)
-            return uvec3(elem, elem + num_col, elem + 1);
-        else if (orientation == 3)
-            return uvec3(elem, elem + num_col - 1, elem + num_col);
-        else
-            throw std::runtime_error("Bad orientation error");
-
-    }
-
-    vector<vec3> getTrianglePrimVertices(uint level)
-    {
-        vector<vec3> vertices;
-        uint num_row = 1 << level;
-        uint col = 0, row = 0;
-        float d = 1.0 / float (num_row);
-        while(row <= num_row)
-        {
-            while (col <= row)
-            {
-                vertices.push_back(vec3(col * d, 1.0 - row * d, 1.0));
-                col ++;
-            }
-            row ++;
-            col = 0;
-        }
-        return vertices;
-    }
-
-    vector<uvec3> getTrianglePrimIndices(uint level)
-    {
-        vector<uvec3> indices;
-        uint col = 0, row = 0;
-        uint elem = 0, num_col = 1;
-        uint orientation;
-        uint num_row = 1 << level;
-        while(row < num_row)
-        {
-            orientation = (row % 2 == 0) ? 0 : 2;
-            while (col < num_col)
-            {
-                indices.push_back(tr(elem, num_col, orientation));
-                orientation = (orientation + 1) % 4;
-                if(col > 0){
-                    indices.push_back(tr(elem, num_col, orientation));
-                    orientation = (orientation + 1) % 4;
-                }
-                col++;
-                elem++;
-            }
-            col = 0;
-            num_col++;
-            row++;
-        }
-        return indices;
-    }
-
     bool loadTriangleLeafBuffers(uint level)
     {
-        vector<vec3> vertices = getTrianglePrimVertices(level);
+        vector<vec2> vertices = getTrianglePrimVertices(level);
         vector<uvec3> indices = getTrianglePrimIndices(level);
 
         triangle_leaf_.v.count = vertices.size();
-        triangle_leaf_.v.size = triangle_leaf_.v.count * sizeof(vec3);
+        triangle_leaf_.v.size = triangle_leaf_.v.count * sizeof(vec2);
         if(glIsBuffer(triangle_leaf_.v.bo)){
             glDeleteBuffers(1, &triangle_leaf_.v.bo);
             triangle_leaf_.v.bo = 0;
@@ -424,10 +426,10 @@ public:
 
         const djgm_vertex* vertices = djgm_get_vertices(mesh, &vertexCnt);
         quad_leaf_.v.count = vertexCnt;
-        quad_leaf_.v.size = quad_leaf_.v.count * sizeof(vec3);
-        vec3* pos = new vec3[quad_leaf_.v.count];
+        quad_leaf_.v.size = quad_leaf_.v.count * sizeof(vec2);
+        vec2* pos = new vec2[quad_leaf_.v.count];
         for (uint i = 0; i < quad_leaf_.v.count; ++i) {
-            pos[i] = vec3(vertices[i].st.s, vertices[i].st.t, 1.0);
+            pos[i] = vec2(vertices[i].st.s, vertices[i].st.t);
         }
         if(glIsBuffer(quad_leaf_.v.bo))
             glDeleteBuffers(1, &quad_leaf_.v.bo);
@@ -445,13 +447,16 @@ public:
         cout << quad_leaf_.v.count   << " quad vertices ("  << quad_leaf_.v.size << "B)" << endl;
         cout << quad_leaf_.idx.count << " quad indices  (" << quad_leaf_.idx.size << "B)" << endl;
 
-
         djgm_release(mesh);
 
         return (glGetError() == GL_NO_ERROR);
     }
 
-    // ---- VAO functions ---- //
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// VAO Management Functions
+    ///
+
     bool loadTriangleLeafVao()
     {
         if(glIsVertexArray(triangle_leaf_.vao)) {
@@ -460,9 +465,9 @@ public:
         }
         glCreateVertexArrays(1, &triangle_leaf_.vao);
         glVertexArrayAttribBinding(triangle_leaf_.vao, 1, 0);
-        glVertexArrayAttribFormat(triangle_leaf_.vao, 1, 3, GL_FLOAT, GL_FALSE, 0);
+        glVertexArrayAttribFormat(triangle_leaf_.vao, 1, 2, GL_FLOAT, GL_FALSE, 0);
         glEnableVertexArrayAttrib(triangle_leaf_.vao, 1);
-        glVertexArrayVertexBuffer(triangle_leaf_.vao, 0, triangle_leaf_.v.bo, 0, sizeof(vec3));
+        glVertexArrayVertexBuffer(triangle_leaf_.vao, 0, triangle_leaf_.v.bo, 0, sizeof(vec2));
         glVertexArrayElementBuffer(triangle_leaf_.vao, triangle_leaf_.idx.bo);
 
 
@@ -476,14 +481,18 @@ public:
 
         glCreateVertexArrays(1, &quad_leaf_.vao);
         glVertexArrayAttribBinding(quad_leaf_.vao, 0, 0);
-        glVertexArrayAttribFormat(quad_leaf_.vao, 0, 3, GL_FLOAT, GL_FALSE, 0);
+        glVertexArrayAttribFormat(quad_leaf_.vao, 0, 2, GL_FLOAT, GL_FALSE, 0);
         glEnableVertexArrayAttrib(quad_leaf_.vao, 0);
-        glVertexArrayVertexBuffer(quad_leaf_.vao, 0, quad_leaf_.v.bo, 0, sizeof(vec3));
+        glVertexArrayVertexBuffer(quad_leaf_.vao, 0, quad_leaf_.v.bo, 0, sizeof(vec2));
         glVertexArrayElementBuffer(quad_leaf_.vao, quad_leaf_.idx.bo);
         return (glGetError() == GL_NO_ERROR);
     }
 
-    // ---- pingpong functions ---- //
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// PingPong Functions
+    ///
+
     void pingpong()
     {
         read_from_idx_ = 1 - read_from_idx_;
@@ -498,24 +507,31 @@ public:
         write_ssbo_ = nodes_bo_[1 - read_from_idx_];
     }
 
+public:
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// RUN Functions
+    ///
+
     void Init(Mesh_Data* m_data, const QuadtreeSettings& init_settings)
     {
         cout << "-> QUADTREE" << endl;
 
-        settings_ = init_settings;
+        settings = init_settings;
         workgroup_size_ = vec3(256, 1, 1);
         num_workgroup_ = ceil(MAX_NUM_NODES / (workgroup_size_.x * workgroup_size_.y * workgroup_size_.z));
-        prim_count_ = 0;
+        prim_count = 0;
         commands_ = new Commands();
-        clock_ = djgc_create();
+        clock = djgc_create();
         mesh_ = m_data;
 
         if(!loadPrograms())
             throw std::runtime_error("shader creation error");
 
         loadMeshBuffers();
-        loadQuadLeafBuffers(settings_.cpu_lod);
-        loadTriangleLeafBuffers(settings_.cpu_lod);
+        loadQuadLeafBuffers(settings.cpu_lod);
+        loadTriangleLeafBuffers(settings.cpu_lod);
         loadQuadLeafVao();
         loadTriangleLeafVao();
         loadNodesBuffers();
@@ -536,10 +552,10 @@ public:
             transfo_updated = false;
         }
 
-        if(!settings_.freeze)
+        if(!settings.freeze)
         {
             // ** Compute Pass ** //
-            djgc_start(clock_);
+            djgc_start(clock);
 
             glEnable(GL_RASTERIZER_DISCARD);
 
@@ -549,7 +565,7 @@ public:
                 //pingpong();
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, read_ssbo_);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, write_ssbo_);
-                commands_->BindForCompute(2, 3, settings_.prim_type);
+                commands_->BindForCompute(2, 3, settings.prim_type);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, mesh_->v.bo);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, mesh_->q_idx.bo);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, mesh_->t_idx.bo);
@@ -560,8 +576,8 @@ public:
             }
             glUseProgram(0);
 
-            if(settings_.map_primcount){
-                prim_count_ = commands_->getPrimCount();
+            if(settings.map_primcount){
+                prim_count = commands_->getPrimCount();
             }
 
             // ** Cull Pass ** //
@@ -570,7 +586,7 @@ public:
                 pingpong();
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, read_ssbo_);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, write_ssbo_);
-                commands_->BindForCull(2, 3, settings_.prim_type);
+                commands_->BindForCull(2, 3, settings.prim_type);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, mesh_->v.bo);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, mesh_->q_idx.bo);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, mesh_->t_idx.bo);
@@ -593,12 +609,12 @@ public:
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, mesh_->v.bo);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, mesh_->q_idx.bo);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, mesh_->t_idx.bo);
-            offset_ = commands_->BindForRender(settings_.prim_type);
-            if(settings_.prim_type == QUADS) {
+            offset_ = commands_->BindForRender(settings.prim_type);
+            if(settings.prim_type == QUADS) {
                 glBindVertexArray(quad_leaf_.vao);
                 glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_SHORT, BUFFER_OFFSET(offset_));
 
-            } else if(settings_.prim_type == TRIANGLES){
+            } else if(settings.prim_type == TRIANGLES){
                 glBindVertexArray(triangle_leaf_.vao);
                 glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, BUFFER_OFFSET(offset_));
             }
@@ -606,8 +622,8 @@ public:
         }
         glUseProgram(0);
 
-        djgc_stop(clock_);
-        djgc_ticks(clock_, &_, &tgpu_);
+        djgc_stop(clock);
+        djgc_ticks(clock, &tcpu, &tgpu);
     }
 
     void CleanUp()
@@ -625,6 +641,11 @@ public:
         commands_->Cleanup();
         delete[] nodes_array_;
     }
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// Accessors & Reload Functions
+    ///
 
     void ReloadShaders()
     {
@@ -671,8 +692,8 @@ public:
 
     void ReloadPrimitives()
     {
-        loadQuadLeafBuffers(settings_.cpu_lod);
-        loadTriangleLeafBuffers(settings_.cpu_lod);
+        loadQuadLeafBuffers(settings.cpu_lod);
+        loadTriangleLeafBuffers(settings.cpu_lod);
         loadQuadLeafVao();
         loadTriangleLeafVao();
         commands_->ReinitializeCommands(quad_leaf_.idx.count, triangle_leaf_.idx.count, num_workgroup_);
@@ -683,59 +704,59 @@ public:
 
     void SetPrimType(int i)
     {
-        settings_.prim_type = i;
+        settings.prim_type = i;
         ReinitQuadTree();
     }
 
     void UpdateTransforms(const mat4& M, const mat4& V, const mat4& P, const vec3& cp)
     {
-        model_mat_ = M;
-        view_mat_ = V;
-        projection_mat_ = P;
+        model_mat = M;
+        view_mat = V;
+        projection_mat = P;
         cam_pos = cp;
-        MVP_ = projection_mat_ * view_mat_ * model_mat_;
+        MVP = projection_mat * view_mat * model_mat;
         transfo_updated = true;
     }
 
     void UpdateTransforms(const mat4& V, const mat4& P, const vec3& cp)
     {
-        view_mat_ = V;
-        projection_mat_ = P;
+        view_mat = V;
+        projection_mat = P;
         cam_pos = cp;
-        MVP_ = projection_mat_ * view_mat_ * model_mat_;
+        MVP = projection_mat * view_mat * model_mat;
         transfo_updated = true;
     }
 
     void SetModel(const mat4& new_M)
     {
-        model_mat_ = new_M;
-        MVP_ = projection_mat_ * view_mat_ * model_mat_;
+        model_mat = new_M;
+        MVP = projection_mat * view_mat * model_mat;
         transfo_updated = true;
     }
     void UpdateColorMode()
     {
-        utility::SetUniformInt(render_program_, "color_mode", settings_.color_mode);
+        utility::SetUniformInt(render_program_, "color_mode", settings.color_mode);
     }
 
     void UploadTransforms()
     {
-        utility::SetUniformMat4(compute_program_, "M", model_mat_);
-        utility::SetUniformMat4(compute_program_, "V", view_mat_);
-        utility::SetUniformMat4(compute_program_, "P", projection_mat_);
-        utility::SetUniformMat4(compute_program_, "MVP", MVP_);
+        utility::SetUniformMat4(compute_program_, "M", model_mat);
+        utility::SetUniformMat4(compute_program_, "V", view_mat);
+        utility::SetUniformMat4(compute_program_, "P", projection_mat);
+        utility::SetUniformMat4(compute_program_, "MVP", MVP);
         utility::SetUniformVec3(compute_program_, "cam_pos", cam_pos);
 
-        utility::SetUniformMat4(cull_program_, "M", model_mat_);
-        utility::SetUniformMat4(cull_program_, "V", view_mat_);
-        utility::SetUniformMat4(cull_program_, "P", projection_mat_);
-        utility::SetUniformMat4(cull_program_, "MVP", MVP_);
+        utility::SetUniformMat4(cull_program_, "M", model_mat);
+        utility::SetUniformMat4(cull_program_, "V", view_mat);
+        utility::SetUniformMat4(cull_program_, "P", projection_mat);
+        utility::SetUniformMat4(cull_program_, "MVP", MVP);
         utility::SetUniformVec3(cull_program_, "cam_pos", cam_pos);
 
-        utility::SetUniformMat4(render_program_, "M", model_mat_);
-        utility::SetUniformMat4(render_program_, "V", view_mat_);
-        utility::SetUniformMat4(render_program_, "P", projection_mat_);
-        utility::SetUniformMat4(render_program_, "MVP", MVP_);
-        if(!settings_.freeze)
+        utility::SetUniformMat4(render_program_, "M", model_mat);
+        utility::SetUniformMat4(render_program_, "V", view_mat);
+        utility::SetUniformMat4(render_program_, "P", projection_mat);
+        utility::SetUniformMat4(render_program_, "MVP", MVP);
+        if(!settings.freeze)
             utility::SetUniformVec3(render_program_, "cam_pos", cam_pos);
     }
 };
