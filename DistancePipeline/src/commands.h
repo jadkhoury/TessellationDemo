@@ -1,14 +1,8 @@
 #ifndef COMMANDS_H
 #define COMMANDS_H
 
-#include "utility.h"
+#include "common.h"
 #include <glm/glm.hpp>
-
-enum {QUADS, TRIANGLES, NUM_TYPES};
-
-using namespace std;
-using glm::uvec3;
-using glm::uvec4;
 
 typedef struct {
 	GLuint  count;

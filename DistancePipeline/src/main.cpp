@@ -1,24 +1,7 @@
-
-// LIBRARIES
-#include <iostream>
-#include <algorithm>    // std::min_element, std::max_element
-
-#include "glad/glad.h"
-#include "GLFW/glfw3.h"
-#include "imgui.h"
-#include "imgui_impl.h"
-
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
-
-
 // SOURCE FILES
 #include "quadtree.h"
 #include "mesh.h"
-#include "utility.h"
+#include "common.h"
 
 // MACROS
 #define LOG(fmt, ...)  fprintf(stdout, fmt, ##__VA_ARGS__); fflush(stdout);
@@ -53,9 +36,9 @@ struct Transforms {
 
 struct OpenGLManager {
     QuadTree* quadtree;
+    QuadtreeSettings qts_backup;
     Mesh* mesh;
     djg_clock* clock;
-    QuadtreeSettings qts_backup;
     uint mode;
 
     float last_t;
@@ -123,7 +106,6 @@ struct QuadtreeSettings {
     bool renderMVP = true;
 };
 #endif
-
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -578,8 +560,6 @@ int main(int argc, char **argv)
 
     LOG("-- Begin -- Demo\n");
 
-
-
     try {
         Init();
         ImGui::CreateContext();
@@ -589,13 +569,11 @@ int main(int argc, char **argv)
 
         while(!glfwWindowShouldClose(window) && running)
         {
-
             glfwPollEvents();
             ImGui_ImplGlfwGL3_NewFrame();
             Draw();
             ImGui_ImplGlfwGL3_RenderDrawData(ImGui::GetDrawData());
             glfwSwapBuffers(window);
-
         }
         ImGui_ImplGlfwGL3_Shutdown();
         ImGui::DestroyContext();

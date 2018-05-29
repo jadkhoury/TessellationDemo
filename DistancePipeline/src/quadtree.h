@@ -1,71 +1,24 @@
 #ifndef QUADTREE_H
 #define QUADTREE_H
-#include <vector>
-#include <glm/gtx/string_cast.hpp>
+
 #include "commands.h"
-#include <glm/gtc/matrix_transform.hpp>
-#include "utility.h"
-#define DJ_OPENGL_IMPLEMENTATION 1
-#include "dj_opengl.h"
-#define DJ_ALGEBRA_IMPLEMENTATION 1
-#include "dj_algebra.h"
-
-//enum {QUADS, TRIANGLES, NUM_TYPES};
-enum {LOD, WHITE, PRIMITIVES, NUM_COLOR_MODES} ColorModes;
-
-using glm::vec2;
-using glm::vec3;
-using glm::vec4;
-using glm::uvec4;
-using glm::mat3;
-using glm::mat4;
-
-using namespace std;
-using std::vector;
-
-struct Vertex {
-    vec4 p;
-    vec4 n;
-    vec2 uv;
-    vec2 align;
-};
-
-struct BufferData {
-    GLuint bo, count;
-    GLsizei size;
-};
-
-struct BufferCombo {
-    BufferData v;
-    BufferData idx;
-    GLuint vao;
-};
-
-struct Mesh_Data
-{
-    Vertex* v_array;
-    uint* q_idx_array;
-    uint* t_idx_array;
-
-    BufferData v, q_idx, t_idx;
-    int triangle_count, quad_count;
-};
+#include "common.h"
 
 struct QuadtreeSettings {
-    int uni_lvl = 0;
-    float adaptive_factor = 0.7;
-    bool uniform = false;
-    bool triangle_mode = true;
-    int prim_type = TRIANGLES;
-    bool morph = true;
-    float morph_k = 0.5;
-    bool debug_morph = false;
-    bool map_primcount = false;
-    bool freeze = false;
-    bool displace = true;
-    int cpu_lod = 2;
-    int color_mode = LOD;
-    bool renderMVP = true;
+    int uni_lvl;
+    float adaptive_factor;
+    bool uniform;
+    bool triangle_mode;
+    int prim_type;
+    bool morph;
+    float morph_k;
+    bool debug_morph;
+    bool map_primcount;
+    bool freeze;
+    bool displace;
+    int cpu_lod;
+    int color_mode;
+    bool renderMVP;
 };
 
 class QuadTree
@@ -545,9 +498,11 @@ public:
         write_ssbo_ = nodes_bo_[1 - read_from_idx_];
     }
 
-    void Init(Mesh_Data* m_data)
+    void Init(Mesh_Data* m_data, const QuadtreeSettings& init_settings)
     {
         cout << "-> QUADTREE" << endl;
+
+        settings = init_settings;
         workgroup_size_ = vec3(256, 1, 1);
         num_workgroup_ = ceil(MAX_NUM_NODES / (workgroup_size_.x * workgroup_size_.y * workgroup_size_.z));
         num_prim_ = 0;
