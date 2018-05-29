@@ -56,9 +56,9 @@ enum {LOD,
       PRIMITIVES,
       NUM_COLOR_MODES} ColorModes;
 
-enum {QUADS,
-      TRIANGLES,
-      NUM_TYPES};
+enum { TRIANGLES,
+       QUADS,
+       NUM_TYPES };
 
 struct Vertex {
     vec4 p;
@@ -87,7 +87,6 @@ struct Mesh_Data
     BufferData v, q_idx, t_idx;
     int triangle_count, quad_count;
 };
-
 
 static char const * sgets( char * s, int size, char ** stream ) {
     for (int i=0; i<size; ++i) {

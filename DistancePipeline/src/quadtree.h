@@ -36,7 +36,7 @@ public:
     GLuint nodes_bo_[2];
     uvec4* nodes_array_;
 
-    BufferCombo quad_leaf, triangle_leaf;
+    BufferCombo quad_leaf_, triangle_leaf_;
 
     // Mesh data
     Mesh_Data* mesh_;
@@ -52,21 +52,21 @@ public:
     int num_workgroup_;
     vec3 workgroup_size_;
 
-    uint num_prim_;
+    uint prim_count_;
     vec3 prim_centroid_;
 
     Commands* commands_;
     uint offset_;
 
-    djg_clock* clock;
-    double tcpu, tgpu;
+    djg_clock* clock_;
+    double _, tgpu_;
 
     mat4 model_mat_, view_mat_, projection_mat_;
     mat4 MVP_;
     vec3 cam_pos;
     bool transfo_updated;
 
-    QuadtreeSettings settings;
+    QuadtreeSettings settings_;
 
     // ****************** MEMBER FUNCTIONS ****************** //
     // ---- math functions ---- //
@@ -78,17 +78,17 @@ public:
     // ---- program functions ---- //
     void configureComputeProgram()
     {
-        utility::SetUniformBool(compute_program_, "uniform_subdiv", settings.uniform);
-        utility::SetUniformInt(compute_program_, "uniform_level", settings.uni_lvl);
-        utility::SetUniformFloat(compute_program_, "adaptive_factor", settings.adaptive_factor);
+        utility::SetUniformBool(compute_program_, "uniform_subdiv", settings_.uniform);
+        utility::SetUniformInt(compute_program_, "uniform_level", settings_.uni_lvl);
+        utility::SetUniformFloat(compute_program_, "adaptive_factor", settings_.adaptive_factor);
         utility::SetUniformInt(compute_program_, "num_mesh_tri", mesh_->triangle_count);
         utility::SetUniformInt(compute_program_, "num_mesh_quad", mesh_->quad_count);
 
 
-        if(settings.prim_type == QUADS){
+        if(settings_.prim_type == QUADS){
             utility::SetUniformInt(compute_program_, "prim_type", QUADS);
             utility::SetUniformVec3(compute_program_, "prim_centroid", QUAD_CENTROID);
-        } else if (settings.prim_type == TRIANGLES) {
+        } else if (settings_.prim_type == TRIANGLES) {
 
             utility::SetUniformInt(compute_program_, "prim_type", TRIANGLES);
             utility::SetUniformVec3(compute_program_, "prim_centroid", TRI_CENTROID);
@@ -98,16 +98,16 @@ public:
     void configureCullProgram()
     {
 
-        utility::SetUniformBool(cull_program_, "uniform_subdiv", settings.uniform);
-        utility::SetUniformInt(cull_program_, "uniform_level", settings.uni_lvl);
-        utility::SetUniformFloat(cull_program_, "adaptive_factor", settings.adaptive_factor);
+        utility::SetUniformBool(cull_program_, "uniform_subdiv", settings_.uniform);
+        utility::SetUniformInt(cull_program_, "uniform_level", settings_.uni_lvl);
+        utility::SetUniformFloat(cull_program_, "adaptive_factor", settings_.adaptive_factor);
         utility::SetUniformInt(cull_program_, "num_mesh_tri", mesh_->triangle_count);
         utility::SetUniformInt(cull_program_, "num_mesh_quad", mesh_->quad_count);
 
-        if(settings.prim_type == QUADS){
+        if(settings_.prim_type == QUADS){
             utility::SetUniformInt(cull_program_, "prim_type", QUADS);
             utility::SetUniformVec3(cull_program_, "prim_centroid", QUAD_CENTROID);
-        } else if (settings.prim_type == TRIANGLES) {
+        } else if (settings_.prim_type == TRIANGLES) {
 
             utility::SetUniformInt(cull_program_, "prim_type", TRIANGLES);
             utility::SetUniformVec3(cull_program_, "prim_centroid", TRI_CENTROID);
@@ -116,19 +116,19 @@ public:
 
     void configureRenderProgram()
     {
-        utility::SetUniformBool(render_program_, "render_MVP", settings.renderMVP);
-        utility::SetUniformFloat(render_program_, "adaptive_factor", settings.adaptive_factor);
-        utility::SetUniformBool(render_program_, "morph", settings.morph);
-        utility::SetUniformBool(render_program_, "debug_morph", settings.debug_morph);
-        utility::SetUniformFloat(render_program_, "morph_k", settings.morph_k);
-        utility::SetUniformBool(render_program_, "heightmap", settings.displace);
-        utility::SetUniformInt(render_program_, "cpu_lod", settings.cpu_lod);
-        utility::SetUniformInt(render_program_, "color_mode", settings.color_mode);
+        utility::SetUniformBool(render_program_, "render_MVP", settings_.renderMVP);
+        utility::SetUniformFloat(render_program_, "adaptive_factor", settings_.adaptive_factor);
+        utility::SetUniformBool(render_program_, "morph", settings_.morph);
+        utility::SetUniformBool(render_program_, "debug_morph", settings_.debug_morph);
+        utility::SetUniformFloat(render_program_, "morph_k", settings_.morph_k);
+        utility::SetUniformBool(render_program_, "heightmap", settings_.displace);
+        utility::SetUniformInt(render_program_, "cpu_lod", settings_.cpu_lod);
+        utility::SetUniformInt(render_program_, "color_mode", settings_.color_mode);
 
-        if(settings.prim_type == QUADS){
+        if(settings_.prim_type == QUADS){
             utility::SetUniformInt(render_program_, "prim_type", QUADS);
             utility::SetUniformVec3(render_program_, "prim_centroid", QUAD_CENTROID);
-        } else if (settings.prim_type == TRIANGLES) {
+        } else if (settings_.prim_type == TRIANGLES) {
             utility::SetUniformInt(render_program_, "prim_type", TRIANGLES);
             utility::SetUniformVec3(render_program_, "prim_centroid", TRI_CENTROID);
         }
@@ -304,11 +304,11 @@ public:
     bool loadNodesBuffers()
     {
         nodes_array_ = new uvec4[MAX_NUM_NODES];
-        if(settings.prim_type == TRIANGLES) {
+        if(settings_.prim_type == TRIANGLES) {
             for (int ctr = 0; ctr < mesh_->triangle_count; ++ctr) {
                 nodes_array_[ctr] = uvec4(0, 0x1, uint(ctr*3), 0);
             }
-        } else if (settings.prim_type == QUADS) {
+        } else if (settings_.prim_type == QUADS) {
             for (int ctr = 0; ctr < mesh_->quad_count; ++ctr) {
                 nodes_array_[ctr] = uvec4(0, 0x1, uint(ctr*4), 0);
             }
@@ -391,26 +391,26 @@ public:
         vector<vec3> vertices = getTrianglePrimVertices(level);
         vector<uvec3> indices = getTrianglePrimIndices(level);
 
-        triangle_leaf.v.count = vertices.size();
-        triangle_leaf.v.size = triangle_leaf.v.count * sizeof(vec3);
-        if(glIsBuffer(triangle_leaf.v.bo)){
-            glDeleteBuffers(1, &triangle_leaf.v.bo);
-            triangle_leaf.v.bo = 0;
+        triangle_leaf_.v.count = vertices.size();
+        triangle_leaf_.v.size = triangle_leaf_.v.count * sizeof(vec3);
+        if(glIsBuffer(triangle_leaf_.v.bo)){
+            glDeleteBuffers(1, &triangle_leaf_.v.bo);
+            triangle_leaf_.v.bo = 0;
         }
-        glCreateBuffers(1, &triangle_leaf.v.bo);
-        glNamedBufferStorage(triangle_leaf.v.bo, triangle_leaf.v.size, &vertices[0], 0);
+        glCreateBuffers(1, &triangle_leaf_.v.bo);
+        glNamedBufferStorage(triangle_leaf_.v.bo, triangle_leaf_.v.size, &vertices[0], 0);
 
-        triangle_leaf.idx.count = indices.size() * 3;
-        triangle_leaf.idx.size = indices.size() * sizeof(uvec3);
-        if(glIsBuffer(triangle_leaf.idx.bo)){
-            glDeleteBuffers(1, &triangle_leaf.idx.bo);
-            triangle_leaf.idx.bo = 0;
+        triangle_leaf_.idx.count = indices.size() * 3;
+        triangle_leaf_.idx.size = indices.size() * sizeof(uvec3);
+        if(glIsBuffer(triangle_leaf_.idx.bo)){
+            glDeleteBuffers(1, &triangle_leaf_.idx.bo);
+            triangle_leaf_.idx.bo = 0;
         }
-        glCreateBuffers(1, &triangle_leaf.idx.bo);
-        glNamedBufferStorage(triangle_leaf.idx.bo, triangle_leaf.idx.size, &indices[0], 0);
+        glCreateBuffers(1, &triangle_leaf_.idx.bo);
+        glNamedBufferStorage(triangle_leaf_.idx.bo, triangle_leaf_.idx.size, &indices[0], 0);
 
-        cout << triangle_leaf.v.count   << " triangle vertices (" << triangle_leaf.v.size << "B)" << endl;
-        cout << triangle_leaf.idx.count << " triangle indices  (" << triangle_leaf.idx.size << "B)" << endl;
+        cout << triangle_leaf_.v.count   << " triangle vertices (" << triangle_leaf_.v.size << "B)" << endl;
+        cout << triangle_leaf_.idx.count << " triangle indices  (" << triangle_leaf_.idx.size << "B)" << endl;
 
         return (glGetError() == GL_NO_ERROR);
     }
@@ -423,27 +423,27 @@ public:
         djg_mesh* mesh = djgm_load_plane(lvl, lvl);
 
         const djgm_vertex* vertices = djgm_get_vertices(mesh, &vertexCnt);
-        quad_leaf.v.count = vertexCnt;
-        quad_leaf.v.size = quad_leaf.v.count * sizeof(vec3);
-        vec3* pos = new vec3[quad_leaf.v.count];
-        for (uint i = 0; i < quad_leaf.v.count; ++i) {
+        quad_leaf_.v.count = vertexCnt;
+        quad_leaf_.v.size = quad_leaf_.v.count * sizeof(vec3);
+        vec3* pos = new vec3[quad_leaf_.v.count];
+        for (uint i = 0; i < quad_leaf_.v.count; ++i) {
             pos[i] = vec3(vertices[i].st.s, vertices[i].st.t, 1.0);
         }
-        if(glIsBuffer(quad_leaf.v.bo))
-            glDeleteBuffers(1, &quad_leaf.v.bo);
-        glCreateBuffers(1, &quad_leaf.v.bo);
-        glNamedBufferStorage(quad_leaf.v.bo, quad_leaf.v.size, pos, 0);
+        if(glIsBuffer(quad_leaf_.v.bo))
+            glDeleteBuffers(1, &quad_leaf_.v.bo);
+        glCreateBuffers(1, &quad_leaf_.v.bo);
+        glNamedBufferStorage(quad_leaf_.v.bo, quad_leaf_.v.size, pos, 0);
 
         data = (const void *)djgm_get_triangles(mesh, &indexCnt);
-        quad_leaf.idx.count = indexCnt;
-        quad_leaf.idx.size = quad_leaf.idx.count * sizeof(uint16_t);
-        if(glIsBuffer(quad_leaf.idx.bo))
-            glDeleteBuffers(1, &quad_leaf.idx.bo);
-        glCreateBuffers(1, &quad_leaf.idx.bo);
-        glNamedBufferStorage(quad_leaf.idx.bo, quad_leaf.idx.size, data, 0);
+        quad_leaf_.idx.count = indexCnt;
+        quad_leaf_.idx.size = quad_leaf_.idx.count * sizeof(uint16_t);
+        if(glIsBuffer(quad_leaf_.idx.bo))
+            glDeleteBuffers(1, &quad_leaf_.idx.bo);
+        glCreateBuffers(1, &quad_leaf_.idx.bo);
+        glNamedBufferStorage(quad_leaf_.idx.bo, quad_leaf_.idx.size, data, 0);
 
-        cout << quad_leaf.v.count   << " quad vertices ("  << quad_leaf.v.size << "B)" << endl;
-        cout << quad_leaf.idx.count << " quad indices  (" << quad_leaf.idx.size << "B)" << endl;
+        cout << quad_leaf_.v.count   << " quad vertices ("  << quad_leaf_.v.size << "B)" << endl;
+        cout << quad_leaf_.idx.count << " quad indices  (" << quad_leaf_.idx.size << "B)" << endl;
 
 
         djgm_release(mesh);
@@ -454,16 +454,16 @@ public:
     // ---- VAO functions ---- //
     bool loadTriangleLeafVao()
     {
-        if(glIsVertexArray(triangle_leaf.vao)) {
-            glDeleteVertexArrays(1, &triangle_leaf.vao);
-            triangle_leaf.vao = 0;
+        if(glIsVertexArray(triangle_leaf_.vao)) {
+            glDeleteVertexArrays(1, &triangle_leaf_.vao);
+            triangle_leaf_.vao = 0;
         }
-        glCreateVertexArrays(1, &triangle_leaf.vao);
-        glVertexArrayAttribBinding(triangle_leaf.vao, 1, 0);
-        glVertexArrayAttribFormat(triangle_leaf.vao, 1, 3, GL_FLOAT, GL_FALSE, 0);
-        glEnableVertexArrayAttrib(triangle_leaf.vao, 1);
-        glVertexArrayVertexBuffer(triangle_leaf.vao, 0, triangle_leaf.v.bo, 0, sizeof(vec3));
-        glVertexArrayElementBuffer(triangle_leaf.vao, triangle_leaf.idx.bo);
+        glCreateVertexArrays(1, &triangle_leaf_.vao);
+        glVertexArrayAttribBinding(triangle_leaf_.vao, 1, 0);
+        glVertexArrayAttribFormat(triangle_leaf_.vao, 1, 3, GL_FLOAT, GL_FALSE, 0);
+        glEnableVertexArrayAttrib(triangle_leaf_.vao, 1);
+        glVertexArrayVertexBuffer(triangle_leaf_.vao, 0, triangle_leaf_.v.bo, 0, sizeof(vec3));
+        glVertexArrayElementBuffer(triangle_leaf_.vao, triangle_leaf_.idx.bo);
 
 
         return (glGetError() == GL_NO_ERROR);
@@ -471,15 +471,15 @@ public:
 
     bool loadQuadLeafVao()
     {
-        if(glIsVertexArray(quad_leaf.vao))
-            glDeleteVertexArrays(1, &quad_leaf.vao);
+        if(glIsVertexArray(quad_leaf_.vao))
+            glDeleteVertexArrays(1, &quad_leaf_.vao);
 
-        glCreateVertexArrays(1, &quad_leaf.vao);
-        glVertexArrayAttribBinding(quad_leaf.vao, 0, 0);
-        glVertexArrayAttribFormat(quad_leaf.vao, 0, 3, GL_FLOAT, GL_FALSE, 0);
-        glEnableVertexArrayAttrib(quad_leaf.vao, 0);
-        glVertexArrayVertexBuffer(quad_leaf.vao, 0, quad_leaf.v.bo, 0, sizeof(vec3));
-        glVertexArrayElementBuffer(quad_leaf.vao, quad_leaf.idx.bo);
+        glCreateVertexArrays(1, &quad_leaf_.vao);
+        glVertexArrayAttribBinding(quad_leaf_.vao, 0, 0);
+        glVertexArrayAttribFormat(quad_leaf_.vao, 0, 3, GL_FLOAT, GL_FALSE, 0);
+        glEnableVertexArrayAttrib(quad_leaf_.vao, 0);
+        glVertexArrayVertexBuffer(quad_leaf_.vao, 0, quad_leaf_.v.bo, 0, sizeof(vec3));
+        glVertexArrayElementBuffer(quad_leaf_.vao, quad_leaf_.idx.bo);
         return (glGetError() == GL_NO_ERROR);
     }
 
@@ -502,24 +502,24 @@ public:
     {
         cout << "-> QUADTREE" << endl;
 
-        settings = init_settings;
+        settings_ = init_settings;
         workgroup_size_ = vec3(256, 1, 1);
         num_workgroup_ = ceil(MAX_NUM_NODES / (workgroup_size_.x * workgroup_size_.y * workgroup_size_.z));
-        num_prim_ = 0;
+        prim_count_ = 0;
         commands_ = new Commands();
-        clock = djgc_create();
+        clock_ = djgc_create();
         mesh_ = m_data;
 
         if(!loadPrograms())
             throw std::runtime_error("shader creation error");
 
         loadMeshBuffers();
-        loadQuadLeafBuffers(settings.cpu_lod);
-        loadTriangleLeafBuffers(settings.cpu_lod);
+        loadQuadLeafBuffers(settings_.cpu_lod);
+        loadTriangleLeafBuffers(settings_.cpu_lod);
         loadQuadLeafVao();
         loadTriangleLeafVao();
         loadNodesBuffers();
-        commands_->Init(quad_leaf.idx.count, triangle_leaf.idx.count, num_workgroup_);
+        commands_->Init(quad_leaf_.idx.count, triangle_leaf_.idx.count, num_workgroup_);
         init_pingpong();
 
         ReconfigureShaders();
@@ -536,10 +536,10 @@ public:
             transfo_updated = false;
         }
 
-        if(!settings.freeze)
+        if(!settings_.freeze)
         {
             // ** Compute Pass ** //
-            djgc_start(clock);
+            djgc_start(clock_);
 
             glEnable(GL_RASTERIZER_DISCARD);
 
@@ -549,7 +549,7 @@ public:
                 //pingpong();
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, read_ssbo_);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, write_ssbo_);
-                commands_->BindForCompute(2, 3, settings.prim_type);
+                commands_->BindForCompute(2, 3, settings_.prim_type);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, mesh_->v.bo);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, mesh_->q_idx.bo);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, mesh_->t_idx.bo);
@@ -560,8 +560,8 @@ public:
             }
             glUseProgram(0);
 
-            if(settings.map_primcount){
-                num_prim_ = commands_->getPrimCount();
+            if(settings_.map_primcount){
+                prim_count_ = commands_->getPrimCount();
             }
 
             // ** Cull Pass ** //
@@ -570,7 +570,7 @@ public:
                 pingpong();
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, read_ssbo_);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, write_ssbo_);
-                commands_->BindForCull(2, 3, settings.prim_type);
+                commands_->BindForCull(2, 3, settings_.prim_type);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, mesh_->v.bo);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, mesh_->q_idx.bo);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, mesh_->t_idx.bo);
@@ -586,7 +586,6 @@ public:
         glEnable(GL_DEPTH_TEST);
         glClearDepth(1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//        glViewport(256, 0, 1024, 1024);
         glUseProgram(render_program_);
         {
             glViewport(512, 0, 1024, 1024);
@@ -594,21 +593,21 @@ public:
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, mesh_->v.bo);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, mesh_->q_idx.bo);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, mesh_->t_idx.bo);
-            offset_ = commands_->BindForRender(settings.prim_type);
-            if(settings.prim_type == QUADS) {
-                glBindVertexArray(quad_leaf.vao);
+            offset_ = commands_->BindForRender(settings_.prim_type);
+            if(settings_.prim_type == QUADS) {
+                glBindVertexArray(quad_leaf_.vao);
                 glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_SHORT, BUFFER_OFFSET(offset_));
 
-            } else if(settings.prim_type == TRIANGLES){
-                glBindVertexArray(triangle_leaf.vao);
+            } else if(settings_.prim_type == TRIANGLES){
+                glBindVertexArray(triangle_leaf_.vao);
                 glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, BUFFER_OFFSET(offset_));
             }
             glBindVertexArray(0);
         }
         glUseProgram(0);
 
-        djgc_stop(clock);
-        djgc_ticks(clock, &tcpu, &tgpu);
+        djgc_stop(clock_);
+        djgc_ticks(clock_, &_, &tgpu_);
     }
 
     void CleanUp()
@@ -617,12 +616,12 @@ public:
         glDeleteBuffers(2, nodes_bo_);
         glDeleteProgram(render_program_);
         glDeleteProgram(compute_program_);
-        glDeleteBuffers(1, &quad_leaf.v.bo);
-        glDeleteBuffers(1, &quad_leaf.idx.bo);
-        glDeleteBuffers(1, &triangle_leaf.v.bo);
-        glDeleteBuffers(1, &triangle_leaf.idx.bo);
-        glDeleteVertexArrays(1, &triangle_leaf.vao);
-        glDeleteVertexArrays(1, &quad_leaf.vao);
+        glDeleteBuffers(1, &quad_leaf_.v.bo);
+        glDeleteBuffers(1, &quad_leaf_.idx.bo);
+        glDeleteBuffers(1, &triangle_leaf_.v.bo);
+        glDeleteBuffers(1, &triangle_leaf_.idx.bo);
+        glDeleteVertexArrays(1, &triangle_leaf_.vao);
+        glDeleteVertexArrays(1, &quad_leaf_.vao);
         commands_->Cleanup();
         delete[] nodes_array_;
     }
@@ -672,11 +671,11 @@ public:
 
     void ReloadPrimitives()
     {
-        loadQuadLeafBuffers(settings.cpu_lod);
-        loadTriangleLeafBuffers(settings.cpu_lod);
+        loadQuadLeafBuffers(settings_.cpu_lod);
+        loadTriangleLeafBuffers(settings_.cpu_lod);
         loadQuadLeafVao();
         loadTriangleLeafVao();
-        commands_->ReinitializeCommands(quad_leaf.idx.count, triangle_leaf.idx.count, num_workgroup_);
+        commands_->ReinitializeCommands(quad_leaf_.idx.count, triangle_leaf_.idx.count, num_workgroup_);
         loadNodesBuffers();
         configureRenderProgram();
     }
@@ -684,19 +683,8 @@ public:
 
     void SetPrimType(int i)
     {
-        settings.prim_type = i;
+        settings_.prim_type = i;
         ReinitQuadTree();
-    }
-
-    void GetTicks(double& cpu, double& gpu)
-    {
-        cpu = tcpu;
-        gpu = tgpu;
-    }
-
-    int GetPrimcount()
-    {
-        return num_prim_;
     }
 
     void UpdateTransforms(const mat4& M, const mat4& V, const mat4& P, const vec3& cp)
@@ -718,11 +706,6 @@ public:
         transfo_updated = true;
     }
 
-
-    mat4 GetModel(){
-        return model_mat_;
-    }
-
     void SetModel(const mat4& new_M)
     {
         model_mat_ = new_M;
@@ -731,7 +714,7 @@ public:
     }
     void UpdateColorMode()
     {
-        utility::SetUniformInt(render_program_, "color_mode", settings.color_mode);
+        utility::SetUniformInt(render_program_, "color_mode", settings_.color_mode);
     }
 
     void UploadTransforms()
@@ -752,7 +735,7 @@ public:
         utility::SetUniformMat4(render_program_, "V", view_mat_);
         utility::SetUniformMat4(render_program_, "P", projection_mat_);
         utility::SetUniformMat4(render_program_, "MVP", MVP_);
-        if(!settings.freeze)
+        if(!settings_.freeze)
             utility::SetUniformVec3(render_program_, "cam_pos", cam_pos);
     }
 };

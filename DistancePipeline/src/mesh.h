@@ -156,7 +156,7 @@ public:
     void Draw(float deltaT, bool freeze)
     {
         if(!freeze &( mode != TERRAIN)){
-            mat4 newM = glm::rotate(quadtree->GetModel(), deltaT * 0.5f , vec3(0.0f, 0.0f, 1.0f));
+            mat4 newM = glm::rotate(quadtree->model_mat_, deltaT * 0.5f , vec3(0.0f, 0.0f, 1.0f));
             quadtree->SetModel(newM);
         }
         quadtree->Draw(deltaT);
@@ -175,13 +175,13 @@ public:
         mode = mode;
         if (mode == TERRAIN){
             loadGrid();
-            quadtree->settings.displace = true;
-            quadtree->settings.adaptive_factor = 2.0;
+            quadtree->settings_.displace = true;
+            quadtree->settings_.adaptive_factor = 2.0;
             quadtree->Reinitialize();
         } else if (mode == MESH){
             loadOBJ(obj_path);
-            quadtree->settings.displace = false;
-            quadtree->settings.adaptive_factor = 0.7;
+            quadtree->settings_.displace = false;
+            quadtree->settings_.adaptive_factor = 0.7;
             quadtree->Reinitialize();
         }
         quadtree->SetModel(mat4(1.0));
