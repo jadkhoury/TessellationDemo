@@ -216,7 +216,7 @@ void RenderImgui()
         ImGui::Checkbox("Readback primitive count", &qts.map_primcount);
         if(qts.map_primcount){
             ImGui::SameLine();
-            ImGui::Value("", gl.quadtree->prim_count);
+            ImGui::Text(LongToString(gl.quadtree->prim_count).c_str());
         }
         if(ImGui::Checkbox("Debug morphing", &qts.debug_morph)){
             if(qts.debug_morph){
@@ -499,7 +499,7 @@ int main(int argc, char **argv)
     // Create the Window
     LOG("Loading {Window-Main}\n");
     GLFWwindow* window = glfwCreateWindow((gl.w_width + gl.gui_width), gl.w_height,
-                                          "Hello Imgui", NULL, NULL);
+                                          "Distance Based Tessellation", NULL, NULL);
     if (window == NULL) {
         LOG("=> Failure <=\n");
         glfwTerminate();

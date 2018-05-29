@@ -106,6 +106,26 @@ static char const * sgets( char * s, int size, char ** stream ) {
     return 0;
 }
 
+string LongToString(long l)
+{
+    bool neg = (l<0);
+    if (neg) l = -l;
+    string s = "";
+    int mod;
+    while (l > 0) {
+        mod = l%1000;
+        s = std::to_string(mod) +  s;
+        if (l>999) {
+            if (mod < 10) s = "0" + s;
+            if (mod < 100) s = "0" + s;
+            s = " " + s;
+        }
+        l /= 1000;
+    }
+    if (neg) s = "-" + s;
+    return s;
+}
+
 bool ParseObj(string file_path, int axis, Mesh_Data& mesh_data)
 {
     // Opening file and stuff

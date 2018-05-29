@@ -24,15 +24,14 @@ struct QuadtreeSettings {
 class QuadTree
 {
 private:
-    const int MAX_LVL = 10;
-    const uint MAX_NUM_NODES = powOf2(2 * MAX_LVL);
-    const GLsizei MAX_DATA_SIZE = MAX_NUM_NODES * sizeof(uvec4);
     const vec3 QUAD_CENTROID = vec3(0.5, 0.5, 1.0);
     const vec3 TRIANGLE_CENTROID = vec3(1.0/3.0, 1.0/3.0, 1.0);
 
     // Buffers and Arrays
     GLuint nodes_bo_[2];
     uvec4* nodes_array_;
+    GLuint max_num_nodes_;
+    GLsizei max_ssbo_size_;
 
     BufferCombo quad_leaf_, triangle_leaf_;
 
@@ -368,12 +367,21 @@ private:
 
     bool loadNodesBuffers()
     {
-        nodes_array_ = new uvec4[MAX_NUM_NODES];
+        int max_ssbo_size;
+        glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &max_ssbo_size);
+        max_ssbo_size /= 8;
+        int max_num_nodes = max_ssbo_size / sizeof(uvec4);
+        printf("max_num_nodes: %s \n", LongToString(max_num_nodes).c_str());
+        printf("max_ssbo_size: %s \n", LongToString(max_ssbo_size).c_str());
+
+
         if(settings.prim_type == TRIANGLES) {
+            nodes_array_ = new uvec4[max_num_nodes];
             for (int ctr = 0; ctr < mesh_->triangle_count; ++ctr) {
                 nodes_array_[ctr] = uvec4(0, 0x1, uint(ctr*3), 0);
             }
         } else if (settings.prim_type == QUADS) {
+            nodes_array_ = new uvec4[max_num_nodes];
             for (int ctr = 0; ctr < mesh_->quad_count; ++ctr) {
                 nodes_array_[ctr] = uvec4(0, 0x1, uint(ctr*4), 0);
             }
@@ -382,9 +390,10 @@ private:
             glDeleteBuffers(1, &nodes_bo_[0]);
         if(glIsBuffer(nodes_bo_[1]))
             glDeleteBuffers(1, &nodes_bo_[1]);
+
         glCreateBuffers(2, nodes_bo_);
-        glNamedBufferStorage(nodes_bo_[0], MAX_DATA_SIZE, nodes_array_, 0);
-        glNamedBufferStorage(nodes_bo_[1], MAX_DATA_SIZE, nodes_array_, 0);
+        glNamedBufferStorage(nodes_bo_[0], max_ssbo_size, nodes_array_, 0);
+        glNamedBufferStorage(nodes_bo_[1], max_ssbo_size, nodes_array_, 0);
         return (glGetError() == GL_NO_ERROR);
     }
 
@@ -518,9 +527,15 @@ public:
     {
         cout << "-> QUADTREE" << endl;
 
+        glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &max_ssbo_size_);
+        max_ssbo_size_ /= 8;
+        max_num_nodes_ = max_ssbo_size_ / sizeof(uvec4);
+        printf("max_num_nodes: %s \n", LongToString(max_num_nodes_).c_str());
+        printf("max_ssbo_size: %s \n", LongToString(max_ssbo_size_).c_str());
+
         settings = init_settings;
         workgroup_size_ = vec3(256, 1, 1);
-        num_workgroup_ = ceil(MAX_NUM_NODES / (workgroup_size_.x * workgroup_size_.y * workgroup_size_.z));
+        num_workgroup_ = ceil(max_num_nodes_ / (workgroup_size_.x * workgroup_size_.y * workgroup_size_.z));
         prim_count = 0;
         commands_ = new Commands();
         clock = djgc_create();
@@ -562,7 +577,6 @@ public:
             glUseProgram(compute_program_);
             {
                 utility::SetUniformFloat(compute_program_, "deltaT", deltaT);
-                //pingpong();
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, read_ssbo_);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, write_ssbo_);
                 commands_->BindForCompute(2, 3, settings.prim_type);

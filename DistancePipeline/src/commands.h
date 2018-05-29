@@ -238,7 +238,6 @@ public:
 		init_tri_command_  = { GLuint(tri_num_v),  0u , 0u, 0u, 0u, uvec3(0)};
 		init_dispatch_command_ = { GLuint(num_workgroup), 1u, 1u };
 		loadCommandBuffers();
-
 	}
 
 	void Cleanup()
