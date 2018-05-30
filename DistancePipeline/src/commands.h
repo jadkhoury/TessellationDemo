@@ -2,251 +2,237 @@
 #define COMMANDS_H
 
 #include "common.h"
-#include <glm/glm.hpp>
+
+
+enum {NODES_IN_B,
+      NODES_OUT_FULL_B,
+      NODES_OUT_CULLED_B,
+      NODECOUNTER_FULL_B,
+      NODECOUNTER_CULLED_B,
+      DRAW_INDIRECT_B,
+      DISPATCH_INDIRECT_B,
+      MESH_V_B,
+      MESH_Q_IDX_B,
+      MESH_T_IDX_B,
+      LEAF_VERT_B,
+      LEAF_IDX_B,
+      BINDINGS_COUNT
+     };
+
+using namespace std;
+using glm::uvec3;
+using glm::uvec3;
+using glm::uvec4;
+
+#define ELEMENTS_INDIRECT
 
 typedef struct {
-	GLuint  count;
-	GLuint  primCount;
-	GLuint  firstIndex;
-	GLuint  baseVertex;
-	GLuint  baseInstance;
-	uvec3  align;
+    GLuint  count;
+    GLuint  primCount;
+    GLuint  firstIndex;
+    GLuint  baseVertex;
+    GLuint  baseInstance;
+    uvec3  align;
 } DrawElementsIndirectCommand;
 
+typedef  struct {
+    uint  count;
+    uint  primCount;
+    uint  first;
+    uint  baseInstance;
+} DrawArraysIndirectCommand;
+
+
 typedef struct {
-	GLuint  num_groups_x;
-	GLuint  num_groups_y;
-	GLuint  num_groups_z;
+    GLuint  num_groups_x;
+    GLuint  num_groups_y;
+    GLuint  num_groups_z;
 } DispatchIndirectCommand;
 
 class Commands
 {
 private:
-	const int NUM_ELEM = 8;
 
-	GLuint quad_draw_bo_, tri_draw_bo_;
-	GLuint dispatch_bo_;
-    GLuint default_bo_, readback_bo_;
+    enum {
+        DrawIndirect,
+        DispatchIndirect,
+        NodeCounterFull,
+        NodeCounterCulled,
+        Copy,
+        BUFFER_COUNT
+    };
+    const int NUM_ELEM = 16;
+    GLuint buffers_[BUFFER_COUNT];
+    DrawElementsIndirectCommand init_draw_command_;
+    DispatchIndirectCommand     init_dispatch_command_;
+    uint init_node_count_;
 
-    DrawElementsIndirectCommand init_quad_command_;
-    DrawElementsIndirectCommand init_tri_command_;
-	DispatchIndirectCommand     init_dispatch_command_;
+    // iterator stuff
+    int primCount_delete_;
+    int primCount_read_, primCount_write_;
 
-    DrawElementsIndirectCommand* quad_command_array_;
-    DrawElementsIndirectCommand* tri_command_array_;
+    uint leaf_num_idx_;
 
-	// iterator stuff
-	bool first_frame_;
-	int  delete_idx_;
-	int compute_R, compute_W;
-	int cull_R, cull_W;
-	int render_R;
-
-	GLuint draw_bo_;
-	GLsizei command_size_;
-
-    //test
-    uint num_prim_;
-
-	bool loadDefaultBuffer()
-	{
-        if(glIsBuffer(default_bo_))
-            glDeleteBuffers(1, &default_bo_);
-        glCreateBuffers(1, &default_bo_);
-		uint ui = 0;
-        glNamedBufferStorage(default_bo_, sizeof(uint), (const void*)&ui, 0);
-		return (glGetError() == GL_NO_ERROR);
-
-	}
-
-	bool loadReadbackBuffer()
-	{
-		if(glIsBuffer(readback_bo_))
-			glDeleteBuffers(1, &readback_bo_);
-		glCreateBuffers(1, &readback_bo_);
-		uint ui = 0;
-		glNamedBufferStorage(readback_bo_, sizeof(uint), (const void*)&ui,
-							 GL_DYNAMIC_STORAGE_BIT | GL_MAP_READ_BIT);
-		return (glGetError() == GL_NO_ERROR);
-
-	}
-
-	bool loadQuadDrawCommandBuffers()
-	{
-		quad_command_array_ = new DrawElementsIndirectCommand[NUM_ELEM];
-		for (int i = 0; i < NUM_ELEM; ++i) {
-			quad_command_array_[i] = init_quad_command_;
-		}
-
-		if(glIsBuffer(quad_draw_bo_))
-			glDeleteBuffers(1, &quad_draw_bo_);
-		glCreateBuffers(1, &quad_draw_bo_);
-		glNamedBufferStorage(quad_draw_bo_, NUM_ELEM * sizeof(quad_command_array_[0]),
-				quad_command_array_, 0);
-
-		return (glGetError() == GL_NO_ERROR);
-	}
-
-	bool loadTriangleDrawCommandBuffers()
+    bool loadCounterBuffers()
     {
-        tri_command_array_ = new DrawElementsIndirectCommand[NUM_ELEM];
-        for (int i = 0; i < NUM_ELEM; ++i) {
-			tri_command_array_[i] = init_tri_command_;
-		}
+        uint zeros[NUM_ELEM] = {0};
+        utility::DeleteBuffer(&buffers_[NodeCounterCulled]);
+        glCreateBuffers(1, &buffers_[NodeCounterCulled]);
+        glNamedBufferStorage(buffers_[NodeCounterCulled], NUM_ELEM * sizeof(uint),
+                             (const void*)&zeros, 0);
 
-		if(glIsBuffer(tri_draw_bo_))
-			glDeleteBuffers(1, &tri_draw_bo_);
-		glCreateBuffers(1, &tri_draw_bo_);
-		glNamedBufferStorage(tri_draw_bo_, NUM_ELEM * sizeof(tri_command_array_[0]),
-				tri_command_array_, 0);
+        zeros[0] = init_node_count_;
 
-		return (glGetError() == GL_NO_ERROR);
-	}
+        utility::DeleteBuffer(&buffers_[NodeCounterFull]);
+        glCreateBuffers(1, &buffers_[NodeCounterFull]);
+        glNamedBufferStorage(buffers_[NodeCounterFull], NUM_ELEM * sizeof(uint),
+                             (const void*)&zeros, 0);
 
-	bool loadComputeCommandBuffer()
-	{
-		if(glIsBuffer(dispatch_bo_))
-			glDeleteBuffers(1, &dispatch_bo_);
-		glCreateBuffers(1, &dispatch_bo_);
-		glNamedBufferStorage(dispatch_bo_, sizeof(init_dispatch_command_), &init_dispatch_command_,
-							 0);
+        return (glGetError() == GL_NO_ERROR);
+    }
 
-		return (glGetError() == GL_NO_ERROR);
-	}
+    bool loadCopyBuffer()
+    {
 
-	bool loadCommandBuffers()
-	{
-		bool b = true;
-		b &= loadDefaultBuffer();
-		b &= loadReadbackBuffer();
-		b &= loadQuadDrawCommandBuffers();
-		b &= loadTriangleDrawCommandBuffers();
-		b &= loadComputeCommandBuffer();
-		return b;
-	}
+        utility::DeleteBuffer(&buffers_[Copy]);
+        glCreateBuffers(1, &buffers_[Copy]);
+        uint zeros[NUM_ELEM] = {0};
+        glNamedBufferStorage(buffers_[Copy], NUM_ELEM * sizeof(uint), &zeros,
+                             GL_DYNAMIC_STORAGE_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
+        return (glGetError() == GL_NO_ERROR);
 
-	void readPrimCount(GLuint buffer, int idx)
-	{
+    }
 
-		glCopyNamedBufferSubData(buffer, readback_bo_,
-								 idx * command_size_ + sizeof(uint), 0, sizeof(uint));
+    bool loadTriangleDrawCommandBuffers()
+    {
+        utility::DeleteBuffer(&buffers_[DrawIndirect]);
+        glCreateBuffers(1, &buffers_[DrawIndirect]);
+        glNamedBufferStorage(buffers_[DrawIndirect], sizeof(init_draw_command_),
+                             &init_draw_command_, 0);
 
-		uint* data = (uint*) glMapNamedBuffer(readback_bo_, GL_READ_ONLY);
-		{
-			num_prim_ = *data;
-		}
-		glUnmapNamedBuffer(readback_bo_);
-	}
+        return (glGetError() == GL_NO_ERROR);
+    }
+
+    bool loadComputeCommandBuffer()
+    {
+        utility::DeleteBuffer (&buffers_[DispatchIndirect]);
+        glCreateBuffers(1, &buffers_[DispatchIndirect]);
+        glNamedBufferStorage(buffers_[DispatchIndirect], sizeof(init_dispatch_command_),
+                             &init_dispatch_command_, 0);
+
+        return (glGetError() == GL_NO_ERROR);
+    }
+
+    bool loadCommandBuffers()
+    {
+        bool b = true;
+        b &= loadCopyBuffer();
+        b &= loadCounterBuffers();
+        b &= loadTriangleDrawCommandBuffers();
+        b &= loadComputeCommandBuffer();
+        return b;
+    }
 
 public:
-	void Init(uint quad_num_idx, uint tri_num_v, uint num_workgroup)
-	{
-        init_quad_command_ = { GLuint(quad_num_idx), 0u , 0u, 0u, 0u, uvec3(0)};
-        init_tri_command_  = { GLuint(tri_num_v),  0u , 0u, 0u, 0u, uvec3(0)};
-        init_dispatch_command_ = { GLuint(num_workgroup), 1u, 1u };
-		compute_R = 0;
-		first_frame_ = true;
-		delete_idx_ = 0;
-		command_size_ = 8 * sizeof(uint);
-		num_prim_ = 0;
-		loadCommandBuffers();
-	}
-
-	void BindForCompute(uint read_binding, uint write_binding, int prim_type)
+    void Init(uint num_idx, uint num_workgroup, uint init_node_count)
     {
-        if(prim_type == TRIANGLES){
-            draw_bo_ = tri_draw_bo_;
-        } else if (prim_type == QUADS){
-            draw_bo_ = quad_draw_bo_;
+        leaf_num_idx_ = num_idx;
+
+        init_draw_command_  = { GLuint(leaf_num_idx_), 0, 0, 0, 0, uvec3(0)};
+        init_dispatch_command_ = { GLuint(num_workgroup), 1, 1 };
+        init_node_count_ = init_node_count;
+
+        loadCommandBuffers();
+
+        primCount_read_  = 0;
+        primCount_write_ = 1;
+        primCount_delete_ = floor(NUM_ELEM / 2);
+    }
+
+    void BindForCompute(GLuint program)
+    {
+        utility::SetUniformInt(program, "read_index", primCount_read_);
+        utility::SetUniformInt(program, "write_index", primCount_write_);
+        glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, NODECOUNTER_FULL_B, buffers_[NodeCounterFull]);
+        glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, NODECOUNTER_CULLED_B, buffers_[NodeCounterCulled]);
+
+        glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, buffers_[DispatchIndirect]);
+
+        primCount_read_   = primCount_write_;
+        primCount_write_  = (primCount_read_ + 1) % NUM_ELEM;
+        primCount_delete_ = (primCount_delete_ + 1) % NUM_ELEM;
+    }
+
+    uint BindForCopy(GLuint program)
+    {
+        utility::SetUniformInt(program, "read_index", primCount_read_);
+        utility::SetUniformInt(program, "delete_index", primCount_delete_);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODECOUNTER_FULL_B, buffers_[NodeCounterFull]);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODECOUNTER_CULLED_B, buffers_[NodeCounterCulled]);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, DISPATCH_INDIRECT_B, buffers_[DispatchIndirect]);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, DRAW_INDIRECT_B, buffers_[DrawIndirect]);
+    }
+
+    void BindForRender()
+    {
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, buffers_[DrawIndirect]);
+    }
+
+    int GetPrimCount()
+    {
+        glCopyNamedBufferSubData(buffers_[DrawIndirect], buffers_[Copy], sizeof(uint), 0, sizeof(uint));
+        uint* data = (uint*) glMapNamedBuffer(buffers_[Copy], GL_READ_ONLY);
+        glUnmapNamedBuffer(buffers_[Copy]);
+        return data[0];
+    }
+
+    void PrintAtomicArray()
+    {
+        cout << "AtomicArray: ";
+        glCopyNamedBufferSubData(buffers_[NodeCounterFull], buffers_[Copy], 0, 0, NUM_ELEM * sizeof(uint));
+        uint* data = (uint*) glMapNamedBuffer(buffers_[Copy], GL_READ_ONLY);
+        glUnmapNamedBuffer(buffers_[Copy]);
+        for (int i = 0; i < NUM_ELEM; ++i) {
+            cout << data[i] << " ";
         }
+        cout << endl;
+    }
 
-		if(first_frame_){
-			compute_R = 0;
-			compute_W = 1;
-			first_frame_ = false;
-		} else {
-			compute_R = compute_W;
-			compute_W = (compute_R + 2) % NUM_ELEM;
-		}
+    void PrintWGCountInDispatch()
+    {
+        cout << "WG size X in Dispatch bufffer: ";
+        glCopyNamedBufferSubData(buffers_[DispatchIndirect], buffers_[Copy], 0, 0, sizeof(uint));
+        uint* data = (uint*) glMapNamedBuffer(buffers_[Copy], GL_READ_ONLY);
+        glUnmapNamedBuffer(buffers_[Copy]);
+        cout << data[0] << endl;
+    }
 
-		glBindBufferRange(GL_SHADER_STORAGE_BUFFER, read_binding,
-						  draw_bo_, compute_R * command_size_, command_size_);
-		glBindBufferRange(GL_SHADER_STORAGE_BUFFER, write_binding,
-						  draw_bo_, compute_W * command_size_, command_size_);
+    void ReloadCommands()
+    {
+        loadCommandBuffers();
+    }
 
-		glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, dispatch_bo_);
+    void ReinitializeCommands(uint num_idx, uint num_workgroup, uint init_node_count)
+    {
+        leaf_num_idx_ = num_idx;
+        init_draw_command_  = { GLuint(leaf_num_idx_),  0 , 0, 0, 0, uvec3(0)};
+        init_dispatch_command_ = { GLuint(num_workgroup), 1, 1 };
+        init_node_count_ = init_node_count;
+        loadCommandBuffers();
+    }
 
-        glCopyNamedBufferSubData(default_bo_, draw_bo_,
-                                 0, delete_idx_ * command_size_ + sizeof(uint),
-                                 sizeof(uint));
-        glCopyNamedBufferSubData(default_bo_, draw_bo_,
-                                 0, (delete_idx_ + 1) * command_size_ + sizeof(uint),
-                                 sizeof(uint));
-		delete_idx_ = (delete_idx_ + 2) % NUM_ELEM;
+    void UpdateLeafGeometry(uint new_num_idx)
+    {
+        leaf_num_idx_ = new_num_idx;
+        glNamedBufferSubData(buffers_[Copy], 0, sizeof(uint), &leaf_num_idx_);
+        glCopyNamedBufferSubData(buffers_[Copy], buffers_[DrawIndirect], 0, 0, sizeof(uint));
+    }
 
-
-	}
-
-	void BindForCull(uint read_binding, uint write_binding, int prim_type)
-	{
-		if(prim_type == TRIANGLES){
-			draw_bo_ = tri_draw_bo_;
-		} else if (prim_type == QUADS){
-			draw_bo_ = quad_draw_bo_;
-		}
-
-		cull_R = compute_W;
-		cull_W = (cull_R + 1) % NUM_ELEM;
-
-		glBindBufferRange(GL_SHADER_STORAGE_BUFFER, read_binding,
-						  draw_bo_, cull_R * command_size_, command_size_);
-		glBindBufferRange(GL_SHADER_STORAGE_BUFFER, write_binding,
-						  draw_bo_, cull_W * command_size_, command_size_);
-
-		glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, dispatch_bo_);
-	}
-
-
-
-	//returns the offset for the draw function
-	uint BindForRender(int prim_type)
-	{
-		if(prim_type == TRIANGLES){
-			draw_bo_ = tri_draw_bo_;
-		} else if (prim_type == QUADS){
-			draw_bo_ = quad_draw_bo_;
-		}
-		render_R = cull_W;
-		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, draw_bo_);
-		return  command_size_ * render_R;
-	}
-
-	int getPrimCount()
-	{
-		readPrimCount(draw_bo_, compute_W);
-		return num_prim_;
-	}
-
-	void ReloadCommands()
-	{
-		loadCommandBuffers();
-	}
-
-	void ReinitializeCommands(uint quad_num_idx, uint tri_num_v, uint num_workgroup)
-	{
-		init_quad_command_ = { GLuint(quad_num_idx), 0u , 0u, 0u, 0u, uvec3(0)};
-		init_tri_command_  = { GLuint(tri_num_v),  0u , 0u, 0u, 0u, uvec3(0)};
-		init_dispatch_command_ = { GLuint(num_workgroup), 1u, 1u };
-		loadCommandBuffers();
-	}
-
-	void Cleanup()
-	{
-		glDeleteBuffers(1, &tri_draw_bo_);
-		glDeleteBuffers(1, &quad_draw_bo_);
-		delete [] tri_command_array_;
-		delete [] quad_command_array_;
-	}
+    void Cleanup()
+    {
+        for (int i = 0; i < BUFFER_COUNT; ++i)
+            utility::DeleteBuffer(&buffers_[i]);
+    }
 
 };
 

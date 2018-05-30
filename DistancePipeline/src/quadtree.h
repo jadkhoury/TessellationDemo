@@ -24,11 +24,25 @@ struct QuadtreeSettings {
 class QuadTree
 {
 private:
+
+    struct ssbo_indices {
+        int read = 0;
+        int write_full = 1;
+        int write_culled = 2;
+    } ssbo_idx_;
+
     const vec3 QUAD_CENTROID = vec3(0.5, 0.5, 1.0);
     const vec3 TRIANGLE_CENTROID = vec3(1.0/3.0, 1.0/3.0, 1.0);
+    const uvec3 LOCAL_WG_SIZE = uvec3(256,1,1);
+    uint local_WG_count_ = LOCAL_WG_SIZE.x * LOCAL_WG_SIZE.y * LOCAL_WG_SIZE.z;
+    uint prim_count_, init_node_count_, init_wg_count_;
+    uint current_idx_count_;
+
+    bool first_frame_ = true;
+
 
     // Buffers and Arrays
-    GLuint nodes_bo_[2];
+    GLuint nodes_bo_[3];
     uvec4* nodes_array_;
     GLuint max_num_nodes_;
     GLsizei max_ssbo_size_;
@@ -74,6 +88,30 @@ private:
     ///
     /// Shader Management Function
     ///
+    ///
+
+    void pushMacrosToProgram(djg_program* djp)
+{
+    djgp_push_string(djp, "#define TRIANGLES %i\n", TRIANGLES);
+    djgp_push_string(djp, "#define QUADS %i\n", QUADS);
+    djgp_push_string(djp, "#define NODES_IN_B %i\n", NODES_IN_B);
+    djgp_push_string(djp, "#define NODES_OUT_FULL_B %i\n", NODES_OUT_FULL_B);
+    djgp_push_string(djp, "#define NODES_OUT_CULLED_B %i\n", NODES_OUT_CULLED_B);
+    djgp_push_string(djp, "#define DISPATCH_COUNTER_B %i\n", DISPATCH_INDIRECT_B);
+    djgp_push_string(djp, "#define DRAW_INDIRECT_B %i\n", DRAW_INDIRECT_B);
+    djgp_push_string(djp, "#define NODECOUNTER_FULL_B %i\n", NODECOUNTER_FULL_B);
+    djgp_push_string(djp, "#define NODECOUNTER_CULLED_B %i\n", NODECOUNTER_CULLED_B);
+    djgp_push_string(djp, "#define LEAF_VERT_B %i\n", LEAF_VERT_B);
+    djgp_push_string(djp, "#define LEAF_IDX_B %i\n", LEAF_IDX_B);
+
+    djgp_push_string(djp, "#define MESH_V_B %i\n", MESH_V_B);
+    djgp_push_string(djp, "#define MESH_Q_IDX_B %i\n", MESH_Q_IDX_B);
+    djgp_push_string(djp, "#define MESH_T_IDX_B %i\n", MESH_T_IDX_B);
+    djgp_push_string(djp, "#define LOCAL_WG_SIZE_X %u\n", LOCAL_WG_SIZE.x);
+    djgp_push_string(djp, "#define LOCAL_WG_SIZE_Y %u\n", LOCAL_WG_SIZE.y);
+    djgp_push_string(djp, "#define LOCAL_WG_SIZE_Z %u\n", LOCAL_WG_SIZE.z);
+    djgp_push_string(djp, "#define LOCAL_WG_COUNT %u\n", local_WG_count_);
+}
 
     void configureComputeProgram()
     {
@@ -139,8 +177,7 @@ private:
         if(!glIsProgram(compute_program_))
             compute_program_ = 0;
         djg_program *djp = djgp_create();
-        djgp_push_string(djp, "#define TRIANGLES %i\n", TRIANGLES);
-        djgp_push_string(djp, "#define QUADS %i\n", QUADS);
+        pushMacrosToProgram(djp);
 
         char buf[1024];
         djgp_push_file(djp, strcat2(buf, shader_dir, "ltree_jk.glsl"));
@@ -201,6 +238,7 @@ private:
         djgp_push_string(djp, "#define WHITE %i\n", WHITE);
         djgp_push_string(djp, "#define PRIMITIVES %i\n", PRIMITIVES);
 
+        pushMacrosToProgram(djp);
 
 
         char buf[1024];
@@ -367,33 +405,32 @@ private:
 
     bool loadNodesBuffers()
     {
-        int max_ssbo_size;
-        glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &max_ssbo_size);
-        max_ssbo_size /= 8;
-        int max_num_nodes = max_ssbo_size / sizeof(uvec4);
-        printf("max_num_nodes: %s \n", LongToString(max_num_nodes).c_str());
-        printf("max_ssbo_size: %s \n", LongToString(max_ssbo_size).c_str());
-
-
-        if(settings.prim_type == TRIANGLES) {
-            nodes_array_ = new uvec4[max_num_nodes];
+        if(settings.prim_type == TRIANGLES)
+        {
+            nodes_array_ = new uvec4[max_num_nodes_];
+            init_node_count_ = mesh_->triangle_count;
             for (int ctr = 0; ctr < mesh_->triangle_count; ++ctr) {
                 nodes_array_[ctr] = uvec4(0, 0x1, uint(ctr*3), 0);
             }
-        } else if (settings.prim_type == QUADS) {
-            nodes_array_ = new uvec4[max_num_nodes];
+        }
+        else if (settings.prim_type == QUADS)
+        {
+            nodes_array_ = new uvec4[max_num_nodes_];
+            init_node_count_ = mesh_->quad_count;
             for (int ctr = 0; ctr < mesh_->quad_count; ++ctr) {
                 nodes_array_[ctr] = uvec4(0, 0x1, uint(ctr*4), 0);
             }
         }
-        if(glIsBuffer(nodes_bo_[0]))
-            glDeleteBuffers(1, &nodes_bo_[0]);
-        if(glIsBuffer(nodes_bo_[1]))
-            glDeleteBuffers(1, &nodes_bo_[1]);
 
-        glCreateBuffers(2, nodes_bo_);
-        glNamedBufferStorage(nodes_bo_[0], max_ssbo_size, nodes_array_, 0);
-        glNamedBufferStorage(nodes_bo_[1], max_ssbo_size, nodes_array_, 0);
+        utility::DeleteBuffer(&nodes_bo_[0]);
+        utility::DeleteBuffer(&nodes_bo_[1]);
+        utility::DeleteBuffer(&nodes_bo_[2]);
+
+        glCreateBuffers(3, nodes_bo_);
+        glNamedBufferStorage(nodes_bo_[0], max_ssbo_size_, nodes_array_, 0);
+        glNamedBufferStorage(nodes_bo_[1], max_ssbo_size_, nodes_array_, 0);
+        glNamedBufferStorage(nodes_bo_[2], max_ssbo_size_, nodes_array_, 0);
+
         return (glGetError() == GL_NO_ERROR);
     }
 
@@ -420,8 +457,10 @@ private:
         glCreateBuffers(1, &triangle_leaf_.idx.bo);
         glNamedBufferStorage(triangle_leaf_.idx.bo, triangle_leaf_.idx.size, &indices[0], 0);
 
-        cout << triangle_leaf_.v.count   << " triangle vertices (" << triangle_leaf_.v.size << "B)" << endl;
-        cout << triangle_leaf_.idx.count << " triangle indices  (" << triangle_leaf_.idx.size << "B)" << endl;
+        cout << triangle_leaf_.v.count   << " triangle vertices ("
+             << triangle_leaf_.v.size << "B)" << endl;
+        cout << triangle_leaf_.idx.count << " triangle indices  ("
+             << triangle_leaf_.idx.size << "B)" << endl;
 
         return (glGetError() == GL_NO_ERROR);
     }
@@ -507,6 +546,10 @@ private:
         read_from_idx_ = 1 - read_from_idx_;
         read_ssbo_ = nodes_bo_[read_from_idx_];
         write_ssbo_ = nodes_bo_[1 - read_from_idx_];
+
+        ssbo_idx_.read = ssbo_idx_.write_full;
+        ssbo_idx_.write_full = (ssbo_idx_.read + 1) % 3;
+        ssbo_idx_.write_culled = (ssbo_idx_.read + 2) % 3;
     }
 
     void init_pingpong()
@@ -533,9 +576,12 @@ public:
         printf("max_num_nodes: %s \n", LongToString(max_num_nodes_).c_str());
         printf("max_ssbo_size: %s \n", LongToString(max_ssbo_size_).c_str());
 
+
         settings = init_settings;
         workgroup_size_ = vec3(256, 1, 1);
-        num_workgroup_ = ceil(max_num_nodes_ / (workgroup_size_.x * workgroup_size_.y * workgroup_size_.z));
+        num_workgroup_ = ceil(max_num_nodes_ / (workgroup_size_.x *
+                                                workgroup_size_.y *
+                                                workgroup_size_.z));
         prim_count = 0;
         commands_ = new Commands();
         clock = djgc_create();
@@ -550,7 +596,14 @@ public:
         loadQuadLeafVao();
         loadTriangleLeafVao();
         loadNodesBuffers();
-        commands_->Init(quad_leaf_.idx.count, triangle_leaf_.idx.count, num_workgroup_);
+
+        if (settings.prim_type == TRIANGLES)
+            current_idx_count_ = triangle_leaf_.idx.count;
+        if (settings.prim_type == QUADS)
+            current_idx_count_ = quad_leaf_.idx.count;
+
+        init_wg_count_ = ceil(init_node_count_ / float(local_WG_count_));
+        commands_->Init(current_idx_count_, init_wg_count_, init_node_count_);
         init_pingpong();
 
         ReconfigureShaders();
@@ -574,12 +627,14 @@ public:
 
             glEnable(GL_RASTERIZER_DISCARD);
 
+            pingpong();
+
             glUseProgram(compute_program_);
             {
                 utility::SetUniformFloat(compute_program_, "deltaT", deltaT);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, read_ssbo_);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, write_ssbo_);
-                commands_->BindForCompute(2, 3, settings.prim_type);
+                commands_->BindForCompute(compute_program_);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, mesh_->v.bo);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, mesh_->q_idx.bo);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, mesh_->t_idx.bo);
@@ -591,25 +646,24 @@ public:
             glUseProgram(0);
 
             if(settings.map_primcount){
-                prim_count = commands_->getPrimCount();
+                prim_count_ = commands_->GetPrimCount();
             }
 
-            // ** Cull Pass ** //
-            glUseProgram(cull_program_);
-            {
-                pingpong();
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, read_ssbo_);
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, write_ssbo_);
-                commands_->BindForCull(2, 3, settings.prim_type);
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, mesh_->v.bo);
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, mesh_->q_idx.bo);
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, mesh_->t_idx.bo);
-                glDispatchComputeIndirect((long)NULL);
-                glMemoryBarrier(GL_COMMAND_BARRIER_BIT);
-            }
-            glUseProgram(0);
+//            // ** Cull Pass ** //
+//            glUseProgram(cull_program_);
+//            {
+//                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, read_ssbo_);
+//                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, write_ssbo_);
+//                commands_->BindForCull(2, 3, settings.prim_type);
+//                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, mesh_->v.bo);
+//                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, mesh_->q_idx.bo);
+//                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, mesh_->t_idx.bo);
+//                glDispatchComputeIndirect((long)NULL);
+//                glMemoryBarrier(GL_COMMAND_BARRIER_BIT);
+//            }
+//            glUseProgram(0);
 
-            glDisable(GL_RASTERIZER_DISCARD);
+//            glDisable(GL_RASTERIZER_DISCARD);
         }
 
         // ** Draw Pass ** //
@@ -623,14 +677,14 @@ public:
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, mesh_->v.bo);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, mesh_->q_idx.bo);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, mesh_->t_idx.bo);
-            offset_ = commands_->BindForRender(settings.prim_type);
+            commands_->BindForRender();
             if(settings.prim_type == QUADS) {
                 glBindVertexArray(quad_leaf_.vao);
-                glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_SHORT, BUFFER_OFFSET(offset_));
+                glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_SHORT, BUFFER_OFFSET(0));
 
             } else if(settings.prim_type == TRIANGLES){
                 glBindVertexArray(triangle_leaf_.vao);
-                glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, BUFFER_OFFSET(offset_));
+                glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
             }
             glBindVertexArray(0);
         }
@@ -700,7 +754,11 @@ public:
         configureComputeProgram();
         configureCullProgram();
         configureRenderProgram();
-        commands_->ReloadCommands();
+        if (settings.prim_type == TRIANGLES)
+            current_idx_count_ = triangle_leaf_.idx.count;
+        if (settings.prim_type == QUADS)
+            current_idx_count_ = quad_leaf_.idx.count;
+        commands_->ReinitializeCommands(current_idx_count_, init_wg_count_, init_node_count_);
         transfo_updated = true;
     }
 
@@ -710,7 +768,11 @@ public:
         loadTriangleLeafBuffers(settings.cpu_lod);
         loadQuadLeafVao();
         loadTriangleLeafVao();
-        commands_->ReinitializeCommands(quad_leaf_.idx.count, triangle_leaf_.idx.count, num_workgroup_);
+        if (settings.prim_type == TRIANGLES)
+            current_idx_count_ = triangle_leaf_.idx.count;
+        if (settings.prim_type == QUADS)
+            current_idx_count_ = quad_leaf_.idx.count;
+        commands_->UpdateLeafGeometry(current_idx_count_);
         loadNodesBuffers();
         configureRenderProgram();
     }

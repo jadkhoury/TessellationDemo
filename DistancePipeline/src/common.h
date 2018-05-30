@@ -418,7 +418,7 @@ string LongToString(long l)
     return s;
 }
 
-void EmptyBuffer(GLuint* buf)
+void DeleteBuffer(GLuint* buf)
 {
     if(glIsBuffer(*buf))
         glDeleteBuffers(1, buf);
