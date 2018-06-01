@@ -96,10 +96,7 @@ private:
         djgp_push_string(djp, "#define LOCAL_WG_SIZE_Y %u\n", local_WG_size_.y);
         djgp_push_string(djp, "#define LOCAL_WG_SIZE_Z %u\n", local_WG_size_.z);
         djgp_push_string(djp, "#define LOCAL_WG_COUNT %u\n", local_WG_count);
-
-#ifdef ELEMENTS_INDIRECT
         djgp_push_string(djp, "#define ELEMENTS %u\n", 1);
-#endif
     }
 
     bool loadComputeProgram()
@@ -343,13 +340,11 @@ private:
             leaf_geometry.vao = 0;
         }
         glCreateVertexArrays(1, &leaf_geometry.vao);
-#ifdef ELEMENTS_INDIRECT
         glVertexArrayAttribBinding(leaf_geometry.vao, 1, 0);
         glVertexArrayAttribFormat(leaf_geometry.vao, 1, 2, GL_FLOAT, GL_FALSE, 0);
         glEnableVertexArrayAttrib(leaf_geometry.vao, 1);
         glVertexArrayVertexBuffer(leaf_geometry.vao, 0, leaf_geometry.v.bo, 0, sizeof(vec2));
         glVertexArrayElementBuffer(leaf_geometry.vao, leaf_geometry.idx.bo);
-#endif
 
         return (glGetError() == GL_NO_ERROR);
     }

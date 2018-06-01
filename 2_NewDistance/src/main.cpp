@@ -6,7 +6,10 @@
 #define LOG(fmt, ...)  fprintf(stdout, fmt, ##__VA_ARGS__); fflush(stdout);
 #define IM_ARRAYSIZE(_ARR)  ((int)(sizeof(_ARR)/sizeof(*_ARR)))
 
-// ------------------------- Const and Structs ------------------------------ //
+////////////////////////////////////////////////////////////////////////////////
+///
+/// Const and Structs
+///
 
 static const GLfloat black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 static const GLfloat grey[] = { 0.05f, 0.05f, 0.1f, 1.0f };
@@ -58,15 +61,20 @@ struct BenchStats {
     int last_frame_count;
 } stat = {0};
 
-// -------------------------------- Utilities ------------------------------- //
-
+////////////////////////////////////////////////////////////////////////////////
+///
+/// Utilities
+///
 int roundUpToSq(int n)
 {
     int sq = ceil(sqrt(n));
     return (sq * sq);
 }
 
-// ----------------------------- Mesh Functions ----------------------------- //
+////////////////////////////////////////////////////////////////////////////////
+///
+/// Mesh Functions
+///
 
 bool loadMeshBuffers(Mesh_Data* mesh_data)
 {
@@ -139,10 +147,6 @@ void UpdateMeshSettings()
     gl.quadtree->UploadMeshSettings();
 }
 
-int GetPrimcount()
-{
-    return gl.quadtree->GetPrimcount();
-}
 
 void ReloadBuffers() {
     loadMeshBuffers(&gl.mesh_data);
@@ -157,7 +161,10 @@ void DrawMesh(float deltaT, bool freeze)
     gl.quadtree->Draw(deltaT);
 }
 
-// ------------------ Camera and Transforms Functions ----------------------- //
+////////////////////////////////////////////////////////////////////////////////
+///
+/// Camera and Transforms
+///
 
 void PrintCamStuff()
 {
@@ -220,7 +227,10 @@ void SaveFBToBMP (int gui)
     //    ++cnt;
 }
 
-// ---------------------------- Stats Functions ------------------------------ //
+////////////////////////////////////////////////////////////////////////////////
+///
+/// Benchmarking Functions
+///
 
 void UpdateTime()
 {
@@ -254,11 +264,18 @@ void UpdateStats()
     }
 }
 
-// ---------------------------- IMGUI Functions ------------------------------ //
+////////////////////////////////////////////////////////////////////////////////
+///
+/// GUI Functions
+///
+
 // Small trick for better timing output
 void ImGuiTime(string s, float tmp)
 {
-    ImGui::Text("%s:  %.5f %s\n", s.c_str(), (tmp < 1. ? tmp * 1e3 : tmp), (tmp < 1. ? " ms" : " s"));
+    ImGui::Text("%s:  %.5f %s\n",
+                s.c_str(),
+                (tmp < 1. ? tmp * 1e3 : tmp),
+                (tmp < 1. ? " ms" : " s"));
 }
 
 void RenderImgui()
@@ -312,7 +329,7 @@ void RenderImgui()
         }
         if (gl.set->map_primcount) {
             ImGui::SameLine();
-            ImGui::Text(utility::LongToString(GetPrimcount()).c_str ());
+            ImGui::Text(utility::LongToString(gl.quadtree->GetPrimcount()).c_str ());
 
         }
         if (ImGui::Combo(" ", &gl.set->interpolation, "PN\0Phong\0No Interpolation\0\0")) {
@@ -378,7 +395,7 @@ void RenderImgui()
             values_qt_gpu_render[offset]  = gl.quadtree->ticks.gpu_render  * 1000.0;
 
             values_fps[offset] = ImGui::GetIO().Framerate;
-            values_primcount[offset] = GetPrimcount();
+            values_primcount[offset] = gl.quadtree->GetPrimcount();
 
             offset = (offset+1) % IM_ARRAYSIZE(values_qt_gpu_compute);
             refresh_time += 1.0f/30.0f;
@@ -420,81 +437,10 @@ void RenderImgui()
     ImGui::Render();
 }
 
-// ---------------------------- Input Handling Functions ------------------------------ //
-
-#if 0
-void HandleEvent(const SDL_Event *event)
-{
-    const static float mouse_factor = 8e-4;
-    ImGuiIO& io = ImGui::GetIO();
-    if (io.WantCaptureKeyboard || io.WantCaptureMouse)
-        return;
-    //Event handling
-    switch (event->type)
-    {
-    case SDL_KEYDOWN:
-        switch(event->key.keysym.sym)
-        {
-        case SDLK_r:
-            cout << "Reloading Shaders..." << endl;
-            gl.quadtree->ReloadShaders();
-            gl.tesscube->ReloadShaders();
-            cout << "Done" << endl << endl;
-            break;
-        case SDLK_u:
-            gl.quadtree->ReconfigureShaders();
-        case SDLK_p:
-            PrintCamStuff();
-            break;
-        case SDLK_d:
-            gl.run_demo = !gl.run_demo;
-            cout << "DEMO " << ((gl.run_demo) ? "ON" : "OFF") << endl;
-            break;
-        case SDLK_SPACE:
-            gl.pause = !gl.pause;
-            break;
-        default:
-            break;
-        }
-    case SDL_MOUSEMOTION:
-    {
-        int x, y;
-        unsigned int button= SDL_GetRelativeMouseState(&x, &y);
-
-        if (button & SDL_BUTTON(SDL_BUTTON_LEFT)) {
-            mat4 h_rotation = glm::rotate(IDENTITY, float(x * mouse_factor), cam.up);
-            mat4 v_rotation = glm::rotate(IDENTITY, float(y * mouse_factor), cam.right);
-            cam.direction = glm::normalize(mat3(h_rotation) * mat3(v_rotation) * cam.direction);
-            cam.right     = glm::normalize(mat3(h_rotation) * mat3(v_rotation) * cam.right);
-            cam.up = -glm::normalize(glm::cross(cam.direction, cam.right));
-            cam.look = cam.pos + cam.direction;
-            UpdateView();
-        } else if (button & SDL_BUTTON(SDL_BUTTON_RIGHT)) {
-            cam.pos += -cam.right * vec3(x * mouse_factor) + cam.up * vec3(y * mouse_factor);
-            cam.look = cam.pos + cam.direction;
-            UpdateView();
-
-        }
-    } break;
-    case SDL_MOUSEWHEEL: {
-        vec3 forward = vec3(event->wheel.y * 0.05) * cam.direction ;
-        cam.pos += forward;
-        cam.look = cam.pos + cam.direction;
-        UpdateView();
-    } break;
-    default:
-        break;
-    }
-}
-
-#endif
-
-
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// Input Callbacks
 ///
-
 
 void keyboardCallback(GLFWwindow* window, int key, int scancode, int action,
                       int modsls)

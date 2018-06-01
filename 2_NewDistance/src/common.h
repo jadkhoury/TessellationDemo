@@ -228,6 +228,4 @@ struct Transforms
     }
 };
 
-
-
 #endif // COMMON_H
