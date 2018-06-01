@@ -1,9 +1,6 @@
 // SOURCE FILES
 #include "common.h"
 #include "quadtree.h"
-#include "viewer.h"
-#include "point.h"
-#include "tess_cube.h"
 
 // MACROS
 #define LOG(fmt, ...)  fprintf(stdout, fmt, ##__VA_ARGS__); fflush(stdout);
@@ -28,10 +25,8 @@ struct CameraManager {
 
 struct OpenGLManager {
     QuadTree* quadtree;
-    TessCube* tesscube;
     Transforms* tranforms;
     Settings* set;
-    Point* point;
 
     Mesh_Data mesh_data;
 
@@ -58,12 +53,10 @@ struct BenchStats {
     double avg_qt_gpu_compute, avg_qt_gpu_render;
     double avg_tess_render;
     double  total_qt_gpu_compute, total_qt_gpu_render;
-    double total_tess_render;
     int frame_count, fps;
     double sec_timer;
     int last_frame_count;
 } stat = {0};
-
 
 // -------------------------------- Utilities ------------------------------- //
 
@@ -139,22 +132,16 @@ void UpdateTransforms()
 {
     gl.tranforms->updateMV();
     gl.quadtree->UploadTransforms();
-    gl.tesscube->UploadTransforms();
 }
 
 void UpdateMeshSettings()
 {
     gl.quadtree->UploadMeshSettings();
-    gl.tesscube->UploadMeshSettings();
 }
 
 int GetPrimcount()
 {
-    if (gl.set->pipeline == QUADTREE) {
-        return gl.quadtree->GetPrimcount();
-    } else if (gl.set->pipeline == TESS_SHADER) {
-        return gl.tesscube->GetPrimcount();
-    }
+    return gl.quadtree->GetPrimcount();
 }
 
 void ReloadBuffers() {
@@ -167,12 +154,7 @@ void DrawMesh(float deltaT, bool freeze)
         gl.tranforms->M = glm::rotate(gl.tranforms->M, 2.0f*deltaT , vec3(0.0f, 0.0f, 1.0f));
         UpdateTransforms();
     }
-
-    if(gl.set->pipeline == QUADTREE) {
-        gl.quadtree->Draw(deltaT);
-    } else if (gl.set->pipeline == TESS_SHADER) {
-        gl.tesscube->Draw();
-    }
+    gl.quadtree->Draw(deltaT);
 }
 
 // ------------------ Camera and Transforms Functions ----------------------- //
@@ -222,20 +204,20 @@ enum {WITH_GUI, NO_GUI};
 
 void SaveFBToBMP (int gui)
 {
-//    static int cnt = 0;
-//    char buf[1024];
-//    snprintf(buf, 1024, "%03i", cnt);
-//    if (gui == WITH_GUI) {
-//        glViewport(0, 0, gl.w_width, gl.w_height);
-//        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-//        djgt_save_glcolorbuffer_bmp(GL_FRONT, GL_RGBA, buf);
-//    } else {
-//        glViewport(0, 0, gl.render_fb.width, gl.render_fb.height);
-//        glBindFramebuffer(GL_READ_FRAMEBUFFER, gl.render_fb.fbo);
-//        djgt_save_glcolorbuffer_bmp(GL_COLOR_ATTACHMENT0, GL_RGBA, buf);
-//    }
-//    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-//    ++cnt;
+    //    static int cnt = 0;
+    //    char buf[1024];
+    //    snprintf(buf, 1024, "%03i", cnt);
+    //    if (gui == WITH_GUI) {
+    //        glViewport(0, 0, gl.w_width, gl.w_height);
+    //        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    //        djgt_save_glcolorbuffer_bmp(GL_FRONT, GL_RGBA, buf);
+    //    } else {
+    //        glViewport(0, 0, gl.render_fb.width, gl.render_fb.height);
+    //        glBindFramebuffer(GL_READ_FRAMEBUFFER, gl.render_fb.fbo);
+    //        djgt_save_glcolorbuffer_bmp(GL_COLOR_ATTACHMENT0, GL_RGBA, buf);
+    //    }
+    //    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    //    ++cnt;
 }
 
 // ---------------------------- Stats Functions ------------------------------ //
@@ -261,16 +243,13 @@ void UpdateStats()
     if (stat.sec_timer < 1.0) {
         stat.total_qt_gpu_compute += gl.quadtree->ticks.gpu_compute;
         stat.total_qt_gpu_render += gl.quadtree->ticks.gpu_render;
-        stat.total_tess_render += gl.tesscube->ticks.gpu;
     } else {
         stat.fps = stat.frame_count - stat.last_frame_count;
         stat.last_frame_count = stat.frame_count;
         stat.avg_qt_gpu_compute = stat.total_qt_gpu_compute / double(stat.fps);
         stat.avg_qt_gpu_render = stat.total_qt_gpu_render / double(stat.fps);
-        stat.avg_tess_render = stat.total_tess_render /  double(stat.fps);
         stat.total_qt_gpu_compute = 0;
         stat.total_qt_gpu_render = 0;
-        stat.total_tess_render = 0;
         stat.sec_timer = 0;
     }
 }
@@ -293,10 +272,6 @@ void RenderImgui()
         if (ImGui::Combo("Mode", (int*)&gl.mode, "Terrain\0Mesh\0\0")) {
             UpdateMode();
             InitTranforms();
-        }
-        ImGui::Combo("Pipeline", &gl.set->pipeline, "QuadTree\0Tessellation Shader\0\0");
-        if (ImGui::Checkbox("Height displace", &gl.set->displace)) {
-            gl.quadtree->ReconfigureShaders();
         }
         if (ImGui::Checkbox("Render Projection", &gl.set->render_projection)) {
             UpdateMeshSettings();
@@ -342,7 +317,6 @@ void RenderImgui()
         }
         if (ImGui::Combo(" ", &gl.set->interpolation, "PN\0Phong\0No Interpolation\0\0")) {
             UpdateMeshSettings();
-            gl.tesscube->ReloadShaders();
         }
         if (ImGui::SliderFloat("alpha", &gl.set->alpha, 0, 1.0)) {
             UpdateMeshSettings();
@@ -375,35 +349,23 @@ void RenderImgui()
         if (ImGui::Button("Reinitialize QuadTree")) {
             gl.quadtree->Reinitialize();
         }
-        if (ImGui::SliderInt("Px edge length", &gl.set->pxEdgeLength, 2, 256)) {
-            UpdateMeshSettings();
-        }
         ImGui::Text("Frame  %07i\n", stat.frame_count);
         ImGui::Text("FPS    %07i\n", stat.fps);
         ImGuiTime("deltaT", gl.delta_T);
-        if (gl.set->pipeline == QUADTREE) {
-            ImGui::Text("\nQuadtree Perf:");
-            ImGuiTime("avg Total   dT (1s)", stat.avg_qt_gpu_render + stat.avg_qt_gpu_compute);
-            ImGuiTime("avg Compute dT (1s)", stat.avg_qt_gpu_compute);
-            ImGuiTime("avg Render  dT (1s)", stat.avg_qt_gpu_render);
-        }
-        else if (gl.set->pipeline == TESS_SHADER) {
-            ImGuiTime("avg Render  dT (1s)", stat.avg_tess_render);
-
-        }
+        ImGui::Text("\nQuadtree Perf:");
+        ImGuiTime("avg Total   dT (1s)", stat.avg_qt_gpu_render + stat.avg_qt_gpu_compute);
+        ImGuiTime("avg Compute dT (1s)", stat.avg_qt_gpu_compute);
+        ImGuiTime("avg Render  dT (1s)", stat.avg_qt_gpu_render);
         ImGui::Text("\n\n");
-
 
         static float values_qt_gpu_compute[80] = { 0 };
         static float values_qt_gpu_render[80]  = { 0 };
-        static float values_tessel_render[80]  = { 0 };
 
         static float values_fps[80] = { 0 };
         static float values_primcount[80] = { 0 };
         static int offset = 0;
         static float refresh_time = 0.0f;
         static float max_gpu_compute = 0.0, max_gpu_render = 0.0;
-        static float max_tess_render= 0.0;
         static float tmp_max, tmp_val;
 
         static float max_primcount = 0.0;
@@ -414,7 +376,6 @@ void RenderImgui()
         {
             values_qt_gpu_compute[offset] = gl.quadtree->ticks.gpu_compute * 1000.0;
             values_qt_gpu_render[offset]  = gl.quadtree->ticks.gpu_render  * 1000.0;
-            values_tessel_render[offset]  = gl.tesscube->ticks.gpu * 1000.0;
 
             values_fps[offset] = ImGui::GetIO().Framerate;
             values_primcount[offset] = GetPrimcount();
@@ -423,33 +384,23 @@ void RenderImgui()
             refresh_time += 1.0f/30.0f;
         }
 
-        if (gl.set->pipeline == QUADTREE) {
-            // QUADTREE COMPUTE DT
-            tmp_max = *std::max_element(values_qt_gpu_compute, values_qt_gpu_compute+80);
-            if (tmp_max > max_gpu_compute || tmp_max < 0.2 * max_gpu_compute)
-                max_gpu_compute = tmp_max;
-            tmp_val = gl.quadtree->ticks.gpu_compute * 1000.0;
-            ImGui::PlotLines("GPU compute dT", values_qt_gpu_compute, IM_ARRAYSIZE(values_qt_gpu_compute), offset,
-                             std::to_string(tmp_val).c_str(), 0.0f, max_gpu_compute, ImVec2(0,80));
 
-            //QUADTREE RENDER DT
-            tmp_val = gl.quadtree->ticks.gpu_render * 1000.0;
-            tmp_max = *std::max_element(values_qt_gpu_render, values_qt_gpu_render+80);
-            if (tmp_max > max_gpu_render || tmp_max < 0.2 * max_gpu_render)
-                max_gpu_render = tmp_max;
-            ImGui::PlotLines("GPU render dT", values_qt_gpu_render, IM_ARRAYSIZE(values_qt_gpu_render), offset,
-                             std::to_string(tmp_val).c_str(), 0.0f, max_gpu_render, ImVec2(0,80));
-        }
-        else if (gl.set->pipeline == TESS_SHADER)
-        {
-            tmp_max = *std::max_element(values_tessel_render, values_tessel_render+80);
-            if (tmp_max > max_tess_render || tmp_max < 0.2 * max_tess_render)
-                max_tess_render = tmp_max;
-            tmp_val = gl.tesscube->ticks.gpu * 1000.0;
-            ImGui::PlotLines("GPU dT", values_tessel_render, IM_ARRAYSIZE(values_tessel_render), offset,
-                             std::to_string(tmp_val).c_str(), 0.0f, max_tess_render, ImVec2(0,80));
+        // QUADTREE COMPUTE DT
+        tmp_max = *std::max_element(values_qt_gpu_compute, values_qt_gpu_compute+80);
+        if (tmp_max > max_gpu_compute || tmp_max < 0.2 * max_gpu_compute)
+            max_gpu_compute = tmp_max;
+        tmp_val = gl.quadtree->ticks.gpu_compute * 1000.0;
+        ImGui::PlotLines("GPU compute dT", values_qt_gpu_compute, IM_ARRAYSIZE(values_qt_gpu_compute), offset,
+                         std::to_string(tmp_val).c_str(), 0.0f, max_gpu_compute, ImVec2(0,80));
 
-        }
+        //QUADTREE RENDER DT
+        tmp_val = gl.quadtree->ticks.gpu_render * 1000.0;
+        tmp_max = *std::max_element(values_qt_gpu_render, values_qt_gpu_render+80);
+        if (tmp_max > max_gpu_render || tmp_max < 0.2 * max_gpu_render)
+            max_gpu_render = tmp_max;
+        ImGui::PlotLines("GPU render dT", values_qt_gpu_render, IM_ARRAYSIZE(values_qt_gpu_render), offset,
+                         std::to_string(tmp_val).c_str(), 0.0f, max_gpu_render, ImVec2(0,80));
+
 
         // FPS
         ImGui::PlotLines("FPS", values_fps, IM_ARRAYSIZE(values_fps), offset,
@@ -732,14 +683,11 @@ void Init()
     gl.pause = false;
     gl.clock = djgc_create();
     gl.quadtree= new QuadTree();
-    gl.tesscube = new TessCube();
-    gl.point = new Point();
     gl.tranforms = new Transforms();
     gl.set = new Settings();
     gl.mesh_data = {};
 
-    gl.tesscube = new TessCube();
-//    gl.filepath = "../bigguy.obj";
+    //    gl.filepath = "../bigguy.obj";
     gl.filepath = "cube.obj";
     gl.run_demo = false;
     gl.end = false;
@@ -758,9 +706,7 @@ void Init()
     UpdateMode(true);
 
     gl.quadtree->Init(&gl.mesh_data, gl.tranforms, gl.set);
-    gl.tesscube->Init(&gl.mesh_data, gl.tranforms, gl.set);
 
-    gl.point->Init();
     InitTranforms();
 
     stat.avg_qt_gpu_compute = 0;
@@ -769,7 +715,6 @@ void Init()
     stat.frame_count = 0;
     stat.total_qt_gpu_compute = 0;
     stat.total_qt_gpu_render = 0;
-    stat.total_tess_render = 0;
     stat.sec_timer = 0;
     stat.fps = 0;
     stat.last_frame_count = 0;
@@ -777,95 +722,6 @@ void Init()
     cout << "END OF INITIALIZATION" << endl;
     cout << "******************************************************" << endl << endl;
 
-}
-
-void UpdateDemoParameters()
-{
-
-    const int settling_frames_count = 10;
-#define DEFAULT
-#ifdef DEFAULT
-    if(gl.run_demo) {
-        gl.tranforms->fov *= 1.0 - (0.5 * gl.delta_T);
-        UpdateFOV();
-    }
-#endif
-#ifdef INTERPO_DEMO
-    if(gl.run_demo) {
-        gl.mgl.set->alpha = abs(sin(stat.elapsed_time));
-        UpdateMeshSettings();
-    }
-#endif
-#ifdef TESS_TRIANGLE_DEMO
-    if (stat.frame == 0) {
-        gl.mgl.set->uniform = true;
-        gl.mgl.set->uni_lvl = 0;
-        gl.mgl.set->color_mode = WHITE_WIREFRAME;
-        gl.mgl.set->render_projection = false;
-        gl.mgl.set->interpolation = NONE;
-        gl.mgl.set->pipeline = QUADTREE;
-
-
-
-        gl.qts->cpu_lod = 0;
-
-        UpdateMeshSettings();
-        gl.quadtree->ReloadLeafPrimitive();
-    }
-
-    if (stat.frame > settling_frames_count) {
-        SaveFBToBMP(NO_GUI);
-        gl.mgl.set->uni_lvl = min(11, gl.mgl.set->uni_lvl  + 1);
-        UpdateMeshSettings();
-        if(stat.frame - settling_frames_count > 15)
-            gl.end = true;
-    }
-#endif
-#ifdef OBJTEST
-    if (stat.frame == 200)
-    {
-        gl.mode = MESH;
-        gl.mesh->loadOBJ("../../common/tangle_cube.obj");
-        InitTranforms();
-    }
-#endif
-#ifdef SPHERE_ZOOM
-    if(gl.run_demo) {
-        gl.tranforms->fov *= 1.0 - (0.5 * gl.delta_T);
-        UpdateFOV();
-    }
-#endif
-#ifdef CUBE_ROTATE
-    if (stat.frame == 0) {
-        gl.mgl.set->uni_lvl = 3;
-        gl.mgl.set->uniform = true;
-        gl.mgl.set->color_mode = WHITE_WIREFRAME;
-        gl.mgl.set->render_projection = true;
-        gl.mgl.set->interpolation = NONE;
-        gl.mgl.set->pipeline = QUADTREE;
-        gl.mgl.set->adaptive_factor = 3;
-        gl.mgl.set->displace = false;
-
-        gl.qts->cpu_lod = 0;
-
-        gl.force_dt = true;
-
-        UpdateMeshSettings();
-        gl.quadtree->ReloadLeafPrimitive();
-    }
-
-    //    if (stat.frame > 10 && stat.frame % 30 == 0) {
-    //        gl.mgl.set->uni_lvl++;
-    //       UpdateMeshSettings();
-
-    //    }
-
-    if (stat.frame > settling_frames_count) {
-        SaveFBToBMP(NO_GUI);
-        if(stat.frame - settling_frames_count >= 1*60)
-            gl.end = true;
-    }
-#endif
 }
 
 void Draw()
@@ -876,7 +732,6 @@ void Draw()
     DrawMesh(gl.delta_T, gl.set->freeze);
     // gl.point->Draw(gl.delta_T);
     glViewport(0, 0, gl.w_width + gl.gui_width, gl.w_height);
-    UpdateDemoParameters();
     UpdateStats();
 
     RenderImgui();

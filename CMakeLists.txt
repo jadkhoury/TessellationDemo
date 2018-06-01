@@ -42,46 +42,44 @@ copy_files_once(${OBJ_FILES})
 message(STATUS "**** 0_FullProgram ****")
 
 set(SRC_DIR 0_FullProgram/src)
+file(GLOB_RECURSE SHADERS 0_FullProgram/*.glsl)
 include_directories(${SRC_DIR}  ${IMGUI_INCLUDE_DIR})
 aux_source_directory(${SRC_DIR} SRC_FILES)
 
-add_executable(program ${SRC_FILES} ${SRC_DIR}/glad/glad.c)
+add_executable(program ${SRC_FILES} ${SHADERS} ${SRC_DIR}/glad/glad.c)
 
 target_link_libraries(program glfw imgui)
 unset(SRC_FILES)
-
-unset(SRC_FILES)
+unset(SHADERS)
 
 
 # **************** Project 1_DistancePipeline **************** #
 message(STATUS "**** 1_DistancePipeline ****")
 
 set(SRC_DIR 1_DistancePipeline/src)
+file(GLOB_RECURSE SHADERS 1_DistancePipeline/*.glsl)
 include_directories(${SRC_DIR}  ${IMGUI_INCLUDE_DIR})
 aux_source_directory(${SRC_DIR} SRC_FILES)
 
-add_executable(distance-tess ${SRC_FILES} ${SRC_DIR}/glad/glad.c)
+add_executable(distance-tess ${SRC_FILES} ${SHADERS} ${SRC_DIR}/glad/glad.c)
 
 target_link_libraries(distance-tess glfw imgui)
 unset(SRC_FILES)
-
-
-unset(SRC_FILES)
+unset(SHADERS)
 
 
 # **************** Project 2_NewDistance **************** #
 message(STATUS "**** 2_NewDistance ****")
 
 set(SRC_DIR 2_NewDistance/src)
+file(GLOB_RECURSE SHADERS 2_NewDistance/*.glsl)
 include_directories(${SRC_DIR}  ${IMGUI_INCLUDE_DIR})
 aux_source_directory(${SRC_DIR} SRC_FILES)
 
-add_executable(new-distance ${SRC_FILES} ${SRC_DIR}/glad/glad.c)
+add_executable(new-distance ${SRC_FILES} ${SHADERS} ${SRC_DIR}/glad/glad.c)
 
 target_link_libraries(new-distance glfw imgui)
 unset(SRC_FILES)
-
-
-unset(SRC_FILES)
+unset(SHADERS)
 
 

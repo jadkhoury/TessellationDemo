@@ -71,11 +71,6 @@ enum { PN,
        INTERPOLATION_COUNT
      } InterpolationModes;
 
-enum { QUADTREE,
-       TESS_SHADER,
-       PIPELINES_COUNT
-     } PipelineModes;
-
 enum {  NEIGHBOUR,
         HYBRID_PRE,
         HYBRID_POST,
@@ -153,7 +148,6 @@ struct Settings
     bool render_projection = true;
     int interpolation = NONE;
     float alpha = 0;
-    int pipeline = QUADTREE;
     int pxEdgeLength = 256;
     int grid_quads_count = 1;
 
