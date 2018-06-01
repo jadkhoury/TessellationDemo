@@ -38,7 +38,7 @@ add_library(imgui STATIC imgui/imgui_impl.cpp ${IMGUI_SRC_FILES})
 file(GLOB_RECURSE OBJ_FILES *.obj)
 copy_files_once(${OBJ_FILES})
 
-# *** Project 0_FullProgram *** #
+# **************** Project 0_FullProgram **************** #
 message(STATUS "**** 0_FullProgram ****")
 
 set(SRC_DIR 0_FullProgram/src)
@@ -53,7 +53,7 @@ unset(SRC_FILES)
 unset(SRC_FILES)
 
 
-# *** Project 0_FullProgram *** #
+# **************** Project 1_DistancePipeline **************** #
 message(STATUS "**** 1_DistancePipeline ****")
 
 set(SRC_DIR 1_DistancePipeline/src)
@@ -67,3 +67,21 @@ unset(SRC_FILES)
 
 
 unset(SRC_FILES)
+
+
+# **************** Project 2_NewDistance **************** #
+message(STATUS "**** 2_NewDistance ****")
+
+set(SRC_DIR 2_NewDistance/src)
+include_directories(${SRC_DIR}  ${IMGUI_INCLUDE_DIR})
+aux_source_directory(${SRC_DIR} SRC_FILES)
+
+add_executable(new-distance ${SRC_FILES} ${SRC_DIR}/glad/glad.c)
+
+target_link_libraries(new-distance glfw imgui)
+unset(SRC_FILES)
+
+
+unset(SRC_FILES)
+
+
