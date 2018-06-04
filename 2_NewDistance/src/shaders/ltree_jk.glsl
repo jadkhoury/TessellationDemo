@@ -814,4 +814,36 @@ vec4 lt_Leaf_to_MeshPrimitive(in vec2 p, in uvec4 key, in bool parent, int prim_
         return lt_Leaf_to_MeshQuad(p, key, parent);
 }
 
+vec4 lt_Tree_to_MeshTriangle(in vec2 p, in uvec4 key, in bool parent)
+{
+    uvec2 nodeID = key.xy;
+    uint meshPolygonID = key.z;
+    uint rootID = key.w & 0x3;
+    bvec2 morph = bvec2(false);
+    vec2 tmp = lt_Tree_to_TriangleRoot(p, rootID);
+    return lt_Root_to_MeshTriangle(tmp, meshPolygonID);
+}
+
+vec4 lt_Tree_to_MeshQuad(in vec2 p, in uvec4 key, in bool parent)
+{
+    uvec2 nodeID = key.xy;
+    uint meshPolygonID = key.z;
+    uint rootID = key.w & 0x3;
+    bvec2 morph = bvec2(lt_hasXMorphBit_64(key), lt_hasYMorphBit_64(key));
+    vec2 tmp = lt_Tree_to_QuadRoot(p, rootID);
+    return lt_Root_to_MeshQuad(tmp, meshPolygonID);
+}
+
+
+
+vec4 lt_Tree_to_MeshPrimitive(in vec2 p, in uvec4 key, in bool parent, int prim_type)
+{
+    if (prim_type == TRIANGLES)
+        return lt_Tree_to_MeshTriangle(p, key, parent);
+    else if (prim_type == QUADS)
+        return lt_Tree_to_MeshQuad(p, key, parent);
+}
+
+
+
 #endif

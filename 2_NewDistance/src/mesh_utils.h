@@ -37,7 +37,7 @@ void LoadGrid(Mesh_Data* mesh_data, int grid_quads_count)
     Vertex* v_array_tmp = new Vertex[count];
     vec4 sky(0.0, 0.0, 1.0, 0.0);
     for (int i = 0; i < count; ++i) {
-        v_array_tmp[i].p = vec4(factor * vertices[i].p.x, factor * vertices[i].p.y, 0.0, 1.0);
+        v_array_tmp[i].p = vec4(factor * (vertices[i].p.x - 0.5), factor * (vertices[i].p.y - 0.5), 0.0, 1.0);
         v_array_tmp[i].n = sky;
         v_array_tmp[i].uv = vec2(vertices[i].st.s, vertices[i].st.t);
     }

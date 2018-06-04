@@ -150,7 +150,7 @@ struct Settings
 {
     int uni_lvl = 0;                    // Level of uniform subdivision
     int adaptive_factor = 1;            // Factor scaling the adaptive subdivision
-    bool uniform = true;                // Toggle uniform subdivision
+    bool uniform = false;                // Toggle uniform subdivision
     bool map_primcount = true;          // Toggle the readback of the node counters
     bool rotateMesh = false;            // Toggle mesh rotation (for mesh)
     bool displace = false;              // Toggle displacement mapping (for terrain)
@@ -169,6 +169,9 @@ struct Settings
     bool freeze = false;         // Toggle freeze i.e. stop updating the quadtree, but keep rendering
     int cpu_lod = 0;             // Control CPU LoD, i.e. subdivision level of the instantiated triangle grid
     bool cull = true;            // Toggles Cull
+    bool debug_morph = false;
+    float morph_k = 0.0;
+
 
     bool modified = false;       // Deprecated
 
@@ -193,6 +196,10 @@ struct Settings
         utility::SetUniformBool(pid, "cull", cull);
         utility::SetUniformFloat(pid, "cpu_lod", float(cpu_lod));
         utility::SetUniformInt(pid, "prim_type", prim_type);
+        utility::SetUniformBool(pid, "debug_morph", debug_morph);
+        utility::SetUniformFloat(pid, "morph_k", morph_k);
+
+
     }
 
 

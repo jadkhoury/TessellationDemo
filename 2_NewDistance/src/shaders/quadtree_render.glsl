@@ -17,6 +17,8 @@ const vec4 BLACK   = vec4(0,0,0,1);
 uniform int color_mode;
 uniform int render_MVP;
 
+uniform float cpu_lod;
+
 // ------------------------------ VERTEX_SHADER ------------------------------ //
 #ifdef VERTEX_SHADER
 
@@ -42,6 +44,10 @@ uniform int num_vertices, num_indices;
 
 uniform int interpolation;
 uniform float alpha;
+
+uniform int debug_morph;
+uniform float morph_k;
+
 
 vec4 levelColor(uint lvl)
 {
@@ -126,17 +132,49 @@ vec4 diffuseColor(vec3 p_mv, vec3 n_mv, vec3 light_dir)
     return vec4(c,1);
 }
 
+//// based on Filip Strugar's CDLOD paper (until intPart & signVec)
+//vec2 morphVertex(vec2 gridPos, vec2 vertex, float morphK)
+//{
+
+////    if(debug_morph > 0)
+////        morphK = morph_k;
+//    float patchTessFactor = 0x1 << cpu_lod; // = nb of intervals per side of node primitive
+//    vec2 fracPart = fract(gridPos.xy * patchTessFactor * 0.5) * 2.0 / patchTessFactor;
+//    vec2 intPart = floor(gridPos.xy * patchTessFactor * 0.5);
+//    vec2 signVec = mod(intPart, 2.0) * vec2(2.0) - vec2(1.0);
+//    if(patchTessFactor == 2)
+//        signVec.x *= -1;
+//#if 1
+//    signVec = -signVec;
+//#endif
+//    return vertex.xy - t * (signVec * fracPart) * morphK;
+//}
+
+// based on Filip Strugar's CDLOD paper (until intPart & signVec)
+vec2 morphVertexInUnit(uvec4 key, vec2 leaf_p, vec2 tree_p)
+{
+    mat3 t;
+    lt_getTriangleXform_64(key.xy, t);
+
+    float node_lvl = lt_level_64(key.xy);
+    float vertex_lvl = computeTessLevelFromKey(key, false);
+    float tessLevel = clamp(node_lvl -  vertex_lvl, 0.0, 1.0);
+    float morphK = (debug_morph > 0) ? morph_k : smoothstep(0.4, 0.5, tessLevel);
+
+    float patchTessFactor = 0x1 << int(cpu_lod); // = nb of intervals per side of node primitive
+    vec2 fracPart = fract(leaf_p * patchTessFactor * 0.5) * 2.0 / patchTessFactor;
+    vec2 intPart = floor(leaf_p * patchTessFactor * 0.5);
+    vec2 signVec = mod(intPart, 2.0) * vec2(2.0) - vec2(1.0);
+    if(patchTessFactor == 2)
+        signVec.x *= -1;
+    return tree_p - mat2(t) * (signVec * fracPart) * morphK;
+}
+
 void main()
 {
     uint instanceID;
-#ifdef ELEMENTS
     v_uv = tri_p.xy;
     instanceID = gl_InstanceID;
-#else
-    uint vertex_idx = gl_VertexID % num_indices;
-    instanceID = uint(gl_VertexID / num_indices);
-    v_uv = positions[indices[vertex_idx]];
-#endif
 
     uvec4 key = lt_getKey_64(instanceID);
     uvec2 nodeID = key.xy;
@@ -146,28 +184,16 @@ void main()
 
     vec4 p, n;
 
-    if (interpolation == NONE) {
         v_pos = lt_Leaf_to_MeshPrimitive(v_uv, key, false, prim_type).xyz;
-#ifdef SPHERE
-     v_pos.xyz = normalize(v_pos.xyz);
-#endif
+        vec2 tree_pos = lt_Leaf_to_Tree_64(v_uv, nodeID);
+        tree_pos = morphVertexInUnit(key, v_uv, tree_pos);
+        v_pos = lt_Tree_to_MeshPrimitive(tree_pos, key, false, prim_type).xyz;
+
         if (heightmap > 0) {
-            v_pos.z =  displace(v_pos, 1000, n.xyz) * 2.0;
+//            v_pos.z =  displace(v_pos, 1000, n.xyz) * 2.0;
         } else {
             n = lt_getMeanPrimNormal(key, prim_type);
         }
-    } else {
-        vec2 uv = v_uv;
-        bvec2 morph = bvec2(lt_hasXMorphBit_64(key), lt_hasYMorphBit_64(key));
-        uv = lt_Leaf_to_Tree_64(uv, nodeID, false, morph);
-        uv = lt_Tree_to_TriangleRoot(uv, rootID);
-        p = vec4(0.0);
-        if(interpolation == PN)
-            PNInterpolation(key, uv, prim_type, alpha, p, n);
-        else if (interpolation == PHONG)
-            PhongInterpolation(key, uv, prim_type, alpha, p, n);
-        v_pos = p.xyz;
-    }
 
     switch (color_mode) {
     case LOD:

@@ -56,55 +56,14 @@ const vec2 unit_O = vec2(0,0);
 const vec2 unit_R = vec2(1,0);
 const vec2 unit_U = vec2(0,1);
 
-
 bool outside_frustum = false;
 
 #define OLD_LOD
-
-// Computes a simple point symetry
-vec4 Reflect (vec4 p, vec4 o) {
-    return 2*o-p;
-}
 
 vec4 heightDisplace(in vec4 v, in vec4 n) {
     vec4 r = v;
     r.z = displace(r.xyz, 1000, n.xyz) * 2.0;
     return r;
-}
-
-float computeTessLevelFromUnit(vec2 p0, vec2 p1, uvec4 key, bool parent)
-{
-    vec4 mesh_p0 = lt_Leaf_to_MeshPrimitive(p0, key, parent, prim_type);
-    vec4 mesh_p1 = lt_Leaf_to_MeshPrimitive(p1, key, parent, prim_type);
-
-    if (heightmap > 0) {
-        vec4 n = vec4(0,0,1,0);
-        mesh_p0 = heightDisplace(mesh_p0, n);
-        mesh_p1 = heightDisplace(mesh_p1, n);
-    }
-
-    vec4 mv_p0 = MV * mesh_p0;
-    vec4 mv_p1 = MV * mesh_p1;
-    return lt_computeTessLevel_64(mesh_p0, mesh_p1, mv_p0, mv_p1);
-}
-
-float computeTessLevelFromKey(uvec4 key, bool parent) {
-    return computeTessLevelFromUnit(unit_U, unit_R, key, parent);
-
-}
-
-bool insideFrustum(mat4 mesh_coord)
-{
-    vec4 b_min = vec4(10e6);
-    b_min = min(b_min, mesh_coord[O]);
-    b_min = min(b_min, mesh_coord[U]);
-    b_min = min(b_min, mesh_coord[R]);
-
-    vec4 b_max = vec4(-10e6);
-    b_max = max(b_max, mesh_coord[O]);
-    b_max = max(b_max, mesh_coord[U]);
-    b_max = max(b_max, mesh_coord[R]);
-    return dcf_cull(MVP, b_min.xyz, b_max.xyz);
 }
 
 // ************************* COMPUTE PASS FUNCTIONS ************************** //
@@ -144,13 +103,12 @@ void computePass(uvec4 key, uint invocation_idx, mat4 mv_coord, mat4 mesh_coord)
         should_merge = current_lvl > uniform_level;
     } else {
         float parentLevel = computeTessLevelFromKey(key, true);
-        float targetLevel =  lt_computeTessLevel_64(mesh_coord[U].xyz, mesh_coord[R].xyz,
-                                                    mv_coord[U].xyz, mv_coord[R].xyz);
+        float targetLevel = computeTessLevelFromKey(key, false);
         should_divide = float(current_lvl) < targetLevel;
         should_merge  = float(current_lvl) >= parentLevel + 1.0;
     }
 
-    if (should_divide && !lt_isLeaf_64(nodeID) && insideFrustum(mesh_coord)) {
+    if (should_divide && !lt_isLeaf_64(nodeID)) {
         uvec2 childrenID[4];
         lt_children_64(nodeID, childrenID);
         for (int i = 0; i < 4; ++i)
@@ -168,132 +126,6 @@ void computePass(uvec4 key, uint invocation_idx, mat4 mv_coord, mat4 mesh_coord)
 
 
 // *************************** CULL PASS FUNCTIONS *************************** //
-
-/**
- * Returns the neighbour's LoD by reflecting the hypotenuse in unit space, mapping it
- * to world space and THEN computing the LoD
- * (PreMapping i.e. the reflection happens in unit space before the mappings)
-*/
-float getReflectedLOD_Hybrid_PreMapping(in uvec4 key, bool leaf_Xborder, bool leaf_Yborder)
-{
-    bvec2 root_border = lt_isRootBorder_64(key.xy);
-    vec2 p0, p1;
-    if (any(root_border)) {
-        key = lt_adjacentRootNeighbour_64(key, root_border, prim_type);
-        p0 = unit_U;
-        p1 = unit_R;
-    } else if (leaf_Xborder) {
-        p0 = vec2(0, -1);
-        p1 = unit_R;
-    } else if (leaf_Yborder) {
-        p0 = unit_U;
-        p1 = vec2(-1, 0);
-    }
-    return computeTessLevelFromUnit(p0, p1, key, true);
-}
-
-/**
- * Returns the neighbour's LoD by reflecting the hypotenuse in world space and
- * computing the LoD
- * (PostMapping i.e. the reflection happens in world space after the mappings)
- */
-float getReflectedLOD_Hybrid_PostMapping(uvec4 key, mat4 mv_coord)
-{
-    bvec2 root_border = lt_isRootBorder_64(key.xy);
-    if (any(root_border))
-    {
-        uvec4 test_key = lt_adjacentRootNeighbour_64(key, root_border, prim_type);
-        return computeTessLevelFromUnit(unit_U, unit_R, test_key, true);
-    }
-    else
-    {
-        uint lastBranch = key.y & 0x3;
-        vec4 t, h0_mv, h1_mv;
-        switch (lastBranch)
-        {
-        case 0:
-            h0_mv = mv_coord[U];
-            t = Reflect(mv_coord[R], mv_coord[O]);
-            break;
-        case 1:
-            h0_mv = Reflect(mv_coord[R], mv_coord[O]);
-            t = Reflect(mv_coord[U], mv_coord[O]);
-            break;
-        case 2:
-            h0_mv = Reflect(mv_coord[U], mv_coord[O]);
-            t = Reflect(mv_coord[R], mv_coord[O]);
-            break;
-        case 3:
-            h0_mv = mv_coord[R];
-            t = Reflect(mv_coord[U], mv_coord[O]);
-            break;
-        default:
-            break;
-        }
-        h1_mv = Reflect(h0_mv, t);
-
-        vec4 h0 = invMV * h0_mv;
-        vec4 h1 = invMV * h1_mv;
-
-        return lt_computeTessLevel_64(h0.xyz, h1.xyz, h0_mv.xyz, h1_mv.xyz);
-    }
-}
-/**
- * Returns the neighbour's LoD by computing the nodeID and rootID of the relevant
- * neighbour, mapping the unit space hypotenuse using this key and computing the
- * LoD using this hypotenuse
- * (PostMapping i.e. the reflection happens in world space after the mappings)
- */
-float getReflectedLOD_Neighbour(uvec4 key, bool leaf_Xborder, bool leaf_Yborder)
-{
-    uvec4 test_key;
-    test_key = uvec4(lt_parent_64(key.xy), key.zw);
-    int axis = (leaf_Xborder) ? X_AXIS : Y_AXIS;
-    test_key = lt_getLeafNeighbour_64(test_key, axis, prim_type);
-    //    return lt_computeTessLevelFromUnit_64(unit_U, unit_R, test_key, false);
-    return computeTessLevelFromKey(test_key, false);
-}
-
-
-/**
- * Check if a given leaf should be morphed along the X or Y axis, should be destroyed
- * or should be left unmodified.
- */
-uvec4 checkMorph (in uvec4 key, mat4 mv_coord)
-{
-    if (lt_isRoot_64(key.xy))
-        return key;
-
-    float reflect_lod;
-    bool leaf_Xborder = lt_isXborder_64(key.xy);
-    bool leaf_Yborder = lt_isYborder_64(key.xy);
-
-    switch (morph_mode)
-    {
-    case NEIGHBOUR :
-        reflect_lod = getReflectedLOD_Neighbour(key, leaf_Xborder, leaf_Yborder);
-        break;
-    case HYBRID_PRE:
-        reflect_lod = getReflectedLOD_Hybrid_PreMapping(key, leaf_Xborder, leaf_Yborder);
-        break;
-    case HYBRID_POST:
-        reflect_lod = getReflectedLOD_Hybrid_PostMapping(key, mv_coord);
-        break;
-    }
-
-
-    if (reflect_lod > (float(lt_level_64(key.xy)) - 1.0)) {
-        return key;
-    } else if (lt_isOdd_64(key.xy)) {
-        return lt_setDestroyBit_64(key);
-    } else if (leaf_Xborder) {
-        return lt_setXMorphBit_64(key);
-    } else if (leaf_Yborder) {
-        return lt_setYMorphBit_64(key);
-    }
-}
-
-
 
 // Store the new key (after morph check) in the Culled SSBO for the Render Pass
 void cull_writeKey(uvec4 new_key)
@@ -314,29 +146,29 @@ void cull_writeKey(uvec4 new_key)
  */
 void cullPass(uvec4 key, mat4 mesh_coord, mat4 mv_coord)
 {
-    if (morph > 0) {
-        key = checkMorph(key, mv_coord);
-        if (lt_hasDestroyBit_64(key))
-            return;
-    }
+//    if (morph > 0) {
+//        key = checkMorph(key, mv_coord);
+//        if (lt_hasDestroyBit_64(key))
+//            return;
+//    }
 
-    if(cull > 0) {
-        vec4 b_min = vec4(10e6);
-        b_min = min(b_min, mesh_coord[O]);
-        b_min = min(b_min, mesh_coord[U]);
-        b_min = min(b_min, mesh_coord[R]);
+//    if(cull > 0) {
+//        vec4 b_min = vec4(10e6);
+//        b_min = min(b_min, mesh_coord[O]);
+//        b_min = min(b_min, mesh_coord[U]);
+//        b_min = min(b_min, mesh_coord[R]);
 
-        vec4 b_max = vec4(-10e6);
-        b_max = max(b_max, mesh_coord[O]);
-        b_max = max(b_max, mesh_coord[U]);
-        b_max = max(b_max, mesh_coord[R]);
+//        vec4 b_max = vec4(-10e6);
+//        b_max = max(b_max, mesh_coord[O]);
+//        b_max = max(b_max, mesh_coord[U]);
+//        b_max = max(b_max, mesh_coord[R]);
 
-
-        if (dcf_cull(MVP, b_min.xyz, b_max.xyz))
-            cull_writeKey(key);
-    } else {
-        cull_writeKey(key);
-    }
+//        if (dcf_cull(MVP, b_min.xyz, b_max.xyz))
+//            cull_writeKey(key);
+//    } else {
+//        cull_writeKey(key);
+//    }
+    cull_writeKey(key);
 }
 
 // *********************************** MAIN *********************************** //

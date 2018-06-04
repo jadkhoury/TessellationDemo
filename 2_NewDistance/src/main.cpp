@@ -147,7 +147,6 @@ void UpdateMeshSettings()
     gl.quadtree->UploadMeshSettings();
 }
 
-
 void ReloadBuffers() {
     loadMeshBuffers(&gl.mesh_data);
 }
@@ -359,10 +358,18 @@ void RenderImgui()
             gl.quadtree->ReconfigureShaders();
         }
         ImGui::SameLine();
-
         if (ImGui::Button("Reinitialize QuadTree")) {
             gl.quadtree->Reinitialize();
         }
+        if (ImGui::Checkbox("Debug morph", &gl.set->debug_morph)) {
+            gl.quadtree->UploadQuadtreeSettings();
+        }
+        if (ImGui::SliderFloat("morphK", &gl.set->morph_k, 0, 1.0)) {
+            gl.quadtree->UploadQuadtreeSettings();
+        }
+
+
+
         ImGui::Text("Frame  %07i\n", stat.frame_count);
         ImGui::Text("FPS    %07i\n", stat.fps);
         ImGuiTime("deltaT", gl.delta_T);
