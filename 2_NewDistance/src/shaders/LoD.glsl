@@ -8,21 +8,14 @@ uniform vec3 cam_pos;
 uniform int adaptive_factor;
 
 uniform mat4 M, V, P, MV, MVP, invMV;
+uniform float fov;
 
 const vec2 triangle_centroid = vec2(1.0/3.0, 1.0/3.0);
-
-
-float distanceToLod(float x)
-{
-    float tmp = (x * tan(45.0/2.0))/ (sqrt(2.0) * 2 * adaptive_factor);
-    tmp = clamp(tmp, 0.0, 1.0) ;
-    return -log2(tmp);
-}
 
 float distanceToLod(vec3 pos)
 {
     float x = distance(pos, cam_pos);
-    float tmp = (x * tan(45.0/2.0))/ (sqrt(2.0) * 2 * adaptive_factor);
+    float tmp = (x * tan(radians(fov)))/ (sqrt(2.0) * 2 * adaptive_factor);
     tmp = clamp(tmp, 0.0, 1.0) ;
     return -log2(tmp);
 }

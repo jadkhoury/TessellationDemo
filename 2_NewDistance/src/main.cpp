@@ -281,7 +281,7 @@ void RenderImgui()
 {
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(ImVec2(gl.gui_width, gl.gui_height));
-    float max_lod = (gl.mode == TERRAIN) ? 200.0 : 2.0;
+    float max_lod = (gl.mode == TERRAIN) ? 100.0 : 10.0;
 
     ImGui::Begin("Parameters", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
     {
@@ -319,7 +319,7 @@ void RenderImgui()
         if (ImGui::SliderInt("", &gl.set->uni_lvl, 0, 20)) {
             UpdateMeshSettings();
         }
-        if (ImGui::SliderInt("LoD Factor", &gl.set->adaptive_factor, 1, 12)) {
+        if (ImGui::SliderInt("LoD Factor", &gl.set->adaptive_factor, 1, max_lod)) {
             UpdateMeshSettings();
         }
 
@@ -327,12 +327,7 @@ void RenderImgui()
             UpdateMeshSettings();
         }
         if (gl.set->map_primcount) {
-        }
-        if (ImGui::Combo(" ", &gl.set->interpolation, "PN\0Phong\0No Interpolation\0\0")) {
-            UpdateMeshSettings();
-        }
-        if (ImGui::SliderFloat("alpha", &gl.set->alpha, 0, 1.0)) {
-            UpdateMeshSettings();
+            ImGui::Text(utility::LongToString(gl.quadtree->GetPrimcount()).c_str());
         }
 
         ImGui::Text("\n------ QuadTree settings ------");
@@ -340,7 +335,7 @@ void RenderImgui()
             ReloadBuffers();
             gl.quadtree->Reinitialize();
         }
-        if (ImGui::SliderInt("CPU LoD", &gl.set->cpu_lod, 0, 5)) {
+        if (ImGui::SliderInt("CPU LoD", &gl.set->cpu_lod, 2, 8)) {
             gl.quadtree->ReloadLeafPrimitive();
             gl.quadtree->UploadQuadtreeSettings();
         }
@@ -367,8 +362,6 @@ void RenderImgui()
         if (ImGui::SliderFloat("morphK", &gl.set->morph_k, 0, 1.0)) {
             gl.quadtree->UploadQuadtreeSettings();
         }
-
-
 
         ImGui::Text("Frame  %07i\n", stat.frame_count);
         ImGui::Text("FPS    %07i\n", stat.fps);
@@ -553,10 +546,10 @@ void mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
     UpdateView();
 }
 
-// *************************************************************************** //
-// |                                 PROGRAM                                    |
-// *************************************************************************** //
-
+////////////////////////////////////////////////////////////////////////////////
+///
+/// The Program
+///
 
 void Init()
 {
@@ -572,7 +565,7 @@ void Init()
     gl.mesh_data = {};
 
     //    gl.filepath = "../bigguy.obj";
-    gl.filepath = "cube.obj";
+    gl.filepath = "tangle_cube.obj";
     gl.run_demo = false;
     gl.end = false;
     gl.force_dt = false;

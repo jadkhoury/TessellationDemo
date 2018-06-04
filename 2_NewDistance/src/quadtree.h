@@ -68,7 +68,7 @@ private:
     {
         utility::SetUniformInt(render_program_, "num_vertices", leaf_geometry.v.count);
         utility::SetUniformInt(render_program_, "num_indices", leaf_geometry.idx.count);
-        set_->UploadQuadtreeSettings(compute_program_);
+        set_->UploadQuadtreeSettings(render_program_);
         set_->UploadSettings(render_program_);
     }
 

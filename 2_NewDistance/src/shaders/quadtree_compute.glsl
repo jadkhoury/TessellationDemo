@@ -24,16 +24,11 @@ uniform int uniform_subdiv;
 uniform int num_mesh_tri;
 uniform int num_mesh_quad;
 
-uniform int morph;
-uniform int morph_mode;
-
 uniform int cull;
 
 uniform int copy_pass;
 
 uniform float cpu_lod;
-uniform float edgePixelLengthTarget;
-const float screenResolution = 1024.0;
 
 uniform int heightmap;
 
@@ -66,7 +61,10 @@ vec4 heightDisplace(in vec4 v, in vec4 n) {
     return r;
 }
 
-// ************************* COMPUTE PASS FUNCTIONS ************************** //
+////////////////////////////////////////////////////////////////////////////////
+///
+/// COMPUTE PASS FUNCTIONS
+///
 
 /**
  * Copy the new nodeID and old primitive index in the new key
@@ -91,7 +89,7 @@ void compute_writeKey(uvec2 new_nodeID, uint in_idx)
  *		- if adaptive subdivision: criterion using the LoD functions
  * - Store the obtained key(s) in the SSBO for the next compute pass
  */
-void computePass(uvec4 key, uint invocation_idx, mat4 mv_coord, mat4 mesh_coord)
+void computePass(uvec4 key, uint invocation_idx)
 {
     // Check if a merge or division is required
     uvec2 nodeID = key.xy;
@@ -125,14 +123,18 @@ void computePass(uvec4 key, uint invocation_idx, mat4 mv_coord, mat4 mesh_coord)
 }
 
 
-// *************************** CULL PASS FUNCTIONS *************************** //
+////////////////////////////////////////////////////////////////////////////////
+///
+/// CULL PASS FUNCTIONS
+///
 
-// Store the new key (after morph check) in the Culled SSBO for the Render Pass
+// Store the new key in the Culled SSBO for the Render Pass
 void cull_writeKey(uvec4 new_key)
 {
     uint idx = atomicCounterIncrement(primCount_culled[write_index]);
     nodes_out_culled[idx] =  new_key;
 }
+
 /**
  * Emulates what was previously the Cull Pass:
  * - Check if some morph or deletion should be done
@@ -146,29 +148,22 @@ void cull_writeKey(uvec4 new_key)
  */
 void cullPass(uvec4 key, mat4 mesh_coord, mat4 mv_coord)
 {
-//    if (morph > 0) {
-//        key = checkMorph(key, mv_coord);
-//        if (lt_hasDestroyBit_64(key))
-//            return;
-//    }
+    if(cull > 0) {
+        vec4 b_min = vec4(10e6);
+        b_min = min(b_min, mesh_coord[O]);
+        b_min = min(b_min, mesh_coord[U]);
+        b_min = min(b_min, mesh_coord[R]);
 
-//    if(cull > 0) {
-//        vec4 b_min = vec4(10e6);
-//        b_min = min(b_min, mesh_coord[O]);
-//        b_min = min(b_min, mesh_coord[U]);
-//        b_min = min(b_min, mesh_coord[R]);
+        vec4 b_max = vec4(-10e6);
+        b_max = max(b_max, mesh_coord[O]);
+        b_max = max(b_max, mesh_coord[U]);
+        b_max = max(b_max, mesh_coord[R]);
 
-//        vec4 b_max = vec4(-10e6);
-//        b_max = max(b_max, mesh_coord[O]);
-//        b_max = max(b_max, mesh_coord[U]);
-//        b_max = max(b_max, mesh_coord[R]);
-
-//        if (dcf_cull(MVP, b_min.xyz, b_max.xyz))
-//            cull_writeKey(key);
-//    } else {
-//        cull_writeKey(key);
-//    }
-    cull_writeKey(key);
+        if (dcf_cull(MVP, b_min.xyz, b_max.xyz))
+            cull_writeKey(key);
+    } else {
+        cull_writeKey(key);
+    }
 }
 
 // *********************************** MAIN *********************************** //
@@ -208,7 +203,7 @@ void main(void)
     mv_coord[U] = MV * mesh_coord[U];
     mv_coord[R] = MV * mesh_coord[R];
 
-    computePass(key, invocation_idx, mv_coord, mesh_coord);
+    computePass(key, invocation_idx);
     cullPass(key, mesh_coord, mv_coord);
 
     return;

@@ -154,20 +154,15 @@ struct Settings
     bool map_primcount = true;          // Toggle the readback of the node counters
     bool rotateMesh = false;            // Toggle mesh rotation (for mesh)
     bool displace = false;              // Toggle displacement mapping (for terrain)
-    int color_mode = WHITE_WIREFRAME;   // Switch color mode of the render
+    int color_mode = LOD;               // Switch color mode of the render
     bool render_projection = true;      // Toggle the MVP matrix
-    int interpolation = NONE;           // Switch interpolation mode
-    float alpha = 0;                    // Scale interpolation
-    int pxEdgeLength = 256;             // Deprecated
     int grid_quads_count = 1;           // Number of quads in the terrain grid 
 
     // Quadtree Stuff
-    bool triangle_mode = true;   // Deprecated
     int prim_type = TRIANGLES;   // Type of primitive of the mesh (changes number of root triangle)
     bool morph = false;          // Toggles T-Junction Removal
-    int morph_mode = HYBRID_PRE; // Switch neighbour LoD evaluation mode
     bool freeze = false;         // Toggle freeze i.e. stop updating the quadtree, but keep rendering
-    int cpu_lod = 0;             // Control CPU LoD, i.e. subdivision level of the instantiated triangle grid
+    int cpu_lod = 2;             // Control CPU LoD, i.e. subdivision level of the instantiated triangle grid
     bool cull = true;            // Toggles Cull
     bool debug_morph = false;
     float morph_k = 0.0;
@@ -183,23 +178,16 @@ struct Settings
         utility::SetUniformBool(pid, "heightmap", displace);
         utility::SetUniformInt(pid, "color_mode", color_mode);
         utility::SetUniformBool(pid, "render_MVP", render_projection);
-        utility::SetUniformInt(pid, "interpolation", interpolation);
-        utility::SetUniformFloat(pid, "alpha", alpha);
-        utility::SetUniformFloat(pid, "edgePixelLengthTarget", float(pxEdgeLength));
     }
 
     void UploadQuadtreeSettings(uint pid)
     {
-        utility::SetUniformFloat(pid, "cpu_lod", float(cpu_lod));
         utility::SetUniformBool(pid, "morph", morph);
-        utility::SetUniformInt(pid, "morph_mode", morph_mode);
         utility::SetUniformBool(pid, "cull", cull);
         utility::SetUniformFloat(pid, "cpu_lod", float(cpu_lod));
         utility::SetUniformInt(pid, "prim_type", prim_type);
         utility::SetUniformBool(pid, "debug_morph", debug_morph);
         utility::SetUniformFloat(pid, "morph_k", morph_k);
-
-
     }
 
 
@@ -231,6 +219,7 @@ struct Transforms
         utility::SetUniformMat4(pid, "MV", MV);
         utility::SetUniformMat4(pid, "invMV", invMV);
         utility::SetUniformVec3(pid, "cam_pos", cam_pos);
+        utility::SetUniformFloat(pid, "fov", fov);
     }
 
     void updateMV()

@@ -498,7 +498,7 @@ int main(int argc, char **argv)
     // Create the Window
     LOG("Loading {Window-Main}\n");
     GLFWwindow* window = glfwCreateWindow((gl.w_width + gl.gui_width), gl.w_height,
-                                          "Distance Based Tessellation", NULL, NULL);
+                                          "Old Distance Based Tessellation", NULL, NULL);
     if (window == NULL) {
         LOG("=> Failure <=\n");
         glfwTerminate();

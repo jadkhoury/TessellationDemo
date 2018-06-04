@@ -132,32 +132,16 @@ vec4 diffuseColor(vec3 p_mv, vec3 n_mv, vec3 light_dir)
     return vec4(c,1);
 }
 
-//// based on Filip Strugar's CDLOD paper (until intPart & signVec)
-//vec2 morphVertex(vec2 gridPos, vec2 vertex, float morphK)
-//{
-
-////    if(debug_morph > 0)
-////        morphK = morph_k;
-//    float patchTessFactor = 0x1 << cpu_lod; // = nb of intervals per side of node primitive
-//    vec2 fracPart = fract(gridPos.xy * patchTessFactor * 0.5) * 2.0 / patchTessFactor;
-//    vec2 intPart = floor(gridPos.xy * patchTessFactor * 0.5);
-//    vec2 signVec = mod(intPart, 2.0) * vec2(2.0) - vec2(1.0);
-//    if(patchTessFactor == 2)
-//        signVec.x *= -1;
-//#if 1
-//    signVec = -signVec;
-//#endif
-//    return vertex.xy - t * (signVec * fracPart) * morphK;
-//}
-
 // based on Filip Strugar's CDLOD paper (until intPart & signVec)
 vec2 morphVertexInUnit(uvec4 key, vec2 leaf_p, vec2 tree_p)
 {
     mat3 t;
     lt_getTriangleXform_64(key.xy, t);
+    vec4 mesh_p = M * lt_Leaf_to_MeshPrimitive(leaf_p, key, false, prim_type);
+    float vertex_lvl = distanceToLod(mesh_p.xyz);
+
 
     float node_lvl = lt_level_64(key.xy);
-    float vertex_lvl = computeTessLevelFromKey(key, false);
     float tessLevel = clamp(node_lvl -  vertex_lvl, 0.0, 1.0);
     float morphK = (debug_morph > 0) ? morph_k : smoothstep(0.4, 0.5, tessLevel);
 
@@ -167,7 +151,7 @@ vec2 morphVertexInUnit(uvec4 key, vec2 leaf_p, vec2 tree_p)
     vec2 signVec = mod(intPart, 2.0) * vec2(2.0) - vec2(1.0);
     if(patchTessFactor == 2)
         signVec.x *= -1;
-    return tree_p - mat2(t) * (signVec * fracPart) * morphK;
+    return tree_p - mat2(t) * (-1*signVec * fracPart) * morphK;
 }
 
 void main()
@@ -183,17 +167,16 @@ void main()
     uint level = lt_level_64(key.xy);
 
     vec4 p, n;
+    v_pos = lt_Leaf_to_MeshPrimitive(v_uv, key, false, prim_type).xyz;
+    vec2 tree_pos = lt_Leaf_to_Tree_64(v_uv, nodeID);
+    tree_pos = morphVertexInUnit(key, v_uv, tree_pos);
+    v_pos = lt_Tree_to_MeshPrimitive(tree_pos, key, false, prim_type).xyz;
 
-        v_pos = lt_Leaf_to_MeshPrimitive(v_uv, key, false, prim_type).xyz;
-        vec2 tree_pos = lt_Leaf_to_Tree_64(v_uv, nodeID);
-        tree_pos = morphVertexInUnit(key, v_uv, tree_pos);
-        v_pos = lt_Tree_to_MeshPrimitive(tree_pos, key, false, prim_type).xyz;
-
-        if (heightmap > 0) {
-//            v_pos.z =  displace(v_pos, 1000, n.xyz) * 2.0;
-        } else {
-            n = lt_getMeanPrimNormal(key, prim_type);
-        }
+    if (heightmap > 0) {
+        v_pos.z =  displace(v_pos, 1000, n.xyz) * 2.0;
+    } else {
+        n = lt_getMeanPrimNormal(key, prim_type);
+    }
 
     switch (color_mode) {
     case LOD:
@@ -244,7 +227,7 @@ vec4 toScreenSpace(vec3 v)
     if(render_MVP > 0)
         return MVP * vec4(v.x, v.y, v.z, 1);
     else
-        return vec4(v.xyz * 0.25, 1) ;
+        return vec4(v.xyz * 0.2, 1) ;
 }
 
 void main ()

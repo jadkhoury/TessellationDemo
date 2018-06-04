@@ -101,10 +101,10 @@ private:
         float factor = 5.0;
         vec2 zeros(0,0);
 
-        vertices[0] = { factor * vec4(0,0,0,1), sky, vec2(0,0), zeros };
-        vertices[1] = { factor * vec4(0,1,0,1), sky, vec2(0,1), zeros };
-        vertices[2] = { factor * vec4(1,0,0,1), sky, vec2(1,0), zeros };
-        vertices[3] = { factor * vec4(1,1,0,1), sky, vec2(1,1), zeros };
+        vertices[0] = { factor * vec4(-0.5,-0.5,0,1), sky, vec2(0,0), zeros };
+        vertices[1] = { factor * vec4(-0.5, 0.5,0,1), sky, vec2(0,1), zeros };
+        vertices[2] = { factor * vec4( 0.5,-0.5,0,1), sky, vec2(1,0), zeros };
+        vertices[3] = { factor * vec4( 0.5, 0.5,0,1), sky, vec2(1,1), zeros };
         my_data.v_array = vertices;
         my_data.v.count = 4;
 
