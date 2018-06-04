@@ -10,11 +10,51 @@
 
 class QuadTree
 {
+public:
+    struct Settings
+    {
+        int uni_lvl;                    // Level of uniform subdivision
+        float adaptive_factor;            // Factor scaling the adaptive subdivision
+        bool uniform;                // Toggle uniform subdivision
+        bool map_primcount;          // Toggle the readback of the node counters
+        bool rotateMesh;            // Toggle mesh rotation (for mesh)
+        bool displace;              // Toggle displacement mapping (for terrain)
+        int color_mode;               // Switch color mode of the render
+        bool render_projection;      // Toggle the MVP matrix
+
+        int prim_type;      // Type of primitive of the mesh (changes number of root triangle)
+        bool morph;          // Toggles T-Junction Removal
+        bool freeze;         // Toggle freeze i.e. stop updating the quadtree, but keep rendering
+        int cpu_lod;             // Control CPU LoD, i.e. subdivision level of the instantiated triangle grid
+        bool cull;            // Toggles Cull
+        bool debug_morph;
+        float morph_k;
+
+        void UploadSettings(uint pid)
+        {
+            utility::SetUniformBool(pid, "uniform_subdiv", uniform);
+            utility::SetUniformInt(pid, "uniform_level", uni_lvl);
+            utility::SetUniformFloat(pid, "adaptive_factor", adaptive_factor);
+            utility::SetUniformBool(pid, "heightmap", displace);
+            utility::SetUniformInt(pid, "color_mode", color_mode);
+            utility::SetUniformBool(pid, "render_MVP", render_projection);
+        }
+
+        void UploadQuadtreeSettings(uint pid)
+        {
+            utility::SetUniformBool(pid, "morph", morph);
+            utility::SetUniformBool(pid, "cull", cull);
+            utility::SetUniformFloat(pid, "cpu_lod", float(cpu_lod));
+            utility::SetUniformInt(pid, "prim_type", prim_type);
+            utility::SetUniformBool(pid, "debug_morph", debug_morph);
+            utility::SetUniformFloat(pid, "morph_k", morph_k);
+        }
+    } set_;
+
 private:
 
     Commands* commands_;
     Transforms* transfo_;
-    Settings* set_;
 
     struct ssbo_indices {
         int read = 0;
@@ -53,8 +93,8 @@ private:
     {
         utility::SetUniformInt(compute_program_, "num_mesh_tri", mesh_data_->triangle_count);
         utility::SetUniformInt(compute_program_, "num_mesh_quad", mesh_data_->quad_count);
-        set_->UploadQuadtreeSettings(compute_program_);
-        set_->UploadSettings(compute_program_);
+        set_.UploadQuadtreeSettings(compute_program_);
+        set_.UploadSettings(compute_program_);
     }
 
     void configureCopyProgram ()
@@ -68,8 +108,8 @@ private:
     {
         utility::SetUniformInt(render_program_, "num_vertices", leaf_geometry.v.count);
         utility::SetUniformInt(render_program_, "num_indices", leaf_geometry.idx.count);
-        set_->UploadQuadtreeSettings(render_program_);
-        set_->UploadSettings(render_program_);
+        set_.UploadQuadtreeSettings(render_program_);
+        set_.UploadSettings(render_program_);
     }
 
     void pushMacrosToProgram(djg_program* djp)
@@ -213,14 +253,14 @@ private:
         // cout << "max_ssbo_size " << max_ssbo_size << "B" << endl;
 
         uvec4* nodes_array =  new uvec4[max_num_nodes];
-        if (set_->prim_type == TRIANGLES) {
+        if (set_.prim_type == TRIANGLES) {
             init_node_count_ = 3 * mesh_data_->triangle_count;
             for (int ctr = 0; ctr < mesh_data_->triangle_count; ++ctr) {
                 nodes_array[3*ctr+0] = uvec4(0, 0x1, uint(ctr*3), 0);
                 nodes_array[3*ctr+1] = uvec4(0, 0x1, uint(ctr*3), 1);
                 nodes_array[3*ctr+2] = uvec4(0, 0x1, uint(ctr*3), 2);
             }
-        } else if (set_->prim_type == QUADS) {
+        } else if (set_.prim_type == QUADS) {
             init_node_count_ = 4 * mesh_data_->quad_count;
             for (int ctr = 0; ctr < mesh_data_->quad_count; ++ctr) {
                 nodes_array[4*ctr+0] = uvec4(0, 0x1, uint(ctr*4), 0);
@@ -229,6 +269,7 @@ private:
                 nodes_array[4*ctr+3] = uvec4(0, 0x1, uint(ctr*4), 3);
             }
         }
+
         init_wg_count_ = ceil(init_node_count_ / float(local_WG_count));
         // cout << "init_node_count_ " << utility::LongToString (init_node_count_) << endl;
         // cout << "init_wg_count_ " << init_wg_count_ << endl;
@@ -381,7 +422,7 @@ public:
 
     void Reinitialize()
     {
-        loadLeafBuffers(set_->cpu_lod);
+        loadLeafBuffers(set_.cpu_lod);
         loadLeafVao();
         loadNodesBuffers();
         loadPrograms();
@@ -395,7 +436,7 @@ public:
 
     void ReloadLeafPrimitive()
     {
-        loadLeafBuffers(set_->cpu_lod);
+        loadLeafBuffers(set_.cpu_lod);
         loadLeafVao();
         configureComputeProgram ();
         configureCopyProgram ();
@@ -411,27 +452,27 @@ public:
 
     void UploadMeshSettings()
     {
-        set_->UploadSettings(compute_program_);
-        set_->UploadSettings(render_program_);
+        set_.UploadSettings(compute_program_);
+        set_.UploadSettings(render_program_);
     }
 
     void UploadQuadtreeSettings()
     {
-        set_->UploadQuadtreeSettings(compute_program_);
-        set_->UploadQuadtreeSettings(render_program_);
+        set_.UploadQuadtreeSettings(compute_program_);
+        set_.UploadQuadtreeSettings(render_program_);
     }
 
     ////////////////////////////////////////////////////////////////////////////////
     ///
     /// Zee Program
     ///
-    void Init(Mesh_Data* m_data, Transforms* transfo, Settings* settings)
+    void Init(Mesh_Data* m_data, Transforms* transfo, const Settings& init_settings)
     {
         cout << "******************************************************" << endl;
         cout << "QUADTREE" << endl;
         mesh_data_ = m_data;
         transfo_ = transfo;
-        set_ = settings;
+        set_ = init_settings;
 
         prim_count_ = 0;
         commands_ = new Commands();
@@ -439,7 +480,7 @@ public:
         render_clock = djgc_create();
 
 
-        loadLeafBuffers(set_->cpu_lod);
+        loadLeafBuffers(set_.cpu_lod);
         loadLeafVao();
         loadNodesBuffers();
 
@@ -456,7 +497,7 @@ public:
 
     void Draw(float deltaT)
     {
-        if (set_->freeze)
+        if (set_.freeze)
             goto RENDER_PASS;
 
         if (!first_frame_)
@@ -501,7 +542,7 @@ public:
         glDisable(GL_RASTERIZER_DISCARD);
 
 RENDER_PASS:
-        if (set_->map_primcount) {
+        if (set_.map_primcount) {
             prim_count_ = commands_->GetPrimCount();
         }
 

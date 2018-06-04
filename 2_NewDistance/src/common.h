@@ -85,7 +85,6 @@ struct BufferCombo {
     GLuint vao;     // Vertex Array Object
 };
 
-
 // Data structure representing a unique vertex as a set of 
 // A position
 // A normal
@@ -132,56 +131,6 @@ struct Mesh_Data
 
     BufferData v, q_idx, t_idx; // Buffers for vertices, quad indices, triangle indices
     int triangle_count = 0, quad_count = 0;
-};
-
-struct Settings
-{
-    int uni_lvl = 0;                    // Level of uniform subdivision
-    float adaptive_factor = 1;            // Factor scaling the adaptive subdivision
-    bool uniform = false;                // Toggle uniform subdivision
-    bool map_primcount = true;          // Toggle the readback of the node counters
-    bool rotateMesh = false;            // Toggle mesh rotation (for mesh)
-    bool displace = false;              // Toggle displacement mapping (for terrain)
-    int color_mode = LOD;               // Switch color mode of the render
-    bool render_projection = true;      // Toggle the MVP matrix
-    int grid_quads_count = 1;           // Number of quads in the terrain grid 
-
-    // Quadtree Stuff
-    int prim_type = TRIANGLES;   // Type of primitive of the mesh (changes number of root triangle)
-    bool morph = false;          // Toggles T-Junction Removal
-    bool freeze = false;         // Toggle freeze i.e. stop updating the quadtree, but keep rendering
-    int cpu_lod = 2;             // Control CPU LoD, i.e. subdivision level of the instantiated triangle grid
-    bool cull = true;            // Toggles Cull
-    bool debug_morph = false;
-    float morph_k = 0.0;
-
-
-    bool modified = false;       // Deprecated
-
-    void UploadSettings(uint pid)
-    {
-        utility::SetUniformBool(pid, "uniform_subdiv", uniform);
-        utility::SetUniformInt(pid, "uniform_level", uni_lvl);
-        utility::SetUniformFloat(pid, "adaptive_factor", adaptive_factor);
-        utility::SetUniformBool(pid, "heightmap", displace);
-        utility::SetUniformInt(pid, "color_mode", color_mode);
-        utility::SetUniformBool(pid, "render_MVP", render_projection);
-    }
-
-    void UploadQuadtreeSettings(uint pid)
-    {
-        utility::SetUniformBool(pid, "morph", morph);
-        utility::SetUniformBool(pid, "cull", cull);
-        utility::SetUniformFloat(pid, "cpu_lod", float(cpu_lod));
-        utility::SetUniformInt(pid, "prim_type", prim_type);
-        utility::SetUniformBool(pid, "debug_morph", debug_morph);
-        utility::SetUniformFloat(pid, "morph_k", morph_k);
-    }
-
-
-    void flagModified (bool b) {
-        modified = b;
-    }
 };
 
 // Nice little struct to manage transforms

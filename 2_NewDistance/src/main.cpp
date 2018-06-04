@@ -26,10 +26,28 @@ struct CameraManager {
     vec3 direction;
 } cam = {};
 
+const QuadTree::Settings init_settings = {
+    /*int uni_lvl*/ 0,
+    /*float adaptive_factor*/ 1,
+    /*bool uniform*/ false,
+    /*bool map_primcount*/ true,
+    /*bool rotateMesh*/ false,
+    /*bool displace*/ false,
+    /*int color_mode*/ LOD,
+    /*bool render_projection*/ true,
+
+    /*int prim_type*/ TRIANGLES,
+    /*bool morph*/ false,
+    /*bool freeze*/ false,
+    /*int cpu_lod*/ 2,
+    /*bool cull*/ true,
+    /*bool debug_morph*/ false,
+    /*float morph_k*/ 0.0,
+};
+
 struct OpenGLManager {
     QuadTree* quadtree;
     Transforms* tranforms;
-    Settings* set;
 
     Mesh_Data mesh_data;
 
@@ -49,6 +67,8 @@ struct OpenGLManager {
 
     bool lbutton_down, rbutton_down;
     double x0, y0;
+
+    uint grid_quads_count;
 
 } gl = {0};
 
@@ -114,22 +134,22 @@ bool loadMeshBuffers(Mesh_Data* mesh_data)
 void UpdateMode(bool init = false)
 {
     if (gl.mode == TERRAIN) {
-        meshutils::LoadGrid(&gl.mesh_data, gl.set->grid_quads_count);
+        meshutils::LoadGrid(&gl.mesh_data,  gl.grid_quads_count);
         loadMeshBuffers(&gl.mesh_data);
-        gl.set->displace = true;
-        gl.set->adaptive_factor = 50.0;
+         gl.quadtree->set_.displace = true;
+         gl.quadtree->set_.adaptive_factor = 50.0;
     } else if (gl.mode == MESH) {
         meshutils::ParseObj(gl.filepath, 0, &gl.mesh_data);
         if (gl.mesh_data.quad_count > 0 && gl.mesh_data.triangle_count == 0) {
-            gl.set->prim_type = QUADS;
+             gl.quadtree->set_.prim_type = QUADS;
         } else if (gl.mesh_data.quad_count == 0 && gl.mesh_data.triangle_count > 0) {
-            gl.set->prim_type = TRIANGLES;
+             gl.quadtree->set_.prim_type = TRIANGLES;
         } else {
             cout << "ERROR when parsing obj" << endl;
         }
-        gl.set->adaptive_factor = 1.0;
+         gl.quadtree->set_.adaptive_factor = 1.0;
         loadMeshBuffers(&gl.mesh_data);
-        gl.set->displace = false;
+         gl.quadtree->set_.displace = false;
     }
     if (!init)
         gl.quadtree->Reinitialize();
@@ -153,7 +173,7 @@ void ReloadBuffers() {
 
 void DrawMesh(float deltaT, bool freeze)
 {
-    if (!freeze && (gl.mode == MESH) && gl.set->rotateMesh) {
+    if (!freeze && (gl.mode == MESH) &&  gl.quadtree->set_.rotateMesh) {
         gl.tranforms->M = glm::rotate(gl.tranforms->M, 2000.0f*deltaT , vec3(0.0f, 0.0f, 1.0f));
         UpdateTransforms();
     }
@@ -259,6 +279,8 @@ void ImGuiTime(string s, float tmp)
 
 void RenderImgui()
 {
+
+    QuadTree::Settings&set = gl.quadtree->set_;
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(ImVec2(gl.gui_width, gl.gui_height));
     float max_lod = (gl.mode == TERRAIN) ? 100.0 : 10.0;
@@ -269,7 +291,7 @@ void RenderImgui()
             UpdateMode();
             InitTranforms();
         }
-        if (ImGui::Checkbox("Render Projection", &gl.set->render_projection)) {
+        if (ImGui::Checkbox("Render Projection", &set.render_projection)) {
             UpdateMeshSettings();
         }
         ImGui::SameLine();
@@ -280,61 +302,61 @@ void RenderImgui()
             InitTranforms();
         }
         ImGui::Text("\n------ Mesh settings ------");
-        ImGui::Checkbox("Rotate Mesh", &gl.set->rotateMesh);
-        if (ImGui::Combo("Color mode", &gl.set->color_mode,
+        ImGui::Checkbox("Rotate Mesh", &set.rotateMesh);
+        if (ImGui::Combo("Color mode", &set.color_mode,
                          "LoD & Morph\0White Wireframe\0Primitive Highlight\0Frustum\0Cull\0Debug\0\0")) {
             UpdateMeshSettings();
         }
-        if (ImGui::Checkbox("Uniform", &gl.set->uniform)) {
-            if(gl.set->uniform)
-                gl.set->morph = false;
+        if (ImGui::Checkbox("Uniform", &set.uniform)) {
+            if( set.uniform)
+                 set.morph = false;
             UpdateMeshSettings();
         }
         ImGui::SameLine();
-        if (ImGui::SliderInt("", &gl.set->uni_lvl, 0, 20)) {
+        if (ImGui::SliderInt("", &set.uni_lvl, 0, 20)) {
             UpdateMeshSettings();
         }
-        if (ImGui::SliderFloat("LoD Factor", &gl.set->adaptive_factor, 1, max_lod)) {
+        if (ImGui::SliderFloat("LoD Factor", &set.adaptive_factor, 1, max_lod)) {
             UpdateMeshSettings();
         }
 
-        if (ImGui::Checkbox("Readback primitive count", &gl.set->map_primcount)) {
+        if (ImGui::Checkbox("Readback primitive count", &set.map_primcount)) {
             UpdateMeshSettings();
         }
-        if (gl.set->map_primcount) {
+        if ( set.map_primcount) {
             ImGui::Text(utility::LongToString(gl.quadtree->GetPrimcount()).c_str());
         }
 
         ImGui::Text("\n------ QuadTree settings ------");
-        if (ImGui::Combo("Root primitive", &gl.set->prim_type, "Triangle\0Quad\0\0")) {
+        if (ImGui::Combo("Root primitive", &set.prim_type, "Triangle\0Quad\0\0")) {
             ReloadBuffers();
             gl.quadtree->Reinitialize();
         }
-        if (ImGui::SliderInt("CPU LoD", &gl.set->cpu_lod, 2, 8)) {
+        if (ImGui::SliderInt("CPU LoD", &set.cpu_lod, 2, 8)) {
             gl.quadtree->ReloadLeafPrimitive();
             gl.quadtree->UploadQuadtreeSettings();
         }
-        if (ImGui::Checkbox("Morph  ", &gl.set->morph)) {
-            if(gl.set->uniform)
-                gl.set->morph = false;
+        if (ImGui::Checkbox("Morph  ", &set.morph)) {
+            if( set.uniform)
+                 set.morph = false;
             gl.quadtree->UploadQuadtreeSettings();
         }
 
-        if (ImGui::Checkbox("Cull", &gl.set->cull)) {
+        if (ImGui::Checkbox("Cull", &set.cull)) {
             gl.quadtree->UploadQuadtreeSettings();
         }
         ImGui::SameLine();
-        if (ImGui::Checkbox("Freeze", &gl.set->freeze)) {
+        if (ImGui::Checkbox("Freeze", &set.freeze)) {
             gl.quadtree->ReconfigureShaders();
         }
         ImGui::SameLine();
         if (ImGui::Button("Reinitialize QuadTree")) {
             gl.quadtree->Reinitialize();
         }
-        if (ImGui::Checkbox("Debug morph", &gl.set->debug_morph)) {
+        if (ImGui::Checkbox("Debug morph", &set.debug_morph)) {
             gl.quadtree->UploadQuadtreeSettings();
         }
-        if (ImGui::SliderFloat("morphK", &gl.set->morph_k, 0, 1.0)) {
+        if (ImGui::SliderFloat("morphK", &set.morph_k, 0, 1.0)) {
             gl.quadtree->UploadQuadtreeSettings();
         }
 
@@ -396,7 +418,7 @@ void RenderImgui()
                          std::to_string(ImGui::GetIO().Framerate).c_str(), 0.0f, 1000, ImVec2(0,80));
 
         // PRIMCOUNT
-        if (gl.set->map_primcount) {
+        if ( set.map_primcount) {
             tmp_max = *std::max_element(values_primcount, values_primcount+80);
             if (tmp_max > max_primcount || tmp_max < 0.2 * max_primcount)
                 max_primcount = tmp_max;
@@ -536,7 +558,6 @@ void Init()
     gl.clock = djgc_create();
     gl.quadtree= new QuadTree();
     gl.tranforms = new Transforms();
-    gl.set = new Settings();
     gl.mesh_data = {};
 
     //    gl.filepath = "../bigguy.obj";
@@ -553,11 +574,11 @@ void Init()
     INIT_CAM_POS[MESH]  = vec3(3.4, 3.4, 2.4);
     INIT_CAM_LOOK[MESH] =  vec3(2.8, 2.8, 2.0);
 
-    gl.set->grid_quads_count = roundUpToSq(gl.set->grid_quads_count);
+    gl.grid_quads_count = roundUpToSq(gl.grid_quads_count);
 
     UpdateMode(true);
 
-    gl.quadtree->Init(&gl.mesh_data, gl.tranforms, gl.set);
+    gl.quadtree->Init(&gl.mesh_data, gl.tranforms, init_settings);
 
     InitTranforms();
 
@@ -581,7 +602,7 @@ void Draw()
     UpdateTime();
 
     glViewport(gl.gui_width, 0, gl.w_width, gl.w_height);
-    DrawMesh(gl.delta_T, gl.set->freeze);
+    DrawMesh(gl.delta_T, gl.quadtree->set_.freeze);
     // gl.point->Draw(gl.delta_T);
     glViewport(0, 0, gl.w_width + gl.gui_width, gl.w_height);
     UpdateStats();
