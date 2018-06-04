@@ -26,18 +26,18 @@ struct CameraManager {
     vec3 direction;
 } cam = {};
 
-const QuadTree::Settings init_settings = {
+QuadTree::Settings init_settings = {
     /*int uni_lvl*/ 0,
     /*float adaptive_factor*/ 1,
     /*bool uniform*/ false,
     /*bool map_primcount*/ true,
     /*bool rotateMesh*/ false,
-    /*bool displace*/ false,
+    /*bool displace*/ true,
     /*int color_mode*/ LOD,
     /*bool render_projection*/ true,
 
     /*int prim_type*/ TRIANGLES,
-    /*bool morph*/ false,
+    /*bool morph*/ true,
     /*bool freeze*/ false,
     /*int cpu_lod*/ 2,
     /*bool cull*/ true,
@@ -131,29 +131,29 @@ bool loadMeshBuffers(Mesh_Data* mesh_data)
     return (glGetError() == GL_NO_ERROR);
 }
 
-void UpdateMode(bool init = false)
+void SwitchMode(bool init = false)
 {
+    QuadTree::Settings& settings = (init) ? init_settings : gl.quadtree->settings;
     if (gl.mode == TERRAIN) {
         meshutils::LoadGrid(&gl.mesh_data,  gl.grid_quads_count);
         loadMeshBuffers(&gl.mesh_data);
-         gl.quadtree->set_.displace = true;
-         gl.quadtree->set_.adaptive_factor = 50.0;
+        settings.displace = true;
+        settings.adaptive_factor = 50.0;
     } else if (gl.mode == MESH) {
         meshutils::ParseObj(gl.filepath, 0, &gl.mesh_data);
         if (gl.mesh_data.quad_count > 0 && gl.mesh_data.triangle_count == 0) {
-             gl.quadtree->set_.prim_type = QUADS;
+             settings.prim_type = QUADS;
         } else if (gl.mesh_data.quad_count == 0 && gl.mesh_data.triangle_count > 0) {
-             gl.quadtree->set_.prim_type = TRIANGLES;
+             settings.prim_type = TRIANGLES;
         } else {
             cout << "ERROR when parsing obj" << endl;
         }
-         gl.quadtree->set_.adaptive_factor = 1.0;
+         settings.adaptive_factor = 1.0;
         loadMeshBuffers(&gl.mesh_data);
-         gl.quadtree->set_.displace = false;
+         settings.displace = false;
     }
     if (!init)
         gl.quadtree->Reinitialize();
-
 }
 
 void UpdateTransforms()
@@ -173,7 +173,7 @@ void ReloadBuffers() {
 
 void DrawMesh(float deltaT, bool freeze)
 {
-    if (!freeze && (gl.mode == MESH) &&  gl.quadtree->set_.rotateMesh) {
+    if (!freeze && (gl.mode == MESH) &&  gl.quadtree->settings.rotateMesh) {
         gl.tranforms->M = glm::rotate(gl.tranforms->M, 2000.0f*deltaT , vec3(0.0f, 0.0f, 1.0f));
         UpdateTransforms();
     }
@@ -280,7 +280,7 @@ void ImGuiTime(string s, float tmp)
 void RenderImgui()
 {
 
-    QuadTree::Settings&set = gl.quadtree->set_;
+    QuadTree::Settings&set = gl.quadtree->settings;
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(ImVec2(gl.gui_width, gl.gui_height));
     float max_lod = (gl.mode == TERRAIN) ? 100.0 : 10.0;
@@ -288,7 +288,7 @@ void RenderImgui()
     ImGui::Begin("Parameters", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
     {
         if (ImGui::Combo("Mode", (int*)&gl.mode, "Terrain\0Mesh\0\0")) {
-            UpdateMode();
+            SwitchMode();
             InitTranforms();
         }
         if (ImGui::Checkbox("Render Projection", &set.render_projection)) {
@@ -308,8 +308,6 @@ void RenderImgui()
             UpdateMeshSettings();
         }
         if (ImGui::Checkbox("Uniform", &set.uniform)) {
-            if( set.uniform)
-                 set.morph = false;
             UpdateMeshSettings();
         }
         ImGui::SameLine();
@@ -337,8 +335,6 @@ void RenderImgui()
             gl.quadtree->UploadQuadtreeSettings();
         }
         if (ImGui::Checkbox("Morph  ", &set.morph)) {
-            if( set.uniform)
-                 set.morph = false;
             gl.quadtree->UploadQuadtreeSettings();
         }
 
@@ -559,6 +555,7 @@ void Init()
     gl.quadtree= new QuadTree();
     gl.tranforms = new Transforms();
     gl.mesh_data = {};
+    gl.grid_quads_count = roundUpToSq(1);
 
     //    gl.filepath = "../bigguy.obj";
     gl.filepath = "tangle_cube.obj";
@@ -568,16 +565,16 @@ void Init()
 
     gl.current_t = 0;
 
-    gl.mode = MESH;
+    gl.mode = TERRAIN;
     INIT_CAM_POS[TERRAIN]  = vec3(3.9, 3.6, 0.6);
     INIT_CAM_LOOK[TERRAIN] = vec3(3.3, 2.9, 0.33);
     INIT_CAM_POS[MESH]  = vec3(3.4, 3.4, 2.4);
     INIT_CAM_LOOK[MESH] =  vec3(2.8, 2.8, 2.0);
 
-    gl.grid_quads_count = roundUpToSq(gl.grid_quads_count);
 
-    UpdateMode(true);
 
+
+    SwitchMode(true);
     gl.quadtree->Init(&gl.mesh_data, gl.tranforms, init_settings);
 
     InitTranforms();
@@ -602,7 +599,7 @@ void Draw()
     UpdateTime();
 
     glViewport(gl.gui_width, 0, gl.w_width, gl.w_height);
-    DrawMesh(gl.delta_T, gl.quadtree->set_.freeze);
+    DrawMesh(gl.delta_T, gl.quadtree->settings.freeze);
     // gl.point->Draw(gl.delta_T);
     glViewport(0, 0, gl.w_width + gl.gui_width, gl.w_height);
     UpdateStats();

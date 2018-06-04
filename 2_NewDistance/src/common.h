@@ -36,6 +36,8 @@
 #define DJ_ALGEBRA_IMPLEMENTATION 1
 #include "dj_algebra.h"
 
+#define BUFFER_OFFSET(i) ((char *)NULL + (i))
+
 const char* shader_dir = "../2_NewDistance/src/shaders/";
 
 using namespace std;
@@ -145,8 +147,6 @@ struct Transforms
     float fov;
     vec3 cam_pos;
 
-    bool modified = false;
-
     void UploadTransforms(uint pid)
     {
         utility::SetUniformMat4(pid, "M", M);
@@ -164,11 +164,6 @@ struct Transforms
         MV = V * M;
         MVP = P * MV;
         invMV = glm::transpose(glm::inverse(MV));
-        modified = true;
-    }
-
-    void flagModified (bool b) {
-        modified = b;
     }
 };
 

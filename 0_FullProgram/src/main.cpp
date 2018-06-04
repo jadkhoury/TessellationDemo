@@ -110,7 +110,7 @@ bool loadMeshBuffers(Mesh_Data* mesh_data)
     return (glGetError() == GL_NO_ERROR);
 }
 
-void UpdateMode(bool init = false)
+void SwitchMode(bool init = false)
 {
     if (gl.mode == TERRAIN) {
         meshutils::LoadGrid(&gl.mesh_data, gl.set->grid_quads_count);
@@ -291,7 +291,7 @@ void RenderImgui()
     ImGui::Begin("Parameters", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
     {
         if (ImGui::Combo("Mode", (int*)&gl.mode, "Terrain\0Mesh\0\0")) {
-            UpdateMode();
+            SwitchMode();
             InitTranforms();
         }
         ImGui::Combo("Pipeline", &gl.set->pipeline, "QuadTree\0Tessellation Shader\0\0");
@@ -755,7 +755,7 @@ void Init()
 
     gl.set->grid_quads_count = roundUpToSq(gl.set->grid_quads_count);
 
-    UpdateMode(true);
+    SwitchMode(true);
 
     gl.quadtree->Init(&gl.mesh_data, gl.tranforms, gl.set);
     gl.tesscube->Init(&gl.mesh_data, gl.tranforms, gl.set);

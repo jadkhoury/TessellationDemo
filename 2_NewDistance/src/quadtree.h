@@ -5,30 +5,27 @@
 #include "mesh_utils.h"
 #include "common.h"
 
-#define BUFFER_OFFSET(i) ((char *)NULL + (i))
-
-
 class QuadTree
 {
 public:
     struct Settings
     {
-        int uni_lvl;                    // Level of uniform subdivision
-        float adaptive_factor;            // Factor scaling the adaptive subdivision
-        bool uniform;                // Toggle uniform subdivision
-        bool map_primcount;          // Toggle the readback of the node counters
-        bool rotateMesh;            // Toggle mesh rotation (for mesh)
-        bool displace;              // Toggle displacement mapping (for terrain)
-        int color_mode;               // Switch color mode of the render
-        bool render_projection;      // Toggle the MVP matrix
+        int uni_lvl;            // Level of uniform subdivision
+        float adaptive_factor;  // Factor scaling the adaptive subdivision
+        bool uniform;           // Toggle uniform subdivision
+        bool map_primcount;     // Toggle the readback of the node counters
+        bool rotateMesh;        // Toggle mesh rotation (for mesh)
+        bool displace;          // Toggle displacement mapping (for terrain)
+        int color_mode;         // Switch color mode of the render
+        bool render_projection; // Toggle the MVP matrix
 
-        int prim_type;      // Type of primitive of the mesh (changes number of root triangle)
-        bool morph;          // Toggles T-Junction Removal
-        bool freeze;         // Toggle freeze i.e. stop updating the quadtree, but keep rendering
-        int cpu_lod;             // Control CPU LoD, i.e. subdivision level of the instantiated triangle grid
-        bool cull;            // Toggles Cull
-        bool debug_morph;
-        float morph_k;
+        int prim_type;    // Type of primitive of the mesh (changes number of root triangle)
+        bool morph;       // Toggle T-Junction Removal
+        bool freeze;      // Toggle freeze i.e. stop updating the quadtree, but keep rendering
+        int cpu_lod;      // Control CPU LoD, i.e. subdivision level of the instantiated triangle grid
+        bool cull;        // Toggle Cull
+        bool debug_morph; // Toggle morph debuging
+        float morph_k;    // Control morph factor
 
         void UploadSettings(uint pid)
         {
@@ -49,7 +46,7 @@ public:
             utility::SetUniformBool(pid, "debug_morph", debug_morph);
             utility::SetUniformFloat(pid, "morph_k", morph_k);
         }
-    } set_;
+    } settings;
 
 private:
 
@@ -93,8 +90,8 @@ private:
     {
         utility::SetUniformInt(compute_program_, "num_mesh_tri", mesh_data_->triangle_count);
         utility::SetUniformInt(compute_program_, "num_mesh_quad", mesh_data_->quad_count);
-        set_.UploadQuadtreeSettings(compute_program_);
-        set_.UploadSettings(compute_program_);
+        settings.UploadQuadtreeSettings(compute_program_);
+        settings.UploadSettings(compute_program_);
     }
 
     void configureCopyProgram ()
@@ -108,8 +105,8 @@ private:
     {
         utility::SetUniformInt(render_program_, "num_vertices", leaf_geometry.v.count);
         utility::SetUniformInt(render_program_, "num_indices", leaf_geometry.idx.count);
-        set_.UploadQuadtreeSettings(render_program_);
-        set_.UploadSettings(render_program_);
+        settings.UploadQuadtreeSettings(render_program_);
+        settings.UploadSettings(render_program_);
     }
 
     void pushMacrosToProgram(djg_program* djp)
@@ -211,8 +208,6 @@ private:
         djgp_push_file(djp, strcat2(buf, shader_dir, "gpu_noise_lib.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "dj_frustum.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "ltree_jk.glsl"));
-        djgp_push_file(djp, strcat2(buf, shader_dir, "PN_interpolation.glsl"));
-        djgp_push_file(djp, strcat2(buf, shader_dir, "phong_interpolation.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "LoD.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "dj_heightmap.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "quadtree_render.glsl"));
@@ -253,14 +248,14 @@ private:
         // cout << "max_ssbo_size " << max_ssbo_size << "B" << endl;
 
         uvec4* nodes_array =  new uvec4[max_num_nodes];
-        if (set_.prim_type == TRIANGLES) {
+        if (settings.prim_type == TRIANGLES) {
             init_node_count_ = 3 * mesh_data_->triangle_count;
             for (int ctr = 0; ctr < mesh_data_->triangle_count; ++ctr) {
                 nodes_array[3*ctr+0] = uvec4(0, 0x1, uint(ctr*3), 0);
                 nodes_array[3*ctr+1] = uvec4(0, 0x1, uint(ctr*3), 1);
                 nodes_array[3*ctr+2] = uvec4(0, 0x1, uint(ctr*3), 2);
             }
-        } else if (set_.prim_type == QUADS) {
+        } else if (settings.prim_type == QUADS) {
             init_node_count_ = 4 * mesh_data_->quad_count;
             for (int ctr = 0; ctr < mesh_data_->quad_count; ++ctr) {
                 nodes_array[4*ctr+0] = uvec4(0, 0x1, uint(ctr*4), 0);
@@ -422,7 +417,7 @@ public:
 
     void Reinitialize()
     {
-        loadLeafBuffers(set_.cpu_lod);
+        loadLeafBuffers(settings.cpu_lod);
         loadLeafVao();
         loadNodesBuffers();
         loadPrograms();
@@ -436,7 +431,7 @@ public:
 
     void ReloadLeafPrimitive()
     {
-        loadLeafBuffers(set_.cpu_lod);
+        loadLeafBuffers(settings.cpu_lod);
         loadLeafVao();
         configureComputeProgram ();
         configureCopyProgram ();
@@ -452,14 +447,14 @@ public:
 
     void UploadMeshSettings()
     {
-        set_.UploadSettings(compute_program_);
-        set_.UploadSettings(render_program_);
+        settings.UploadSettings(compute_program_);
+        settings.UploadSettings(render_program_);
     }
 
     void UploadQuadtreeSettings()
     {
-        set_.UploadQuadtreeSettings(compute_program_);
-        set_.UploadQuadtreeSettings(render_program_);
+        settings.UploadQuadtreeSettings(compute_program_);
+        settings.UploadQuadtreeSettings(render_program_);
     }
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -472,7 +467,7 @@ public:
         cout << "QUADTREE" << endl;
         mesh_data_ = m_data;
         transfo_ = transfo;
-        set_ = init_settings;
+        settings = init_settings;
 
         prim_count_ = 0;
         commands_ = new Commands();
@@ -480,7 +475,7 @@ public:
         render_clock = djgc_create();
 
 
-        loadLeafBuffers(set_.cpu_lod);
+        loadLeafBuffers(settings.cpu_lod);
         loadLeafVao();
         loadNodesBuffers();
 
@@ -497,13 +492,18 @@ public:
 
     void Draw(float deltaT)
     {
-        if (set_.freeze)
+        if (settings.freeze)
             goto RENDER_PASS;
 
-        if (!first_frame_)
-            pingpong ();
+        pingpong ();
 
-        // ----- Compute Pass ----- //
+        /*
+         * COMPUTE PASS
+         * - Reads the keys in the SSBO
+         * - Evaluates the LoD
+         * - Writes the new keys in opposite SSBO
+         * - Performs culling
+         */
         glEnable(GL_RASTERIZER_DISCARD);
         djgc_start(compute_clock);
         glUseProgram(compute_program_);
@@ -522,7 +522,12 @@ public:
         }
         glUseProgram(0);
 
-        // ----- Copy Pass ----- //
+        /*
+         * COPY PASS
+         * - Reads the number of primitive written in previous Compute Pass
+         * - Write the number of instances in the Draw Command Buffer
+         * - Write the number of workgroups in the Dispatch Command Buffer
+         */
         glUseProgram(copy_program_);
         {
             commands_->BindForCopy(copy_program_);
@@ -536,17 +541,22 @@ public:
         djgc_stop(compute_clock);
         djgc_ticks(compute_clock, &ticks.cpu, &ticks.gpu_compute);
 
-        // commands_->PrintWGCountInDispatch();
-        // commands_->PrintAtomicArray();
+//         commands_->PrintWGCountInDispatch();
+//         commands_->PrintAtomicArray();
 
         glDisable(GL_RASTERIZER_DISCARD);
 
+
 RENDER_PASS:
-        if (set_.map_primcount) {
+        if (settings.map_primcount) {
             prim_count_ = commands_->GetPrimCount();
         }
-
-        // ----- Render Pass ----- //
+        /*
+         * RENDER PASS
+         * - Reads the updated keys that did not get culled
+         * - Performs the morphing
+         * - Render the triangles
+         */
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_CULL_FACE);
 
@@ -555,13 +565,13 @@ RENDER_PASS:
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glUseProgram(render_program_);
         {
+            djgc_start(render_clock);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODES_IN_B, nodes_bo_[ssbo_idx_.write_culled]);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_V_B, mesh_data_->v.bo);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_Q_IDX_B, mesh_data_->q_idx.bo);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_T_IDX_B, mesh_data_->t_idx.bo);
             commands_->BindForRender();
             glBindVertexArray(leaf_geometry.vao);
-            djgc_start(render_clock);
             glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
             glBindVertexArray(0);
             djgc_stop(render_clock);
@@ -585,8 +595,6 @@ RENDER_PASS:
         glDeleteVertexArrays(1, &leaf_geometry.vao);
         commands_->Cleanup();
     }
-
-
 };
 
 #endif

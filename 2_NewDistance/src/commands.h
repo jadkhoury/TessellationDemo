@@ -27,14 +27,6 @@ typedef struct {
     uvec3  align;
 } DrawElementsIndirectCommand;
 
-typedef  struct {
-    GLuint  count;
-    GLuint  primCount;
-    GLuint  first;
-    GLuint  baseInstance;
-} DrawArraysIndirectCommand;
-
-
 typedef struct {
     GLuint  num_groups_x;
     GLuint  num_groups_y;

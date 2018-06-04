@@ -167,7 +167,8 @@ void main()
     vec4 p, n;
     v_pos = lt_Leaf_to_MeshPrimitive(v_uv, key, false, prim_type).xyz;
     vec2 tree_pos = lt_Leaf_to_Tree_64(v_uv, nodeID);
-    tree_pos = morphVertexInUnit(key, v_uv, tree_pos);
+    if (morph > 0)
+        tree_pos = morphVertexInUnit(key, v_uv, tree_pos);
     v_pos = lt_Tree_to_MeshPrimitive(tree_pos, key, false, prim_type).xyz;
 
     if (heightmap > 0) {
