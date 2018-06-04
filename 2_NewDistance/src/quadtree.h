@@ -10,9 +10,6 @@
 
 class QuadTree
 {
-    //************************************************************************//
-    //                             Private Members                            //
-    //************************************************************************//
 private:
 
     Commands* commands_;
@@ -24,8 +21,6 @@ private:
         int write_full = 1;
         int write_culled = 2;
     } ssbo_idx_;
-
-    const mat4 IDENTITY = mat4(1.0);
 
     // Buffers and Arrays
     GLuint nodes_bo_[3];
@@ -49,8 +44,10 @@ private:
 
     bool first_frame_ = true;
 
-    // --------------------------- SHADER FUNCTIONS ------------------------- //
-
+    ////////////////////////////////////////////////////////////////////////////////
+    ///
+    /// Shader functions
+    ///
 
     void configureComputeProgram()
     {
@@ -208,7 +205,10 @@ private:
         return v;
     }
 
-    // -------------------------- BUFFER FUNCTIONS --------------------------- //
+    ////////////////////////////////////////////////////////////////////////////////
+    ///
+    /// Buffer Function
+    ///
 
     bool loadNodesBuffers()
     {
@@ -332,7 +332,11 @@ private:
         return (glGetError() == GL_NO_ERROR);
     }
 
-    // --------------------------- VAO FUNCTIONS ----------------------------- //
+    ////////////////////////////////////////////////////////////////////////////////
+    ///
+    /// VAO functions
+    ///
+    
     bool loadLeafVao()
     {
         if (glIsVertexArray(leaf_geometry.vao)) {
@@ -349,7 +353,10 @@ private:
         return (glGetError() == GL_NO_ERROR);
     }
 
-    // ------------------------- PINGPONG FUNCTIONS --------------------------- //
+    ////////////////////////////////////////////////////////////////////////////////
+    ///
+    /// Pingpong functions
+    ///
     void pingpong()
     {
         ssbo_idx_.read = ssbo_idx_.write_full;
@@ -357,16 +364,16 @@ private:
         ssbo_idx_.write_culled = (ssbo_idx_.read + 2) % 3;
     }
 
-    //************************************************************************//
-    //                             Public Members                             //
-    //************************************************************************//
 public:
     struct Ticks {
         double cpu;
         double gpu_compute, gpu_render;
     } ticks;
 
-    // -------------------------- UPDATE FUNCTIONS --------------------------- //
+    ////////////////////////////////////////////////////////////////////////////////
+    ///
+    /// Update function
+    ///
 
     void ReloadShaders()
     {
@@ -421,8 +428,10 @@ public:
         set_->UploadQuadtreeSettings(render_program_);
     }
 
-    // ----------------------------- ZEE PROGRAM ----------------------------- //
-
+    ////////////////////////////////////////////////////////////////////////////////
+    ///
+    /// Zee Program
+    ///
     void Init(Mesh_Data* m_data, Transforms* transfo, Settings* settings)
     {
         cout << "******************************************************" << endl;

@@ -155,7 +155,7 @@ void ReloadBuffers() {
 void DrawMesh(float deltaT, bool freeze)
 {
     if (!freeze && (gl.mode == MESH) && gl.set->rotateMesh) {
-        gl.tranforms->M = glm::rotate(gl.tranforms->M, 2.0f*deltaT , vec3(0.0f, 0.0f, 1.0f));
+        gl.tranforms->M = glm::rotate(gl.tranforms->M, 2000.0f*deltaT , vec3(0.0f, 0.0f, 1.0f));
         UpdateTransforms();
     }
     gl.quadtree->Draw(deltaT);
@@ -328,9 +328,6 @@ void RenderImgui()
             UpdateMeshSettings();
         }
         if (gl.set->map_primcount) {
-            ImGui::SameLine();
-            ImGui::Text(utility::LongToString(gl.quadtree->GetPrimcount()).c_str ());
-
         }
         if (ImGui::Combo(" ", &gl.set->interpolation, "PN\0Phong\0No Interpolation\0\0")) {
             UpdateMeshSettings();
@@ -549,72 +546,6 @@ void mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
     UpdateView();
 }
 
-// ---------------------------- Debug Functions ------------------------------ //
-
-void debugOutput ( GLenum source,
-                   GLenum type,
-                   GLuint id,
-                   GLenum severity,
-                   GLsizei length,
-                   const GLchar* message,
-                   const GLvoid* userParam
-                   )
-{
-    char debSource[32], debType[32], debSev[32];
-
-    if (source == GL_DEBUG_SOURCE_API)
-        strcpy(debSource, "OpenGL");
-    else if (source == GL_DEBUG_SOURCE_WINDOW_SYSTEM)
-        strcpy(debSource, "Windows");
-    else if (source == GL_DEBUG_SOURCE_SHADER_COMPILER)
-        strcpy(debSource, "Shader Compiler");
-    else if (source == GL_DEBUG_SOURCE_THIRD_PARTY)
-        strcpy(debSource, "Third Party");
-    else if (source == GL_DEBUG_SOURCE_APPLICATION)
-        strcpy(debSource, "Application");
-    else if (source == GL_DEBUG_SOURCE_OTHER)
-        strcpy(debSource, "Other");
-    else
-        assert(0);
-
-    if (type == GL_DEBUG_TYPE_ERROR)
-        strcpy(debType, "error");
-    else if (type == GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR)
-        strcpy(debType, "deprecated behavior");
-    else if (type == GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR)
-        strcpy(debType, "undefined behavior");
-    else if (type == GL_DEBUG_TYPE_PORTABILITY)
-        strcpy(debType, "portability");
-    else if (type == GL_DEBUG_TYPE_PERFORMANCE)
-        strcpy(debType, "performance");
-    else if (type == GL_DEBUG_TYPE_OTHER)
-        strcpy(debType, "message");
-    else if (type == GL_DEBUG_TYPE_MARKER)
-        strcpy(debType, "marker");
-    else if (type == GL_DEBUG_TYPE_PUSH_GROUP)
-        strcpy(debType, "push group");
-    else if (type == GL_DEBUG_TYPE_POP_GROUP)
-        strcpy(debType, "pop group");
-    else
-        assert(0);
-
-    if (severity == GL_DEBUG_SEVERITY_HIGH)
-    {
-        strcpy(debSev, "high");
-    }
-    else if (severity == GL_DEBUG_SEVERITY_MEDIUM)
-        strcpy(debSev, "medium");
-    else if (severity == GL_DEBUG_SEVERITY_LOW)
-        strcpy(debSev, "low");
-    else if (severity == GL_DEBUG_SEVERITY_NOTIFICATION)
-        // strcpy(debSev, "notification");
-        return;
-    else
-        assert(0);
-
-    fprintf(stderr,"%s: %s(%s) %d: %s\n", debSource, debType, debSev, id, message);
-}
-
 // *************************************************************************** //
 // |                                 PROGRAM                                    |
 // *************************************************************************** //
@@ -734,7 +665,7 @@ int main(int argc, char **argv)
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
     glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE);
-    glDebugMessageCallback(debugOutput, NULL);
+    glDebugMessageCallback(debug_output_logger, NULL);
 
     glClearColor(0, 0, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

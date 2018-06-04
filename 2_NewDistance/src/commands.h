@@ -3,7 +3,6 @@
 
 #include "common.h"
 
-
 enum {NODES_IN_B,
       NODES_OUT_FULL_B,
       NODES_OUT_CULLED_B,
@@ -17,12 +16,7 @@ enum {NODES_IN_B,
       LEAF_VERT_B,
       LEAF_IDX_B,
       BINDINGS_COUNT
-     };
-
-using namespace std;
-using glm::uvec3;
-using glm::uvec3;
-using glm::uvec4;
+     } Bindings;
 
 #define ELEMENTS_INDIRECT
 
@@ -36,10 +30,10 @@ typedef struct {
 } DrawElementsIndirectCommand;
 
 typedef  struct {
-    uint  count;
-    uint  primCount;
-    uint  first;
-    uint  baseInstance;
+    GLuint  count;
+    GLuint  primCount;
+    GLuint  first;
+    GLuint  baseInstance;
 } DrawArraysIndirectCommand;
 
 
@@ -53,30 +47,29 @@ class Commands
 {
 private:
 
+    // Buffer indices for the ...
     enum {
-        DrawIndirect,
-        DispatchIndirect,
-        NodeCounterFull,
-        NodeCounterCulled,
-        Copy,
+        DrawIndirect,      // Draw command
+        DispatchIndirect,  // Dispatch command
+        NodeCounterFull,   // Array of atomic counters of unculled nodes
+        NodeCounterCulled, // Array of atomic counters of all nodes
+        Copy,              // Proxy buffer used to read back from GPU
         BUFFER_COUNT
     };
-    const int NUM_ELEM = 16;
-    GLuint buffers_[BUFFER_COUNT];
-#ifdef ELEMENTS_INDIRECT
+    const int NUM_ELEM = 16; // Number of atomic counters in the array
+    GLuint buffers_[BUFFER_COUNT]; // Array of buffers
     DrawElementsIndirectCommand init_draw_command_;
-#else
-    DrawArraysIndirectCommand init_draw_command_;
-#endif
     DispatchIndirectCommand     init_dispatch_command_;
-    uint init_node_count_;
+    uint init_node_count_; // Number of nodes when starting the program
 
-    // iterator stuff
+    // indices of the atomic array
     int primCount_delete_;
     int primCount_read_, primCount_write_;
 
-    uint num_idx_;
+    uint num_idx_; // Number of vertex indices for the current leaf geometry 
 
+
+    // Loads the buffer that will contain the atomic counter array
     bool loadCounterBuffers()
     {
         uint zeros[NUM_ELEM] = {0};
@@ -97,7 +90,6 @@ private:
 
     bool loadCopyBuffer()
     {
-
         utility::EmptyBuffer(&buffers_[Copy]);
         glCreateBuffers(1, &buffers_[Copy]);
         uint zeros[NUM_ELEM] = {0};
@@ -141,11 +133,7 @@ public:
     void Init(uint leaf_num_idx, uint num_workgroup, uint init_node_count)
     {
         num_idx_ = leaf_num_idx;
-#ifdef ELEMENTS_INDIRECT
         init_draw_command_  = { GLuint(num_idx_),  0 , 0, 0, 0, uvec3(0)};
-#else
-        init_draw_command_  = { GLuint(num_idx_),  1 , 0, 0};
-#endif
         init_dispatch_command_ = { GLuint(num_workgroup), 1, 1 };
         init_node_count_ = init_node_count;
 
@@ -156,6 +144,9 @@ public:
         primCount_delete_ = floor(NUM_ELEM / 2);
     }
 
+    // Binds the relevant buffers for the compute pass
+    // Uploads the atomic array indices
+    // Update the atomic indices 
     void BindForCompute(GLuint program)
     {
         utility::SetUniformInt(program, "read_index", primCount_read_);
@@ -170,6 +161,8 @@ public:
         primCount_delete_ = (primCount_delete_ + 1) % NUM_ELEM;
     }
 
+    // Binds the relevant buffers for the copy pass
+    // Uploads the atomic array indices
     uint BindForCopy(GLuint program)
     {
         utility::SetUniformInt(program, "read_index", primCount_read_);
@@ -185,21 +178,17 @@ public:
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, buffers_[DrawIndirect]);
     }
 
+    // Return the number of nodes to render stored in the current Draw command
+    // To help asynchronicity, first copy from command buffer to proxy buffer, then from proxy to CPU 
     int GetPrimCount()
     {
-#ifdef ELEMENTS_INDIRECT
         glCopyNamedBufferSubData(buffers_[DrawIndirect], buffers_[Copy], sizeof(uint), 0, sizeof(uint));
         uint* data = (uint*) glMapNamedBuffer(buffers_[Copy], GL_READ_ONLY);
         glUnmapNamedBuffer(buffers_[Copy]);
         return data[0];
-#else
-        glCopyNamedBufferSubData(buffers_[DrawIndirect], buffers_[Copy], 0, 0, sizeof(uint));
-        uint* data = (uint*) glMapNamedBuffer(buffers_[Copy], GL_READ_ONLY);
-        glUnmapNamedBuffer(buffers_[Copy]);
-        return data[0] / num_idx_;
-#endif
     }
 
+    // Print the content of the atomic counter array
     void PrintAtomicArray()
     {
         cout << "AtomicArray: ";
@@ -212,6 +201,7 @@ public:
         cout << endl;
     }
 
+    // Print the number of workgroup in the Dispatch command buffer
     void PrintWGCountInDispatch()
     {
         cout << "WG size X in Dispatch bufffer: ";
@@ -226,19 +216,18 @@ public:
         loadCommandBuffers();
     }
 
+    // Reinitialize the command buffer from a new number of indices, nodes, and workgroup
     void ReinitializeCommands(uint tri_num_idx, uint num_workgroup, uint init_node_count)
     {
         num_idx_ = tri_num_idx;
-#ifdef ELEMENTS_INDIRECT
         init_draw_command_  = { GLuint(num_idx_),  0 , 0, 0, 0, uvec3(0)};
-#else
-        init_draw_command_  = { GLuint(num_idx_),  0 , 0, 0};
-#endif
         init_dispatch_command_ = { GLuint(num_workgroup), 1, 1 };
         init_node_count_ = init_node_count;
         loadCommandBuffers();
     }
 
+    // Update the command buffer to match a new leaf geometry
+    // (i.e. different CPU LoD => different number of indices )
     void UpdateLeafGeometry(uint tri_num_v)
     {
         glNamedBufferSubData(buffers_[Copy], 0, sizeof(uint), &tri_num_v);

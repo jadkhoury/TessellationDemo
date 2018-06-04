@@ -83,17 +83,26 @@ enum { TRIANGLES,
      } PrimTypes;
 
 
-
+// Represents a buffer
 struct BufferData {
-    GLuint bo, count = 0;
-    GLsizei size;
+    GLuint bo;        // buffer object
+    GLuint count = 0; // Number of elements in the buffer
+    GLsizei size;     // Size of the buffer (in bytes)
 };
 
+// Usefull data structure to manage geometry buffers
 struct BufferCombo {
-    BufferData v, idx;
-    GLuint vao;
+    BufferData v;   // Buffer containing the vertices
+    BufferData idx; // Buffer containing the indices
+    GLuint vao;     // Vertex Array Object
 };
 
+
+// Data structure representing a unique vertex as a set of 
+// A position
+// A normal
+// A UV
+// Plus some filling data to align on the std430 standard
 struct Vertex
 {
     vec4 p  = vec4(0);
@@ -126,41 +135,42 @@ struct Vertex
     Vertex() {}
 };
 
+// Stores all data necessary to represent a mesh
 struct Mesh_Data
 {
-    Vertex* v_array;
-    uint* q_idx_array;
-    uint* t_idx_array;
+    Vertex* v_array;   // Array of vertices
+    uint* q_idx_array; // Array of indices for quad meshes
+    uint* t_idx_array; // Array of indices for triangle meshes
 
-    BufferData v, q_idx, t_idx;
+    BufferData v, q_idx, t_idx; // Buffers for vertices, quad indices, triangle indices
     int triangle_count = 0, quad_count = 0;
 };
 
 struct Settings
 {
-    int uni_lvl = 0;
-    int adaptive_factor = 1;
-    bool uniform = true;
-    bool map_primcount = true;
-    bool rotateMesh = false;
-    bool displace = false;
-    int color_mode = WHITE_WIREFRAME;
-    bool render_projection = true;
-    int interpolation = NONE;
-    float alpha = 0;
-    int pxEdgeLength = 256;
-    int grid_quads_count = 1;
+    int uni_lvl = 0;                    // Level of uniform subdivision
+    int adaptive_factor = 1;            // Factor scaling the adaptive subdivision
+    bool uniform = true;                // Toggle uniform subdivision
+    bool map_primcount = true;          // Toggle the readback of the node counters
+    bool rotateMesh = false;            // Toggle mesh rotation (for mesh)
+    bool displace = false;              // Toggle displacement mapping (for terrain)
+    int color_mode = WHITE_WIREFRAME;   // Switch color mode of the render
+    bool render_projection = true;      // Toggle the MVP matrix
+    int interpolation = NONE;           // Switch interpolation mode
+    float alpha = 0;                    // Scale interpolation
+    int pxEdgeLength = 256;             // Deprecated
+    int grid_quads_count = 1;           // Number of quads in the terrain grid 
 
     // Quadtree Stuff
-    bool triangle_mode = true;
-    int prim_type = TRIANGLES;
-    bool morph = false;
-    int morph_mode = HYBRID_PRE;
-    bool freeze = false;
-    int cpu_lod = 0;
-    bool cull = true;
+    bool triangle_mode = true;   // Deprecated
+    int prim_type = TRIANGLES;   // Type of primitive of the mesh (changes number of root triangle)
+    bool morph = false;          // Toggles T-Junction Removal
+    int morph_mode = HYBRID_PRE; // Switch neighbour LoD evaluation mode
+    bool freeze = false;         // Toggle freeze i.e. stop updating the quadtree, but keep rendering
+    int cpu_lod = 0;             // Control CPU LoD, i.e. subdivision level of the instantiated triangle grid
+    bool cull = true;            // Toggles Cull
 
-    bool modified = false;
+    bool modified = false;       // Deprecated
 
     void UploadSettings(uint pid)
     {
@@ -191,6 +201,7 @@ struct Settings
     }
 };
 
+// Nice little struct to manage transforms
 struct Transforms
 {
     mat4 M     = mat4(1.0);

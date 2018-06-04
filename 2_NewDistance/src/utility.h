@@ -25,6 +25,7 @@ char *strcat2(char *dst, const char *src1, const char *src2)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+///
 /// Struct to facilitate the definition and maintenance of Buffers within OpenGL
 ///
 typedef struct Buffer {

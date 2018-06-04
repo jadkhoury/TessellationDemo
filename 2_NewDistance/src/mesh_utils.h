@@ -11,8 +11,16 @@
 #include <fstream>
 #include <sstream>
 
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// namespace for generating and managing meshes
+///
+
 namespace meshutils {
 
+// Loads a grid with the number of quads specified in grid_quads_count (rounded down to square)
+// Stores the resulting mesh in mesh_data
 void LoadGrid(Mesh_Data* mesh_data, int grid_quads_count)
 {
 
@@ -55,6 +63,7 @@ void LoadGrid(Mesh_Data* mesh_data, int grid_quads_count)
     mesh_data->triangle_count = mesh_data->t_idx.count / 3;
 }
 
+// Utility function to read from file
 static char const * sgets( char * s, int size, char ** stream ) {
     for (int i=0; i<size; ++i) {
         if ( (*stream)[i]=='\n' || (*stream)[i]=='\0') {
@@ -73,6 +82,11 @@ static char const * sgets( char * s, int size, char ** stream ) {
     return 0;
 }
 
+// Read a .obj from file and store it in mesh_data
+// Reads the data line by line
+// Creates unique Vertex objects for each unencountered set of position / normal / UV
+// Stores the result in mesh_data
+// File parsing taken from OpenSubdiv
 void ParseObj(string name, int axis, Mesh_Data* mesh_data)
 {
     // Opening file and stuff

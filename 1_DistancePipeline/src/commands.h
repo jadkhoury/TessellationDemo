@@ -22,11 +22,12 @@ typedef struct {
 class Commands
 {
 private:
-	const int NUM_ELEM = 8;
+	const int NUM_ELEM = 8; // Length of the atomic counter array
 
-	GLuint quad_draw_bo_, tri_draw_bo_;
-	GLuint dispatch_bo_;
-    GLuint default_bo_, readback_bo_;
+	GLuint quad_draw_bo_, tri_draw_bo_; // Draw command buffers
+	GLuint dispatch_bo_; // Dispatch command buffers
+    GLuint default_bo_; // Buffer containing default parameters
+	GLuint readback_bo_; // Buffer used as proxy to read from GPU memory
 
     DrawElementsIndirectCommand init_quad_command_;
     DrawElementsIndirectCommand init_tri_command_;
