@@ -41,14 +41,8 @@ void main(void)
     uint culled_count = nodeCount_culled[read_index];
 
     //Set the primcount for the draw pass
-
-#ifdef ELEMENTS
     count = num_indices;
     primCount = culled_count;
-#else
-    count = culled_count * num_indices;
-    primCount = 1;
-#endif
     //Set the WG siwe for the next compute pass
     workgroup_size_x = uint(full_count / float(LOCAL_WG_COUNT)) + 1;
     // Reset the counters for next round

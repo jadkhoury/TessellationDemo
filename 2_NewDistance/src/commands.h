@@ -18,8 +18,6 @@ enum {NODES_IN_B,
       BINDINGS_COUNT
      } Bindings;
 
-#define ELEMENTS_INDIRECT
-
 typedef struct {
     GLuint  count;
     GLuint  primCount;

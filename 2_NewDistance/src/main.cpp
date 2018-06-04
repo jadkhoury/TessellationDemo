@@ -117,7 +117,7 @@ void UpdateMode(bool init = false)
         meshutils::LoadGrid(&gl.mesh_data, gl.set->grid_quads_count);
         loadMeshBuffers(&gl.mesh_data);
         gl.set->displace = true;
-        gl.set->adaptive_factor = 7.0;
+        gl.set->adaptive_factor = 50.0;
     } else if (gl.mode == MESH) {
         meshutils::ParseObj(gl.filepath, 0, &gl.mesh_data);
         if (gl.mesh_data.quad_count > 0 && gl.mesh_data.triangle_count == 0) {
@@ -127,9 +127,9 @@ void UpdateMode(bool init = false)
         } else {
             cout << "ERROR when parsing obj" << endl;
         }
+        gl.set->adaptive_factor = 1.0;
         loadMeshBuffers(&gl.mesh_data);
         gl.set->displace = false;
-        gl.set->adaptive_factor = 7.0;
     }
     if (!init)
         gl.quadtree->Reinitialize();
@@ -206,26 +206,6 @@ void UpdateView()
     gl.tranforms->cam_pos = cam.pos;
 }
 
-enum {WITH_GUI, NO_GUI};
-
-void SaveFBToBMP (int gui)
-{
-    //    static int cnt = 0;
-    //    char buf[1024];
-    //    snprintf(buf, 1024, "%03i", cnt);
-    //    if (gui == WITH_GUI) {
-    //        glViewport(0, 0, gl.w_width, gl.w_height);
-    //        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-    //        djgt_save_glcolorbuffer_bmp(GL_FRONT, GL_RGBA, buf);
-    //    } else {
-    //        glViewport(0, 0, gl.render_fb.width, gl.render_fb.height);
-    //        glBindFramebuffer(GL_READ_FRAMEBUFFER, gl.render_fb.fbo);
-    //        djgt_save_glcolorbuffer_bmp(GL_COLOR_ATTACHMENT0, GL_RGBA, buf);
-    //    }
-    //    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    //    ++cnt;
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// Benchmarking Functions
@@ -299,11 +279,6 @@ void RenderImgui()
         if (ImGui::Button("Reinit Cam")) {
             InitTranforms();
         }
-        ImGui::SameLine();
-        if (ImGui::Button("Take Screenshot")) {
-            SaveFBToBMP(NO_GUI);
-        }
-
         ImGui::Text("\n------ Mesh settings ------");
         ImGui::Checkbox("Rotate Mesh", &gl.set->rotateMesh);
         if (ImGui::Combo("Color mode", &gl.set->color_mode,
@@ -319,7 +294,7 @@ void RenderImgui()
         if (ImGui::SliderInt("", &gl.set->uni_lvl, 0, 20)) {
             UpdateMeshSettings();
         }
-        if (ImGui::SliderInt("LoD Factor", &gl.set->adaptive_factor, 1, max_lod)) {
+        if (ImGui::SliderFloat("LoD Factor", &gl.set->adaptive_factor, 1, max_lod)) {
             UpdateMeshSettings();
         }
 
@@ -573,8 +548,8 @@ void Init()
     gl.current_t = 0;
 
     gl.mode = MESH;
-    INIT_CAM_POS[TERRAIN]  = vec3(8.5, 8.5, 4);
-    INIT_CAM_LOOK[TERRAIN] = vec3(7, 7, 3.5);
+    INIT_CAM_POS[TERRAIN]  = vec3(3.9, 3.6, 0.6);
+    INIT_CAM_LOOK[TERRAIN] = vec3(3.3, 2.9, 0.33);
     INIT_CAM_POS[MESH]  = vec3(3.4, 3.4, 2.4);
     INIT_CAM_LOOK[MESH] =  vec3(2.8, 2.8, 2.0);
 

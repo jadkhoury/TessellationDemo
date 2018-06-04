@@ -51,10 +51,6 @@ const vec2 unit_O = vec2(0,0);
 const vec2 unit_R = vec2(1,0);
 const vec2 unit_U = vec2(0,1);
 
-bool outside_frustum = false;
-
-#define OLD_LOD
-
 vec4 heightDisplace(in vec4 v, in vec4 n) {
     vec4 r = v;
     r.z = displace(r.xyz, 1000, n.xyz) * 2.0;
@@ -137,14 +133,9 @@ void cull_writeKey(uvec4 new_key)
 
 /**
  * Emulates what was previously the Cull Pass:
- * - Check if some morph or deletion should be done
- * - If current leaf is destroyed: returns before doing anything
- * - Else:
- *		- Compute the mesh space bounding box of the primitive
- *		- Use the BB to check for culling
- *		- If not culled, store the (possibly morphed) key in the SSBO for Render
- * TRICK: if both z coordinates are 0, assume that we're treating a grid+heightmap
- * situation, modify bounding box z coordinates to include a safe height margin.
+ * - Compute the mesh space bounding box of the primitive
+ * - Use the BB to check for culling
+ * - If not culled, store the (possibly morphed) key in the SSBO for Render
  */
 void cullPass(uvec4 key, mat4 mesh_coord, mat4 mv_coord)
 {

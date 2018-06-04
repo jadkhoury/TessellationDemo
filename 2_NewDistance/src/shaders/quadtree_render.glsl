@@ -19,7 +19,11 @@ uniform int render_MVP;
 
 uniform float cpu_lod;
 
-// ------------------------------ VERTEX_SHADER ------------------------------ //
+////////////////////////////////////////////////////////////////////////////////
+///
+/// VERTEX_SHADER
+///
+
 #ifdef VERTEX_SHADER
 
 layout (location = 1) in vec2 tri_p;
@@ -48,6 +52,7 @@ uniform float alpha;
 uniform int debug_morph;
 uniform float morph_k;
 
+// ------------------- Color Functions ------------------- //
 
 vec4 levelColor(uint lvl)
 {
@@ -96,22 +101,6 @@ vec4 cullColor(vec3 p)
         return RED;
 }
 
-vec4 normalColor(vec3 n)
-{
-    vec3 c = n * 0.5 + 0.5;
-    return vec4(c, 1);
-}
-vec4 normalColor(vec4 n)
-{
-    vec3 c = n.xyz * 0.5 + 0.5;
-    return vec4(c, 1);
-}
-
-vec4 interpolationColor(vec3 d)
-{
-    return mix(CYAN, RED, length(d*5));
-}
-
 vec4 diffuseColor(vec3 p_mv, vec3 n_mv, vec3 light_dir)
 {
     vec3 ka = BLUE.xyz * 2.0;
@@ -131,6 +120,8 @@ vec4 diffuseColor(vec3 p_mv, vec3 n_mv, vec3 light_dir)
     vec3 c = ambiant + diffuse;
     return vec4(c,1);
 }
+
+// ------------------- Geometry Functions ------------------- //
 
 // based on Filip Strugar's CDLOD paper (until intPart & signVec)
 vec2 morphVertexInUnit(uvec4 key, vec2 leaf_p, vec2 tree_p)
@@ -154,6 +145,13 @@ vec2 morphVertexInUnit(uvec4 key, vec2 leaf_p, vec2 tree_p)
     return tree_p - mat2(t) * (-1*signVec * fracPart) * morphK;
 }
 
+vec3 heightDisplace(in vec3 v, out vec3 n) {
+    vec3 r = v;
+    r.z = displace(r, 1000, n) * 2.0;
+    return r;
+}
+
+// ------------------------ Main ------------------------ //
 void main()
 {
     uint instanceID;
@@ -173,7 +171,8 @@ void main()
     v_pos = lt_Tree_to_MeshPrimitive(tree_pos, key, false, prim_type).xyz;
 
     if (heightmap > 0) {
-        v_pos.z =  displace(v_pos, 1000, n.xyz) * 2.0;
+        n = vec4(0,0,1,0);
+        v_pos =  heightDisplace(v_pos, n.xyz);
     } else {
         n = lt_getMeanPrimNormal(key, prim_type);
     }
@@ -190,8 +189,6 @@ void main()
         v_color = cullColor(v_pos);
         break;
     case DEBUG:
-        // vec3 d = v_pos - old_pos;
-        // v_color = interpolationColor(d);
         vec3 normal_mv = vec3(invMV * n);
         vec3 v_pos_mv =  vec3(MV * vec4(v_pos,1));
         vec3 light_pos = vec3(V * vec4(10,0,0,1));
@@ -206,7 +203,11 @@ void main()
 }
 #endif
 
-// ------------------------------ GEOMERY_SHADER ----------------------------- //
+////////////////////////////////////////////////////////////////////////////////
+///
+/// GEOMETRY_SHADER
+///
+
 #ifdef GEOMETRY_SHADER
 
 layout(triangles) in;
@@ -245,7 +246,12 @@ void main ()
 }
 #endif
 
-// ----------------------------- FRAGMENT_SHADER ----------------------------- //
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// FRAGMENT_SHADER
+///
+
 #ifdef FRAGMENT_SHADER
 layout (location = 0) in vec4 g_color;
 layout (location = 1) in vec3 g_pos;
@@ -270,7 +276,7 @@ void main()
     //vec3 n = normalize(rock_normal(g_pos, 10000, h));
     //color.rgb = 3.0 * irradiance(n) * albedo(g_pos,n);
 
-    vec4 white_leaves = vec4(vec3(gridFactor(g_leaf_uv, 1.0)), 1);
+    vec4 white_leaves = vec4(vec3(gridFactor(g_leaf_uv, 0.5)), 1);
     switch (color_mode)
     {
     case WHITE_WIREFRAME:

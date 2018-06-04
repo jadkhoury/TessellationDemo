@@ -65,18 +65,6 @@ enum { LOD,
        COLOR_MODES_COUNT
      } ColorModes;
 
-enum { PN,
-       PHONG,
-       NONE,
-       INTERPOLATION_COUNT
-     } InterpolationModes;
-
-enum {  NEIGHBOUR,
-        HYBRID_PRE,
-        HYBRID_POST,
-        MORPH_MODES_COUNT
-     } MorphModes;
-
 enum { TRIANGLES,
        QUADS,
        NUM_TYPES
@@ -149,7 +137,7 @@ struct Mesh_Data
 struct Settings
 {
     int uni_lvl = 0;                    // Level of uniform subdivision
-    int adaptive_factor = 1;            // Factor scaling the adaptive subdivision
+    float adaptive_factor = 1;            // Factor scaling the adaptive subdivision
     bool uniform = false;                // Toggle uniform subdivision
     bool map_primcount = true;          // Toggle the readback of the node counters
     bool rotateMesh = false;            // Toggle mesh rotation (for mesh)
@@ -174,7 +162,7 @@ struct Settings
     {
         utility::SetUniformBool(pid, "uniform_subdiv", uniform);
         utility::SetUniformInt(pid, "uniform_level", uni_lvl);
-        utility::SetUniformInt(pid, "adaptive_factor", adaptive_factor);
+        utility::SetUniformFloat(pid, "adaptive_factor", adaptive_factor);
         utility::SetUniformBool(pid, "heightmap", displace);
         utility::SetUniformInt(pid, "color_mode", color_mode);
         utility::SetUniformBool(pid, "render_MVP", render_projection);

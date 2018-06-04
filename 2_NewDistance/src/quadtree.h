@@ -93,7 +93,6 @@ private:
         djgp_push_string(djp, "#define LOCAL_WG_SIZE_Y %u\n", local_WG_size_.y);
         djgp_push_string(djp, "#define LOCAL_WG_SIZE_Z %u\n", local_WG_size_.z);
         djgp_push_string(djp, "#define LOCAL_WG_COUNT %u\n", local_WG_count);
-        djgp_push_string(djp, "#define ELEMENTS %u\n", 1);
     }
 
     bool loadComputeProgram()
@@ -103,9 +102,6 @@ private:
             compute_program_ = 0;
         djg_program* djp = djgp_create();
         pushMacrosToProgram(djp);
-        djgp_push_string(djp, "#define NEIGHBOUR %u\n", NEIGHBOUR);
-        djgp_push_string(djp, "#define HYBRID_PRE %u\n", HYBRID_PRE);
-        djgp_push_string(djp, "#define HYBRID_POST %u\n", HYBRID_POST);
 
         char buf[1024];
 
@@ -169,9 +165,6 @@ private:
         djgp_push_string(djp, "#define FRUSTUM %i\n", FRUSTUM);
         djgp_push_string(djp, "#define CULL %i\n", CULL);
         djgp_push_string(djp, "#define DEBUG %i\n", DEBUG);
-        djgp_push_string(djp, "#define NONE %i\n", NONE);
-        djgp_push_string(djp, "#define PN %i\n", PN);
-        djgp_push_string(djp, "#define PHONG %i\n", PHONG);
 
         char buf[1024];
 
@@ -528,13 +521,7 @@ RENDER_PASS:
             commands_->BindForRender();
             glBindVertexArray(leaf_geometry.vao);
             djgc_start(render_clock);
-#ifdef ELEMENTS_INDIRECT
             glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
-#else
-            glBindBufferBase(GL_UNIFORM_BUFFER, LEAF_VERT_B, leaf_geometry.v.bo);
-            glBindBufferBase(GL_UNIFORM_BUFFER, LEAF_IDX_B, leaf_geometry.idx.bo);
-            glDrawArraysIndirect(GL_TRIANGLES, BUFFER_OFFSET(0));
-#endif
             glBindVertexArray(0);
             djgc_stop(render_clock);
         }

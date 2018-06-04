@@ -5,7 +5,7 @@
 
 uniform int prim_type;
 uniform vec3 cam_pos;
-uniform int adaptive_factor;
+uniform float adaptive_factor;
 
 uniform mat4 M, V, P, MV, MVP, invMV;
 uniform float fov;
