@@ -61,7 +61,7 @@ private:
         Copy,
         BUFFER_COUNT
     };
-    const int NUM_ELEM = 16;
+    static const int NUM_ELEM = 16;
     GLuint buffers_[BUFFER_COUNT];
 #ifdef ELEMENTS_INDIRECT
     DrawElementsIndirectCommand init_draw_command_;
@@ -170,7 +170,7 @@ public:
         primCount_delete_ = (primCount_delete_ + 1) % NUM_ELEM;
     }
 
-    uint BindForCopy(GLuint program)
+    void BindForCopy(GLuint program)
     {
         utility::SetUniformInt(program, "read_index", primCount_read_);
         utility::SetUniformInt(program, "delete_index", primCount_delete_);

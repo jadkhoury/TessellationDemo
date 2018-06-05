@@ -63,7 +63,7 @@ private:
         return (glGetError() == GL_NO_ERROR);
     }
 
-    bool loadVao(){
+    void loadVao(){
         glCreateVertexArrays(1, &vao_);
         glVertexArrayAttribBinding(vao_, 0, 0);
         glVertexArrayAttribFormat(vao_, 0, 4, GL_FLOAT, GL_FALSE, offsetof(Vertex, p));

@@ -163,7 +163,7 @@ void ParseObj(string name, int axis, Mesh_Data* mesh_data)
     cout << Nn << " Normals, " << endl;
     cout << Nt << " UVs" << endl;
     int iv = 0, it = 0, in = 0;
-    ulong unique_idx;
+    uint64 unique_idx;
     bool with_normals = facenormals.size() > 0;
     bool with_uvs = faceuvs.size() > 0;
 

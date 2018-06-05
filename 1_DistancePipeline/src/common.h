@@ -33,8 +33,6 @@
 
 #define DJ_OPENGL_IMPLEMENTATION 1
 #include "dj_opengl.h"
-#define DJ_ALGEBRA_IMPLEMENTATION 1
-#include "dj_algebra.h"
 
 using namespace std;
 using std::string;
@@ -46,6 +44,8 @@ using glm::uvec3;
 using glm::uvec4;
 using glm::mat3;
 using glm::mat4;
+using glm::uint;
+using glm::uint64;
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -220,7 +220,7 @@ bool ParseObj(string file_path, int axis, Mesh_Data& mesh_data)
     cout << Nn << " Normals, " << endl;
     cout << Nt << " UVs" << endl;
     int iv = 0, it = 0, in = 0;
-    ulong unique_idx;
+    uint64 unique_idx;
     bool with_normals = facenormals.size() > 0;
     bool with_uvs = faceuvs.size() > 0;
 

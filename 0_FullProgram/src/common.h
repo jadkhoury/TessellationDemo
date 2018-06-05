@@ -33,8 +33,6 @@
 
 #define DJ_OPENGL_IMPLEMENTATION 1
 #include "dj_opengl.h"
-#define DJ_ALGEBRA_IMPLEMENTATION 1
-#include "dj_algebra.h"
 
 const char* shader_dir = "../0_FullProgram/src/shaders/";
 
@@ -48,6 +46,8 @@ using glm::uvec3;
 using glm::uvec4;
 using glm::mat3;
 using glm::mat4;
+using glm::uint;
+using glm::uint64;
 
 using namespace std;
 
