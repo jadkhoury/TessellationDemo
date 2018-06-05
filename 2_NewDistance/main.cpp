@@ -1,6 +1,7 @@
 // SOURCE FILES
 #include "common.h"
 #include "quadtree.h"
+#include "mesh_utils.h"
 
 // MACROS
 #define LOG(fmt, ...)  fprintf(stdout, fmt, ##__VA_ARGS__); fflush(stdout);
@@ -26,41 +27,9 @@ struct CameraManager {
     vec3 direction;
 } cam = {};
 
-QuadTree::Settings init_settings = {
-    /*int uni_lvl*/ 0,
-    /*float adaptive_factor*/ 1,
-    /*bool uniform*/ false,
-    /*bool map_primcount*/ true,
-    /*bool rotateMesh*/ false,
-    /*bool displace*/ true,
-    /*int color_mode*/ LOD,
-    /*bool render_projection*/ true,
-
-    /*int prim_type*/ TRIANGLES,
-    /*bool morph*/ true,
-    /*bool freeze*/ false,
-    /*int cpu_lod*/ 2,
-    /*bool cull*/ true,
-    /*bool debug_morph*/ false,
-    /*float morph_k*/ 0.0,
-};
-
 struct OpenGLManager {
-    QuadTree* quadtree;
-    Transforms* tranforms;
 
-    Mesh_Data mesh_data;
 
-    uint mode;
-    string filepath;
-    djg_clock* clock;
-
-    bool force_dt;
-    bool end;
-    bool run_demo;
-    float last_t;
-    float current_t;
-    float delta_T;
     bool pause;
     int w_width, w_height;
     int gui_width, gui_height;
@@ -68,116 +37,231 @@ struct OpenGLManager {
     bool lbutton_down, rbutton_down;
     double x0, y0;
 
-    uint grid_quads_count;
 
 } gl = {0};
 
+struct Mesh {
+    uint mode;
+    QuadTree* quadtree;
+    Transforms* tranforms;
+    QuadTree::Settings init_settings;
+
+    Mesh_Data mesh_data;
+    uint grid_quads_count;
+    string filepath;
+
+    void Init();
+    bool LoadMeshBuffers();
+    void LoadMeshData(bool init);
+    void UpdateTransforms();
+    void Draw(float deltaT, bool freeze);
+} mesh = {0};
+
 struct BenchStats {
+    float last_t;
+    float current_t;
+    float delta_T;
+
     double avg_qt_gpu_compute, avg_qt_gpu_render;
     double avg_tess_render;
     double  total_qt_gpu_compute, total_qt_gpu_render;
     int frame_count, fps;
     double sec_timer;
     int last_frame_count;
+
+    void Init();
+    void UpdateTime();
+    void UpdateStats();
 } benchStats = {0};
 
-////////////////////////////////////////////////////////////////////////////////
-///
-/// Utilities
-///
-int roundUpToSq(int n)
-{
-    int sq = ceil(sqrt(n));
-    return (sq * sq);
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// Mesh Functions
 ///
 
-bool loadMeshBuffers(Mesh_Data* mesh_data)
+int roundUpToSq(int n)
 {
-    utility::EmptyBuffer(&mesh_data->v.bo);
-    glCreateBuffers(1, &(mesh_data->v.bo));
-    glNamedBufferStorage(mesh_data->v.bo,
-                         sizeof(Vertex) * mesh_data->v.count,
-                         (const void*)(mesh_data->v_array),
+    int sq = ceil(sqrt(n));
+    return (sq * sq);
+}
+
+void Mesh::Init()
+{
+    quadtree = new QuadTree();
+    tranforms = new Transforms();
+    mesh_data = {};
+    grid_quads_count = roundUpToSq(1);
+    filepath = "bigguy.obj";
+
+    mode = TERRAIN;
+
+    init_settings = {
+        /*int uni_lvl*/ 0,
+        /*float adaptive_factor*/ 1,
+        /*bool uniform*/ false,
+        /*bool map_primcount*/ true,
+        /*bool rotateMesh*/ false,
+        /*bool displace*/ true,
+        /*int color_mode*/ LOD,
+        /*bool render_projection*/ true,
+
+        /*int prim_type*/ TRIANGLES,
+        /*bool morph*/ true,
+        /*bool freeze*/ false,
+        /*int cpu_lod*/ 2,
+        /*bool cull*/ true,
+        /*bool debug_morph*/ false,
+        /*float morph_k*/ 0.0,
+    };
+
+    LoadMeshData(true);
+    quadtree->Init(&mesh.mesh_data, mesh.tranforms, init_settings);
+
+}
+
+/*
+ * Loads the data in the Mesh_Data structure into buffers.
+ * Creates:
+ * - 1 buffer for (unique) vertices
+ * - 1 buffer for quad indices
+ * - 1 buffer for triangle indices
+ * It seemed easier to have for index buffer available on the gpu and switch
+ * from one to the other depending on the mesh polygon used
+ */
+bool Mesh::LoadMeshBuffers()
+{
+    utility::EmptyBuffer(&mesh_data.v.bo);
+    glCreateBuffers(1, &(mesh_data.v.bo));
+    glNamedBufferStorage(mesh_data.v.bo,
+                         sizeof(Vertex) * mesh_data.v.count,
+                         (const void*)(mesh_data.v_array),
                          0);
 
 
-    utility::EmptyBuffer(&mesh_data->q_idx.bo);
-    if (mesh_data->quad_count > 0) {
-        glCreateBuffers(1, &(mesh_data->q_idx.bo));
-        glNamedBufferStorage(mesh_data->q_idx.bo,
-                             sizeof(uint) * mesh_data->q_idx.count,
-                             (const void*)(mesh_data->q_idx_array),
+    utility::EmptyBuffer(&mesh_data.q_idx.bo);
+    if (mesh_data.quad_count > 0) {
+        glCreateBuffers(1, &(mesh_data.q_idx.bo));
+        glNamedBufferStorage(mesh_data.q_idx.bo,
+                             sizeof(uint) * mesh_data.q_idx.count,
+                             (const void*)(mesh_data.q_idx_array),
                              0);
     }
 
 
-    utility::EmptyBuffer(&mesh_data->t_idx.bo);
-    glCreateBuffers(1, &(mesh_data->t_idx.bo));
-    if (mesh_data->triangle_count > 0) {
-        glNamedBufferStorage(mesh_data->t_idx.bo,
-                             sizeof(uint) * mesh_data->t_idx.count,
-                             (const void*)(mesh_data->t_idx_array),
+    utility::EmptyBuffer(&mesh_data.t_idx.bo);
+    glCreateBuffers(1, &(mesh_data.t_idx.bo));
+    if (mesh_data.triangle_count > 0) {
+        glNamedBufferStorage(mesh_data.t_idx.bo,
+                             sizeof(uint) * mesh_data.t_idx.count,
+                             (const void*)(mesh_data.t_idx_array),
                              0);
     }
 
-    cout << "Mesh has " << mesh_data->quad_count << " quads, "
-         << mesh_data->triangle_count << " triangles " << endl;
+    cout << "Mesh has " << mesh_data.quad_count << " quads, "
+         << mesh_data.triangle_count << " triangles " << endl;
 
     return (glGetError() == GL_NO_ERROR);
 }
 
-void SwitchMode(bool init = false)
+/*
+ * Fill the Mesh_Data structure with vertices and indices
+ * Either:
+ * - Loads a grid for the terrain mode
+ * - Loads an .obj file using the parsing function in mesh_utils.h
+ * Depending on the index array filled by the parsing function, sets the
+ * quadtree to the correct polygon rendering mode
+ */
+void Mesh::LoadMeshData(bool init = false)
 {
-    QuadTree::Settings& settings = (init) ? init_settings : gl.quadtree->settings;
-    if (gl.mode == TERRAIN) {
-        meshutils::LoadGrid(&gl.mesh_data,  gl.grid_quads_count);
-        loadMeshBuffers(&gl.mesh_data);
+    QuadTree::Settings& settings = (init) ? init_settings : quadtree->settings;
+
+    if (mode == TERRAIN)
+    {
+        meshutils::LoadGrid(&mesh_data,  grid_quads_count);
+        LoadMeshBuffers();
         settings.displace = true;
         settings.adaptive_factor = 50.0;
-    } else if (gl.mode == MESH) {
-        meshutils::ParseObj(gl.filepath, 0, &gl.mesh_data);
-        if (gl.mesh_data.quad_count > 0 && gl.mesh_data.triangle_count == 0) {
-             settings.prim_type = QUADS;
-        } else if (gl.mesh_data.quad_count == 0 && gl.mesh_data.triangle_count > 0) {
-             settings.prim_type = TRIANGLES;
+
+    } else if (mode == MESH) {
+
+        meshutils::ParseObj(filepath, 0, &mesh_data);
+        if (mesh_data.quad_count > 0 && mesh_data.triangle_count == 0) {
+            settings.prim_type = QUADS;
+        } else if (mesh_data.quad_count == 0 && mesh_data.triangle_count > 0) {
+            settings.prim_type = TRIANGLES;
         } else {
             cout << "ERROR when parsing obj" << endl;
         }
-         settings.adaptive_factor = 1.0;
-        loadMeshBuffers(&gl.mesh_data);
-         settings.displace = false;
+        settings.adaptive_factor = 1.0;
+        LoadMeshBuffers();
+        settings.displace = false;
     }
     if (!init)
-        gl.quadtree->Reinitialize();
+        quadtree->Reinitialize();
 }
 
-void UpdateTransforms()
+void Mesh::UpdateTransforms()
 {
-    gl.tranforms->updateMV();
-    gl.quadtree->UploadTransforms();
+    tranforms->updateMV();
+    quadtree->UploadTransforms();
 }
 
-void UpdateMeshSettings()
+void Mesh::Draw(float deltaT, bool freeze)
 {
-    gl.quadtree->UploadMeshSettings();
-}
-
-void ReloadBuffers() {
-    loadMeshBuffers(&gl.mesh_data);
-}
-
-void DrawMesh(float deltaT, bool freeze)
-{
-    if (!freeze && (gl.mode == MESH) &&  gl.quadtree->settings.rotateMesh) {
-        gl.tranforms->M = glm::rotate(gl.tranforms->M, 2000.0f*deltaT , vec3(0.0f, 0.0f, 1.0f));
+    if (!freeze && (mode == MESH) &&  quadtree->settings.rotateMesh) {
+        tranforms->M = glm::rotate(tranforms->M, 2000.0f*deltaT , vec3(0.0f, 0.0f, 1.0f));
         UpdateTransforms();
     }
-    gl.quadtree->Draw(deltaT);
+    quadtree->Draw(deltaT);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// Benchmarking Functions
+///
+
+void BenchStats::Init()
+{
+
+    current_t = glfwGetTime() * 0.001;
+    last_t = current_t;
+    delta_T = 0;
+
+    avg_qt_gpu_compute = 0;
+    avg_qt_gpu_render = 0;
+    avg_tess_render = 0;
+    frame_count = 0;
+    total_qt_gpu_compute = 0;
+    total_qt_gpu_render = 0;
+    sec_timer = 0;
+    fps = 0;
+    last_frame_count = 0;
+}
+
+void BenchStats::UpdateTime()
+{
+    current_t = glfwGetTime() * 0.001;
+    delta_T = current_t - last_t;
+    last_t = current_t;
+}
+
+void BenchStats::UpdateStats()
+{
+    frame_count++;
+    sec_timer += delta_T;
+    if (sec_timer < 1.0) {
+        total_qt_gpu_compute += mesh.quadtree->ticks.gpu_compute;
+        total_qt_gpu_render += mesh.quadtree->ticks.gpu_render;
+    } else {
+        fps = frame_count - last_frame_count;
+        last_frame_count = frame_count;
+        avg_qt_gpu_compute = total_qt_gpu_compute / double(fps);
+        avg_qt_gpu_render = total_qt_gpu_render / double(fps);
+        total_qt_gpu_compute = 0;
+        total_qt_gpu_render = 0;
+        sec_timer = 0;
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -195,8 +279,8 @@ void PrintCamStuff()
 
 void InitTranforms()
 {
-    cam.pos = INIT_CAM_POS[gl.mode];
-    cam.look = INIT_CAM_LOOK[gl.mode];
+    cam.pos = INIT_CAM_POS[mesh.mode];
+    cam.look = INIT_CAM_LOOK[mesh.mode];
 
     cam.up = vec3(0.0f, 0.0f, 1.0f);
     cam.direction = glm::normalize(cam.look - cam.pos);
@@ -205,62 +289,25 @@ void InitTranforms()
     cam.right = glm::normalize(glm::cross(cam.direction, cam.up));
     cam.up = -glm::normalize(glm::cross(cam.direction, cam.right));
 
-    gl.tranforms->cam_pos = cam.pos;
-    gl.tranforms->V = glm::lookAt(cam.pos, cam.look, cam.up);
-    gl.tranforms->fov = 45.0;
-    gl.tranforms->P = glm::perspective(glm::radians(gl.tranforms->fov), 1.0f, 0.1f, 1024.0f);
+    mesh.tranforms->cam_pos = cam.pos;
+    mesh.tranforms->V = glm::lookAt(cam.pos, cam.look, cam.up);
+    mesh.tranforms->fov = 45.0;
+    mesh.tranforms->P = glm::perspective(glm::radians(mesh.tranforms->fov), 1.0f, 0.1f, 1024.0f);
 
-    UpdateTransforms();
+    mesh.UpdateTransforms();
 }
 
 void UpdateFOV()
 {
-    gl.tranforms->P = glm::perspective(glm::radians(gl.tranforms->fov), 1.0f, 0.1f, 1024.0f);
-    UpdateTransforms();
+    mesh.tranforms->P = glm::perspective(glm::radians(mesh.tranforms->fov), 1.0f, 0.1f, 1024.0f);
+    mesh.UpdateTransforms();
 }
 
 void UpdateView()
 {
-    gl.tranforms->V = glm::lookAt(cam.pos, cam.look, cam.up);
-    UpdateTransforms();
-    gl.tranforms->cam_pos = cam.pos;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-///
-/// Benchmarking Functions
-///
-
-void UpdateTime()
-{
-    const float dT = 1.0/120.0;
-    if (gl.force_dt) {
-        gl.last_t = gl.current_t;
-        gl.current_t += dT;
-        gl.delta_T = dT;
-    } else {
-        gl.current_t = glfwGetTime() * 0.001;
-        gl.delta_T = gl.current_t - gl.last_t;
-        gl.last_t = gl.current_t;
-    }
-}
-
-void UpdateStats()
-{
-    benchStats.frame_count++;
-    benchStats.sec_timer += gl.delta_T;
-    if (benchStats.sec_timer < 1.0) {
-        benchStats.total_qt_gpu_compute += gl.quadtree->ticks.gpu_compute;
-        benchStats.total_qt_gpu_render += gl.quadtree->ticks.gpu_render;
-    } else {
-        benchStats.fps = benchStats.frame_count - benchStats.last_frame_count;
-        benchStats.last_frame_count = benchStats.frame_count;
-        benchStats.avg_qt_gpu_compute = benchStats.total_qt_gpu_compute / double(benchStats.fps);
-        benchStats.avg_qt_gpu_render = benchStats.total_qt_gpu_render / double(benchStats.fps);
-        benchStats.total_qt_gpu_compute = 0;
-        benchStats.total_qt_gpu_render = 0;
-        benchStats.sec_timer = 0;
-    }
+    mesh.tranforms->V = glm::lookAt(cam.pos, cam.look, cam.up);
+    mesh.UpdateTransforms();
+    mesh.tranforms->cam_pos = cam.pos;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -280,22 +327,22 @@ void ImGuiTime(string s, float tmp)
 void RenderImgui()
 {
 
-    QuadTree::Settings&set = gl.quadtree->settings;
+    QuadTree::Settings&set = mesh.quadtree->settings;
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(ImVec2(gl.gui_width, gl.gui_height));
-    float max_lod = (gl.mode == TERRAIN) ? 100.0 : 10.0;
+    float max_lod = (mesh.mode == TERRAIN) ? 100.0 : 10.0;
 
     ImGui::Begin("Parameters", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
     {
-        if (ImGui::Combo("Mode", (int*)&gl.mode, "Terrain\0Mesh\0\0")) {
-            SwitchMode();
+        if (ImGui::Combo("Mode", (int*)&mesh.mode, "Terrain\0Mesh\0\0")) {
+            mesh.LoadMeshData();
             InitTranforms();
         }
         if (ImGui::Checkbox("Render Projection", &set.render_projection)) {
-            UpdateMeshSettings();
+            mesh.quadtree->UploadMeshSettings();
         }
         ImGui::SameLine();
-        if (ImGui::SliderFloat("FOV", &gl.tranforms->fov, 10, 75.0)) {
+        if (ImGui::SliderFloat("FOV", &mesh.tranforms->fov, 10, 75.0)) {
             UpdateFOV();
         }
         if (ImGui::Button("Reinit Cam")) {
@@ -305,60 +352,60 @@ void RenderImgui()
         ImGui::Checkbox("Rotate Mesh", &set.rotateMesh);
         if (ImGui::Combo("Color mode", &set.color_mode,
                          "LoD & Morph\0White Wireframe\0Primitive Highlight\0Frustum\0Cull\0Debug\0\0")) {
-            UpdateMeshSettings();
+            mesh.quadtree->UploadMeshSettings();
         }
         if (ImGui::Checkbox("Uniform", &set.uniform)) {
-            UpdateMeshSettings();
+            mesh.quadtree->UploadMeshSettings();
         }
         ImGui::SameLine();
         if (ImGui::SliderInt("", &set.uni_lvl, 0, 20)) {
-            UpdateMeshSettings();
+            mesh.quadtree->UploadMeshSettings();
         }
         if (ImGui::SliderFloat("LoD Factor", &set.adaptive_factor, 1, max_lod)) {
-            UpdateMeshSettings();
+            mesh.quadtree->UploadMeshSettings();
         }
 
         if (ImGui::Checkbox("Readback primitive count", &set.map_primcount)) {
-            UpdateMeshSettings();
+            mesh.quadtree->UploadMeshSettings();
         }
         if ( set.map_primcount) {
-            ImGui::Text(utility::LongToString(gl.quadtree->GetPrimcount()).c_str());
+            ImGui::Text(utility::LongToString(mesh.quadtree->GetPrimcount()).c_str());
         }
 
         ImGui::Text("\n------ QuadTree settings ------");
         if (ImGui::Combo("Root primitive", &set.prim_type, "Triangle\0Quad\0\0")) {
-            ReloadBuffers();
-            gl.quadtree->Reinitialize();
+            mesh.LoadMeshBuffers();
+            mesh.quadtree->Reinitialize();
         }
         if (ImGui::SliderInt("CPU LoD", &set.cpu_lod, 2, 8)) {
-            gl.quadtree->ReloadLeafPrimitive();
-            gl.quadtree->UploadQuadtreeSettings();
+            mesh.quadtree->ReloadLeafPrimitive();
+            mesh.quadtree->UploadQuadtreeSettings();
         }
         if (ImGui::Checkbox("Morph  ", &set.morph)) {
-            gl.quadtree->UploadQuadtreeSettings();
+            mesh.quadtree->UploadQuadtreeSettings();
         }
 
         if (ImGui::Checkbox("Cull", &set.cull)) {
-            gl.quadtree->UploadQuadtreeSettings();
+            mesh.quadtree->UploadQuadtreeSettings();
         }
         ImGui::SameLine();
         if (ImGui::Checkbox("Freeze", &set.freeze)) {
-            gl.quadtree->ReconfigureShaders();
+            mesh.quadtree->ReconfigureShaders();
         }
         ImGui::SameLine();
         if (ImGui::Button("Reinitialize QuadTree")) {
-            gl.quadtree->Reinitialize();
+            mesh.quadtree->Reinitialize();
         }
         if (ImGui::Checkbox("Debug morph", &set.debug_morph)) {
-            gl.quadtree->UploadQuadtreeSettings();
+            mesh.quadtree->UploadQuadtreeSettings();
         }
         if (ImGui::SliderFloat("morphK", &set.morph_k, 0, 1.0)) {
-            gl.quadtree->UploadQuadtreeSettings();
+            mesh.quadtree->UploadQuadtreeSettings();
         }
 
         ImGui::Text("Frame  %07i\n", benchStats.frame_count);
         ImGui::Text("FPS    %07i\n", benchStats.fps);
-        ImGuiTime("deltaT", gl.delta_T);
+        ImGuiTime("deltaT", benchStats.delta_T);
         ImGui::Text("\nQuadtree Perf:");
         ImGuiTime("avg Total   dT (1s)", benchStats.avg_qt_gpu_render + benchStats.avg_qt_gpu_compute);
         ImGuiTime("avg Compute dT (1s)", benchStats.avg_qt_gpu_compute);
@@ -381,11 +428,11 @@ void RenderImgui()
 
         while (refresh_time < ImGui::GetTime())
         {
-            values_qt_gpu_compute[offset] = gl.quadtree->ticks.gpu_compute * 1000.0;
-            values_qt_gpu_render[offset]  = gl.quadtree->ticks.gpu_render  * 1000.0;
+            values_qt_gpu_compute[offset] = mesh.quadtree->ticks.gpu_compute * 1000.0;
+            values_qt_gpu_render[offset]  = mesh.quadtree->ticks.gpu_render  * 1000.0;
 
             values_fps[offset] = ImGui::GetIO().Framerate;
-            values_primcount[offset] = gl.quadtree->GetPrimcount();
+            values_primcount[offset] = mesh.quadtree->GetPrimcount();
 
             offset = (offset+1) % IM_ARRAYSIZE(values_qt_gpu_compute);
             refresh_time += 1.0f/30.0f;
@@ -396,12 +443,12 @@ void RenderImgui()
         tmp_max = *std::max_element(values_qt_gpu_compute, values_qt_gpu_compute+80);
         if (tmp_max > max_gpu_compute || tmp_max < 0.2 * max_gpu_compute)
             max_gpu_compute = tmp_max;
-        tmp_val = gl.quadtree->ticks.gpu_compute * 1000.0;
+        tmp_val = mesh.quadtree->ticks.gpu_compute * 1000.0;
         ImGui::PlotLines("GPU compute dT", values_qt_gpu_compute, IM_ARRAYSIZE(values_qt_gpu_compute), offset,
                          std::to_string(tmp_val).c_str(), 0.0f, max_gpu_compute, ImVec2(0,80));
 
         //QUADTREE RENDER DT
-        tmp_val = gl.quadtree->ticks.gpu_render * 1000.0;
+        tmp_val = mesh.quadtree->ticks.gpu_render * 1000.0;
         tmp_max = *std::max_element(values_qt_gpu_render, values_qt_gpu_render+80);
         if (tmp_max > max_gpu_render || tmp_max < 0.2 * max_gpu_render)
             max_gpu_render = tmp_max;
@@ -445,10 +492,10 @@ void keyboardCallback(GLFWwindow* window, int key, int scancode, int action,
             glfwSetWindowShouldClose(window, GL_TRUE);
             break;
         case GLFW_KEY_R:
-            gl.quadtree->ReloadShaders();
+            mesh.quadtree->ReloadShaders();
             break;
         case GLFW_KEY_U:
-            gl.quadtree->ReconfigureShaders();
+            mesh.quadtree->ReconfigureShaders();
             break;
         case GLFW_KEY_P:
             PrintCamStuff();
@@ -549,45 +596,20 @@ void Init()
     cout << "******************************************************" << endl;
     cout << "INITIALIZATION" << endl;
 
-    gl.quadtree;
     gl.pause = false;
-    gl.clock = djgc_create();
-    gl.quadtree= new QuadTree();
-    gl.tranforms = new Transforms();
-    gl.mesh_data = {};
-    gl.grid_quads_count = roundUpToSq(1);
 
-    //    gl.filepath = "../bigguy.obj";
-    gl.filepath = "tangle_cube.obj";
-    gl.run_demo = false;
-    gl.end = false;
-    gl.force_dt = false;
 
-    gl.current_t = 0;
-
-    gl.mode = TERRAIN;
     INIT_CAM_POS[TERRAIN]  = vec3(3.9, 3.6, 0.6);
     INIT_CAM_LOOK[TERRAIN] = vec3(3.3, 2.9, 0.33);
     INIT_CAM_POS[MESH]  = vec3(3.4, 3.4, 2.4);
     INIT_CAM_LOOK[MESH] =  vec3(2.8, 2.8, 2.0);
 
-
-
-
-    SwitchMode(true);
-    gl.quadtree->Init(&gl.mesh_data, gl.tranforms, init_settings);
-
+    mesh.Init();
+    benchStats.Init();
     InitTranforms();
 
-    benchStats.avg_qt_gpu_compute = 0;
-    benchStats.avg_qt_gpu_render = 0;
-    benchStats.avg_tess_render = 0;
-    benchStats.frame_count = 0;
-    benchStats.total_qt_gpu_compute = 0;
-    benchStats.total_qt_gpu_render = 0;
-    benchStats.sec_timer = 0;
-    benchStats.fps = 0;
-    benchStats.last_frame_count = 0;
+
+
 
     cout << "END OF INITIALIZATION" << endl;
     cout << "******************************************************" << endl << endl;
@@ -596,22 +618,21 @@ void Init()
 
 void Draw()
 {
-    UpdateTime();
+    benchStats.UpdateTime();
 
     glViewport(gl.gui_width, 0, gl.w_width, gl.w_height);
-    DrawMesh(gl.delta_T, gl.quadtree->settings.freeze);
-    // gl.point->Draw(gl.delta_T);
+    mesh.Draw(benchStats.delta_T, mesh.quadtree->settings.freeze);
     glViewport(0, 0, gl.w_width + gl.gui_width, gl.w_height);
-    UpdateStats();
+    benchStats.UpdateStats();
 
     RenderImgui();
 }
 
 void Cleanup() {
-    gl.quadtree->CleanUp();
-    delete[] gl.mesh_data.v_array;
-    delete[] gl.mesh_data.q_idx_array;
-    delete[] gl.mesh_data.t_idx_array;
+    mesh.quadtree->CleanUp();
+    delete[] mesh.mesh_data.v_array;
+    delete[] mesh.mesh_data.q_idx_array;
+    delete[] mesh.mesh_data.t_idx_array;
 }
 
 int main(int argc, char **argv)
@@ -670,7 +691,7 @@ int main(int argc, char **argv)
         ImGui::StyleColorsDark();
 
         // delta_T condition to avoid crashing my system
-        while (!glfwWindowShouldClose(window)  && gl.delta_T < 5.0)
+        while (!glfwWindowShouldClose(window)  && benchStats.delta_T < 5.0)
         {
             glfwPollEvents();
             if (!gl.pause)

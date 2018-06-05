@@ -2,7 +2,7 @@
 #define QUADTREE_H
 
 #include "commands.h"
-#include "mesh_utils.h"
+//#include "mesh_utils.h"
 #include "common.h"
 
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))

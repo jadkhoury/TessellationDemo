@@ -2,7 +2,6 @@
 #define QUADTREE_H
 
 #include "commands.h"
-#include "mesh_utils.h"
 #include "common.h"
 
 class QuadTree
@@ -365,7 +364,7 @@ private:
     ///
     /// VAO functions
     ///
-    
+
     bool loadLeafVao()
     {
         if (glIsVertexArray(leaf_geometry.vao)) {
