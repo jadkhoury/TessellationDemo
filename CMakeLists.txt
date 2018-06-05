@@ -25,65 +25,93 @@ set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
+
 # set path to dependencies
-add_subdirectory(submodules/glfw)
-include_directories(submodules/glfw/include)
-include_directories(submodules/glm)
-include_directories(submodules/imgui)
-include_directories(submodules/stb)
-include_directories(submodules/dj_opengl)
-include_directories(submodules/tinyobjloader)
+set(SUBMOD_DIR common/submodules)
+
+add_subdirectory(${SUBMOD_DIR}/glfw)
+include_directories(${SUBMOD_DIR}/glfw/include)
+include_directories(${SUBMOD_DIR}/glm)
+include_directories(${SUBMOD_DIR}/imgui)
+include_directories(${SUBMOD_DIR}/stb)
+include_directories(${SUBMOD_DIR}/dj_opengl)
+include_directories(${SUBMOD_DIR}/tinyobjloader)
+
 
 # imgui implementation (compiled as a library)
-aux_source_directory(submodules/imgui IMGUI_SRC_FILES)
-set(IMGUI_INCLUDE_DIR imgui submodules/imgui)
-add_library(imgui STATIC imgui/imgui_impl.cpp ${IMGUI_SRC_FILES})
+aux_source_directory(${SUBMOD_DIR}/imgui IMGUI_SRC_FILES)
+set(IMGUI_INCLUDE_DIR  common/imgui_impl ${SUBMOD_DIR}/imgui)
+add_library(imgui STATIC common/imgui_impl/imgui_impl.cpp ${IMGUI_SRC_FILES})
+include_directories(${IMGUI_INCLUDE_DIR})
 
+# glad implementation (compiled as a library)
+add_library(glad STATIC common/glad/glad/glad.c)
+include_directories(common/glad)
+
+
+# OBj files
 file(GLOB_RECURSE OBJ_FILES *.obj)
 copy_files_once(${OBJ_FILES})
 
+
 # **************** Project 0_FullProgram **************** #
-message(STATUS "**** 0_FullProgram ****")
 
-set(SRC_DIR 0_FullProgram/src)
-file(GLOB_RECURSE SHADERS 0_FullProgram/*.glsl)
-include_directories(${SRC_DIR}  ${IMGUI_INCLUDE_DIR})
-aux_source_directory(${SRC_DIR} SRC_FILES)
+#message(STATUS "**** 0_FullProgram ****")
 
-add_executable(program ${SRC_FILES} ${SHADERS} ${SRC_DIR}/glad/glad.c)
+#set(SRC_DIR 0_FullProgram)
 
-target_link_libraries(program glfw imgui)
-unset(SRC_FILES)
-unset(SHADERS)
+#file(GLOB_RECURSE SHADERS ${SRC_DIR}/*.glsl)
+#file(GLOB_RECURSE HEADERS ${SRC_DIR}/*.h)
 
+#include_directories(${SRC_DIR})
+#aux_source_directory(${SRC_DIR} SRC_FILES)
+
+#add_executable(program ${SRC_FILES} ${SHADERS} ${HEADERS} ${GLAD_C})
+
+#target_link_libraries(program glad glfw imgui)
+
+#unset(SRC_FILES)
+#unset(SHADERS)
+#unset(HEADERS)
 
 # **************** Project 1_DistancePipeline **************** #
-message(STATUS "**** 1_DistancePipeline ****")
 
-set(SRC_DIR 1_DistancePipeline/src)
-file(GLOB_RECURSE SHADERS 1_DistancePipeline/*.glsl)
-include_directories(${SRC_DIR}  ${IMGUI_INCLUDE_DIR})
-aux_source_directory(${SRC_DIR} SRC_FILES)
+#message(STATUS "**** 1_DistancePipeline ****")
 
-add_executable(distance-tess ${SRC_FILES} ${SHADERS} ${SRC_DIR}/glad/glad.c)
+#set(SRC_DIR 1_DistancePipeline)
 
-target_link_libraries(distance-tess glfw imgui)
-unset(SRC_FILES)
-unset(SHADERS)
+#file(GLOB_RECURSE SHADERS ${SRC_DIR}/*.glsl)
+#file(GLOB_RECURSE HEADERS ${SRC_DIR}/*.h)
 
+#include_directories(${SRC_DIR}})
+#aux_source_directory(${SRC_DIR} SRC_FILES)
+
+#add_executable(old_distance ${SRC_FILES} ${SHADERS} ${HEADERS} ${GLAD_C})
+
+#target_link_libraries(old_distance glad glfw imgui)
+
+#unset(SRC_FILES)
+#unset(SHADERS)
+#unset(HEADERS)
 
 # **************** Project 2_NewDistance **************** #
 message(STATUS "**** 2_NewDistance ****")
 
-set(SRC_DIR 2_NewDistance/src)
-file(GLOB_RECURSE SHADERS 2_NewDistance/*.glsl)
-include_directories(${SRC_DIR}  ${IMGUI_INCLUDE_DIR})
+set(SRC_DIR 2_NewDistance/)
+
+file(GLOB_RECURSE SHADERS ${SRC_DIR}/*.glsl)
+file(GLOB_RECURSE HEADERS ${SRC_DIR}/*.h)
+
+include_directories(${SRC_DIR})
 aux_source_directory(${SRC_DIR} SRC_FILES)
 
-add_executable(new-distance ${SRC_FILES} ${SHADERS} ${SRC_DIR}/glad/glad.c)
+add_executable(new_distance ${SRC_FILES} ${SHADERS} ${HEADERS})
 
-target_link_libraries(new-distance glfw imgui)
+target_link_libraries(new_distance glad glfw imgui)
+
 unset(SRC_FILES)
 unset(SHADERS)
+unset(HEADERS)
+
 
 

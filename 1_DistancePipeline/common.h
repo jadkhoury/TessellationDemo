@@ -287,7 +287,7 @@ bool ParseObj(string file_path, int axis, Mesh_Data& mesh_data)
 #define LOG(fmt, ...)  fprintf(stdout, fmt, ##__VA_ARGS__); fflush(stdout);
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 
-const char* shader_dir = "../1_DistancePipeline/src/shaders/";
+const char* shader_dir = "../1_DistancePipeline/shaders/";
 
 char *strcat2(char *dst, const char *src1, const char *src2)
 {

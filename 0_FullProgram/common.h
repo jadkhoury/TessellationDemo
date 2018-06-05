@@ -34,7 +34,7 @@
 #define DJ_OPENGL_IMPLEMENTATION 1
 #include "dj_opengl.h"
 
-const char* shader_dir = "../0_FullProgram/src/shaders/";
+const char* shader_dir = "../0_FullProgram/shaders/";
 
 using namespace std;
 using std::string;

@@ -9,53 +9,6 @@ using glm::vec3;
 using glm::vec4;
 using glm::uvec4;
 
-#ifndef QUADTREE_H
-struct Vertex {
-    vec4 p;
-    vec4 n;
-    vec2 uv;
-    vec2 align;
-};
-
-struct BufferData {
-    GLuint bo, count;
-    GLsizei size;
-};
-
-struct BufferCombo {
-    BufferData v;
-    BufferData idx;
-    GLuint vao;
-};
-
-struct Mesh_Data
-{
-    const Vertex* v_array;
-    uint* q_idx_array;
-    uint* t_idx_array;
-
-    BufferData v, q_idx, t_idx;
-    int num_triangles, num_quads;
-};
-
-struct QuadtreeSettings {
-    int uni_lvl = 0;
-    float adaptive_factor = 0.7;
-    bool uniform = false;
-    bool triangle_mode = true;
-    int prim_type = TRIANGLES;
-    bool morph = true;
-    float morph_k = 0.5;
-    bool debug_morph = false;
-    bool map_primcount = false;
-    bool freeze = false;
-    bool displace = true;
-    int cpu_lod = 2;
-    int color_mode = LOD;
-    bool renderMVP = true;
-};
-#endif
-
 enum {
     TERRAIN,
     MESH,

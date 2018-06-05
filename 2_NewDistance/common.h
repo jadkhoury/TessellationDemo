@@ -37,11 +37,8 @@
 
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 
-const char* shader_dir = "../2_NewDistance/src/shaders/";
+const char* shader_dir = "../2_NewDistance/shaders/";
 
-using namespace std;
-using std::string;
-using std::vector;
 using glm::vec2;
 using glm::vec3;
 using glm::vec4;
@@ -52,7 +49,17 @@ using glm::mat4;
 using glm::uint;
 using glm::uint64;
 
-using namespace std;
+using std::vector;
+using std::cout;
+using std::endl;
+using std::string;
+using std::ifstream;
+using std::istreambuf_iterator;
+using std::runtime_error;
+using std::map;
+
+
+//using namespace std;
 
 enum { TERRAIN,
        MESH,
@@ -88,7 +95,7 @@ struct BufferCombo {
     GLuint vao;     // Vertex Array Object
 };
 
-// Data structure representing a unique vertex as a set of 
+// Data structure representing a unique vertex as a set of
 // A position
 // A normal
 // A UV
