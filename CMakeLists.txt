@@ -16,7 +16,7 @@ endmacro()
 message(STATUS "**** Tessellation Demo, Loading Configuration ****")
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 endif()
 
 # disable GLFW docs, examples and tests
@@ -32,7 +32,6 @@ include_directories(submodules/glm)
 include_directories(submodules/imgui)
 include_directories(submodules/stb)
 include_directories(submodules/dj_opengl)
-#include_directories(submodules/dj_algebra)
 include_directories(submodules/tinyobjloader)
 
 # imgui implementation (compiled as a library)
