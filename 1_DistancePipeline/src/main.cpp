@@ -57,7 +57,7 @@ struct BenchStats {
     int frame, fps;
     double sec_timer;
     int last_frame;
-} stat = {0};
+} benchStats = {0};
 
 // Reminder of the content of the settings
 #ifndef QUADTREE_H
@@ -133,21 +133,21 @@ void UpdateTime()
 
 void UpdateStats(double cpu, double gpu)
 {
-    stat.frame++;
-    stat.tcpu = cpu;
-    stat.tgpu = gpu;
-    stat.sec_timer += gl.delta_T;
-    if(stat.sec_timer < 1.0) {
-        stat.total_tcpu += cpu;
-        stat.total_tgpu += gpu;
+    benchStats.frame++;
+    benchStats.tcpu = cpu;
+    benchStats.tgpu = gpu;
+    benchStats.sec_timer += gl.delta_T;
+    if(benchStats.sec_timer < 1.0) {
+        benchStats.total_tcpu += cpu;
+        benchStats.total_tgpu += gpu;
     } else {
-        stat.fps = stat.frame - stat.last_frame;
-        stat.last_frame = stat.frame;
-        stat.avg_tcpu = stat.total_tcpu / double(stat.fps);
-        stat.avg_tgpu = stat.total_tgpu / double(stat.fps);
-        stat.sec_timer = 0.0;
-        stat.total_tcpu = 0;
-        stat.total_tgpu = 0;
+        benchStats.fps = benchStats.frame - benchStats.last_frame;
+        benchStats.last_frame = benchStats.frame;
+        benchStats.avg_tcpu = benchStats.total_tcpu / double(benchStats.fps);
+        benchStats.avg_tgpu = benchStats.total_tgpu / double(benchStats.fps);
+        benchStats.sec_timer = 0.0;
+        benchStats.total_tcpu = 0;
+        benchStats.total_tgpu = 0;
     }
 }
 
@@ -254,14 +254,14 @@ void RenderImgui()
             djgt_save_glcolorbuffer_bmp(GL_FRONT, GL_RGBA, buf);
             ++cnt;
         }
-        ImGui::Text("Frame  %07i\n", stat.frame);
-        ImGui::Text("FPS    %07i\n", stat.fps);
+        ImGui::Text("Frame  %07i\n", benchStats.frame);
+        ImGui::Text("FPS    %07i\n", benchStats.fps);
         ImGuiTime("deltaT", gl.delta_T);
         ImGui::Text("\nQuadtree Perf:");
-        ImGuiTime("CPU dTime      ", stat.tcpu);
-        ImGuiTime("GPU dTime      ", stat.tgpu);
-        ImGuiTime("avg CPU dT (1s)", stat.avg_tcpu);
-        ImGuiTime("avg GPU dT (1s)", stat.avg_tgpu);
+        ImGuiTime("CPU dTime      ", benchStats.tcpu);
+        ImGuiTime("GPU dTime      ", benchStats.tgpu);
+        ImGuiTime("avg CPU dT (1s)", benchStats.avg_tcpu);
+        ImGuiTime("avg GPU dT (1s)", benchStats.avg_tgpu);
         ImGui::Text("\n\n");
 
 
@@ -278,8 +278,8 @@ void RenderImgui()
 
         while (refresh_time < ImGui::GetTime())
         {
-            values_gpu[offset] = stat.tgpu * 1000.0;
-            values_cpu[offset] = stat.tcpu * 1000.0;
+            values_gpu[offset] = benchStats.tgpu * 1000.0;
+            values_cpu[offset] = benchStats.tcpu * 1000.0;
             values_fps[offset] = ImGui::GetIO().Framerate;
             values_primcount[offset] = gl.quadtree->prim_count;
 
@@ -290,14 +290,14 @@ void RenderImgui()
         if(tmp > max_gpu || tmp < 0.2 * max_gpu)
             max_gpu = tmp;
         ImGui::PlotLines("CPU dT", values_cpu, IM_ARRAYSIZE(values_cpu), offset,
-                         std::to_string(stat.tgpu * 1000.0).c_str(), 0.0f,
+                         std::to_string(benchStats.tgpu * 1000.0).c_str(), 0.0f,
                          max_gpu, ImVec2(0,80));
 
         tmp = *std::max_element(values_gpu, values_gpu+90);
         if(tmp > max_cpu || tmp < 0.2 * max_cpu)
             max_cpu = tmp;
         ImGui::PlotLines("GPU dT", values_gpu, IM_ARRAYSIZE(values_gpu), offset,
-                         std::to_string(stat.tgpu * 1000.0).c_str(), 0.0f,
+                         std::to_string(benchStats.tgpu * 1000.0).c_str(), 0.0f,
                          max_cpu, ImVec2(0,80));
 
 
@@ -465,14 +465,14 @@ void Init()
     gl.quadtree = gl.mesh->GetQuadtreePointer();
     ResetTransfo();
 
-    stat.avg_tcpu = 0;
-    stat.avg_tgpu = 0;
-    stat.frame = 0;
-    stat.total_tcpu = 0;
-    stat.total_tgpu = 0;
-    stat.sec_timer = 0;
-    stat.fps = 0;
-    stat.last_frame = 0;
+    benchStats.avg_tcpu = 0;
+    benchStats.avg_tgpu = 0;
+    benchStats.frame = 0;
+    benchStats.total_tcpu = 0;
+    benchStats.total_tgpu = 0;
+    benchStats.sec_timer = 0;
+    benchStats.fps = 0;
+    benchStats.last_frame = 0;
 }
 
 void Cleanup()

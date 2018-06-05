@@ -17,6 +17,7 @@
 #pragma once
 
 // Dependency:
+#define GLM_ENABLE_EXPERIMENTAL
 #include "../glm.hpp"
 #include "../gtc/type_precision.hpp"
 #include "../gtc/quaternion.hpp"

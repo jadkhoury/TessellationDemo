@@ -844,7 +844,6 @@ mat4::homogeneous::orthographic(
 	float_t bottom, float_t top,
 	float_t near, float_t far
 ) {
-	DJA_ASSERT(left != right && bottom != top && near != far);
 	float_t c1 = float_t(1) / (right - left);
 	float_t c2 = float_t(1) / (top - bottom);
 	float_t c3 = float_t(1) / (far - near);

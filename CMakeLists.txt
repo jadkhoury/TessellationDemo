@@ -15,6 +15,10 @@ endmacro()
 
 message(STATUS "**** Tessellation Demo, Loading Configuration ****")
 
+if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+endif()
+
 # disable GLFW docs, examples and tests
 # see http://www.glfw.org/docs/latest/build_guide.html
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
@@ -24,10 +28,11 @@ set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 # set path to dependencies
 add_subdirectory(submodules/glfw)
 include_directories(submodules/glfw/include)
+include_directories(submodules/glm)
 include_directories(submodules/imgui)
 include_directories(submodules/stb)
 include_directories(submodules/dj_opengl)
-include_directories(submodules/dj_algebra)
+#include_directories(submodules/dj_algebra)
 include_directories(submodules/tinyobjloader)
 
 # imgui implementation (compiled as a library)

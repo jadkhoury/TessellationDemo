@@ -21,6 +21,8 @@
 #include "imgui_impl.h"
 #include "utility.h"
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/string_cast.hpp>
@@ -33,8 +35,6 @@
 
 #define DJ_OPENGL_IMPLEMENTATION 1
 #include "dj_opengl.h"
-#define DJ_ALGEBRA_IMPLEMENTATION 1
-#include "dj_algebra.h"
 
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 
@@ -50,6 +50,8 @@ using glm::uvec3;
 using glm::uvec4;
 using glm::mat3;
 using glm::mat4;
+using glm::uint;
+using glm::uint64;
 
 using namespace std;
 

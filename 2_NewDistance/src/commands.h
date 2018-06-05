@@ -46,7 +46,7 @@ private:
         Copy,              // Proxy buffer used to read back from GPU
         BUFFER_COUNT
     };
-    const int NUM_ELEM = 16; // Number of atomic counters in the array
+    static const int NUM_ELEM = 16; // Number of atomic counters in the array
     GLuint buffers_[BUFFER_COUNT]; // Array of buffers
     DrawElementsIndirectCommand init_draw_command_;
     DispatchIndirectCommand     init_dispatch_command_;
@@ -153,7 +153,7 @@ public:
 
     // Binds the relevant buffers for the copy pass
     // Uploads the atomic array indices
-    uint BindForCopy(GLuint program)
+    void BindForCopy(GLuint program)
     {
         utility::SetUniformInt(program, "read_index", primCount_read_);
         utility::SetUniformInt(program, "delete_index", primCount_delete_);

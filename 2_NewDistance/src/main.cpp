@@ -79,7 +79,7 @@ struct BenchStats {
     int frame_count, fps;
     double sec_timer;
     int last_frame_count;
-} stat = {0};
+} benchStats = {0};
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -247,19 +247,19 @@ void UpdateTime()
 
 void UpdateStats()
 {
-    stat.frame_count++;
-    stat.sec_timer += gl.delta_T;
-    if (stat.sec_timer < 1.0) {
-        stat.total_qt_gpu_compute += gl.quadtree->ticks.gpu_compute;
-        stat.total_qt_gpu_render += gl.quadtree->ticks.gpu_render;
+    benchStats.frame_count++;
+    benchStats.sec_timer += gl.delta_T;
+    if (benchStats.sec_timer < 1.0) {
+        benchStats.total_qt_gpu_compute += gl.quadtree->ticks.gpu_compute;
+        benchStats.total_qt_gpu_render += gl.quadtree->ticks.gpu_render;
     } else {
-        stat.fps = stat.frame_count - stat.last_frame_count;
-        stat.last_frame_count = stat.frame_count;
-        stat.avg_qt_gpu_compute = stat.total_qt_gpu_compute / double(stat.fps);
-        stat.avg_qt_gpu_render = stat.total_qt_gpu_render / double(stat.fps);
-        stat.total_qt_gpu_compute = 0;
-        stat.total_qt_gpu_render = 0;
-        stat.sec_timer = 0;
+        benchStats.fps = benchStats.frame_count - benchStats.last_frame_count;
+        benchStats.last_frame_count = benchStats.frame_count;
+        benchStats.avg_qt_gpu_compute = benchStats.total_qt_gpu_compute / double(benchStats.fps);
+        benchStats.avg_qt_gpu_render = benchStats.total_qt_gpu_render / double(benchStats.fps);
+        benchStats.total_qt_gpu_compute = 0;
+        benchStats.total_qt_gpu_render = 0;
+        benchStats.sec_timer = 0;
     }
 }
 
@@ -356,13 +356,13 @@ void RenderImgui()
             gl.quadtree->UploadQuadtreeSettings();
         }
 
-        ImGui::Text("Frame  %07i\n", stat.frame_count);
-        ImGui::Text("FPS    %07i\n", stat.fps);
+        ImGui::Text("Frame  %07i\n", benchStats.frame_count);
+        ImGui::Text("FPS    %07i\n", benchStats.fps);
         ImGuiTime("deltaT", gl.delta_T);
         ImGui::Text("\nQuadtree Perf:");
-        ImGuiTime("avg Total   dT (1s)", stat.avg_qt_gpu_render + stat.avg_qt_gpu_compute);
-        ImGuiTime("avg Compute dT (1s)", stat.avg_qt_gpu_compute);
-        ImGuiTime("avg Render  dT (1s)", stat.avg_qt_gpu_render);
+        ImGuiTime("avg Total   dT (1s)", benchStats.avg_qt_gpu_render + benchStats.avg_qt_gpu_compute);
+        ImGuiTime("avg Compute dT (1s)", benchStats.avg_qt_gpu_compute);
+        ImGuiTime("avg Render  dT (1s)", benchStats.avg_qt_gpu_render);
         ImGui::Text("\n\n");
 
         static float values_qt_gpu_compute[80] = { 0 };
@@ -579,15 +579,15 @@ void Init()
 
     InitTranforms();
 
-    stat.avg_qt_gpu_compute = 0;
-    stat.avg_qt_gpu_render = 0;
-    stat.avg_tess_render = 0;
-    stat.frame_count = 0;
-    stat.total_qt_gpu_compute = 0;
-    stat.total_qt_gpu_render = 0;
-    stat.sec_timer = 0;
-    stat.fps = 0;
-    stat.last_frame_count = 0;
+    benchStats.avg_qt_gpu_compute = 0;
+    benchStats.avg_qt_gpu_render = 0;
+    benchStats.avg_tess_render = 0;
+    benchStats.frame_count = 0;
+    benchStats.total_qt_gpu_compute = 0;
+    benchStats.total_qt_gpu_render = 0;
+    benchStats.sec_timer = 0;
+    benchStats.fps = 0;
+    benchStats.last_frame_count = 0;
 
     cout << "END OF INITIALIZATION" << endl;
     cout << "******************************************************" << endl << endl;

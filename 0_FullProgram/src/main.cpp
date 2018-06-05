@@ -62,7 +62,7 @@ struct BenchStats {
     int frame_count, fps;
     double sec_timer;
     int last_frame_count;
-} stat = {0};
+} benchStats = {0};
 
 
 // -------------------------------- Utilities ------------------------------- //
@@ -256,22 +256,22 @@ void UpdateTime()
 
 void UpdateStats()
 {
-    stat.frame_count++;
-    stat.sec_timer += gl.delta_T;
-    if (stat.sec_timer < 1.0) {
-        stat.total_qt_gpu_compute += gl.quadtree->ticks.gpu_compute;
-        stat.total_qt_gpu_render += gl.quadtree->ticks.gpu_render;
-        stat.total_tess_render += gl.tesscube->ticks.gpu;
+    benchStats.frame_count++;
+    benchStats.sec_timer += gl.delta_T;
+    if (benchStats.sec_timer < 1.0) {
+        benchStats.total_qt_gpu_compute += gl.quadtree->ticks.gpu_compute;
+        benchStats.total_qt_gpu_render += gl.quadtree->ticks.gpu_render;
+        benchStats.total_tess_render += gl.tesscube->ticks.gpu;
     } else {
-        stat.fps = stat.frame_count - stat.last_frame_count;
-        stat.last_frame_count = stat.frame_count;
-        stat.avg_qt_gpu_compute = stat.total_qt_gpu_compute / double(stat.fps);
-        stat.avg_qt_gpu_render = stat.total_qt_gpu_render / double(stat.fps);
-        stat.avg_tess_render = stat.total_tess_render /  double(stat.fps);
-        stat.total_qt_gpu_compute = 0;
-        stat.total_qt_gpu_render = 0;
-        stat.total_tess_render = 0;
-        stat.sec_timer = 0;
+        benchStats.fps = benchStats.frame_count - benchStats.last_frame_count;
+        benchStats.last_frame_count = benchStats.frame_count;
+        benchStats.avg_qt_gpu_compute = benchStats.total_qt_gpu_compute / double(benchStats.fps);
+        benchStats.avg_qt_gpu_render = benchStats.total_qt_gpu_render / double(benchStats.fps);
+        benchStats.avg_tess_render = benchStats.total_tess_render /  double(benchStats.fps);
+        benchStats.total_qt_gpu_compute = 0;
+        benchStats.total_qt_gpu_render = 0;
+        benchStats.total_tess_render = 0;
+        benchStats.sec_timer = 0;
     }
 }
 
@@ -378,17 +378,17 @@ void RenderImgui()
         if (ImGui::SliderInt("Px edge length", &gl.set->pxEdgeLength, 2, 256)) {
             UpdateMeshSettings();
         }
-        ImGui::Text("Frame  %07i\n", stat.frame_count);
-        ImGui::Text("FPS    %07i\n", stat.fps);
+        ImGui::Text("Frame  %07i\n", benchStats.frame_count);
+        ImGui::Text("FPS    %07i\n", benchStats.fps);
         ImGuiTime("deltaT", gl.delta_T);
         if (gl.set->pipeline == QUADTREE) {
             ImGui::Text("\nQuadtree Perf:");
-            ImGuiTime("avg Total   dT (1s)", stat.avg_qt_gpu_render + stat.avg_qt_gpu_compute);
-            ImGuiTime("avg Compute dT (1s)", stat.avg_qt_gpu_compute);
-            ImGuiTime("avg Render  dT (1s)", stat.avg_qt_gpu_render);
+            ImGuiTime("avg Total   dT (1s)", benchStats.avg_qt_gpu_render + benchStats.avg_qt_gpu_compute);
+            ImGuiTime("avg Compute dT (1s)", benchStats.avg_qt_gpu_compute);
+            ImGuiTime("avg Render  dT (1s)", benchStats.avg_qt_gpu_render);
         }
         else if (gl.set->pipeline == TESS_SHADER) {
-            ImGuiTime("avg Render  dT (1s)", stat.avg_tess_render);
+            ImGuiTime("avg Render  dT (1s)", benchStats.avg_tess_render);
 
         }
         ImGui::Text("\n\n");
@@ -763,16 +763,16 @@ void Init()
     gl.point->Init();
     InitTranforms();
 
-    stat.avg_qt_gpu_compute = 0;
-    stat.avg_qt_gpu_render = 0;
-    stat.avg_tess_render = 0;
-    stat.frame_count = 0;
-    stat.total_qt_gpu_compute = 0;
-    stat.total_qt_gpu_render = 0;
-    stat.total_tess_render = 0;
-    stat.sec_timer = 0;
-    stat.fps = 0;
-    stat.last_frame_count = 0;
+    benchStats.avg_qt_gpu_compute = 0;
+    benchStats.avg_qt_gpu_render = 0;
+    benchStats.avg_tess_render = 0;
+    benchStats.frame_count = 0;
+    benchStats.total_qt_gpu_compute = 0;
+    benchStats.total_qt_gpu_render = 0;
+    benchStats.total_tess_render = 0;
+    benchStats.sec_timer = 0;
+    benchStats.fps = 0;
+    benchStats.last_frame_count = 0;
 
     cout << "END OF INITIALIZATION" << endl;
     cout << "******************************************************" << endl << endl;
@@ -792,12 +792,12 @@ void UpdateDemoParameters()
 #endif
 #ifdef INTERPO_DEMO
     if(gl.run_demo) {
-        gl.mgl.set->alpha = abs(sin(stat.elapsed_time));
+        gl.mgl.set->alpha = abs(sin(benchStats.elapsed_time));
         UpdateMeshSettings();
     }
 #endif
 #ifdef TESS_TRIANGLE_DEMO
-    if (stat.frame == 0) {
+    if (benchStats.frame == 0) {
         gl.mgl.set->uniform = true;
         gl.mgl.set->uni_lvl = 0;
         gl.mgl.set->color_mode = WHITE_WIREFRAME;
@@ -813,16 +813,16 @@ void UpdateDemoParameters()
         gl.quadtree->ReloadLeafPrimitive();
     }
 
-    if (stat.frame > settling_frames_count) {
+    if (benchStats.frame > settling_frames_count) {
         SaveFBToBMP(NO_GUI);
         gl.mgl.set->uni_lvl = min(11, gl.mgl.set->uni_lvl  + 1);
         UpdateMeshSettings();
-        if(stat.frame - settling_frames_count > 15)
+        if(benchStats.frame - settling_frames_count > 15)
             gl.end = true;
     }
 #endif
 #ifdef OBJTEST
-    if (stat.frame == 200)
+    if (benchStats.frame == 200)
     {
         gl.mode = MESH;
         gl.mesh->loadOBJ("../../common/tangle_cube.obj");
@@ -836,7 +836,7 @@ void UpdateDemoParameters()
     }
 #endif
 #ifdef CUBE_ROTATE
-    if (stat.frame == 0) {
+    if (benchStats.frame == 0) {
         gl.mgl.set->uni_lvl = 3;
         gl.mgl.set->uniform = true;
         gl.mgl.set->color_mode = WHITE_WIREFRAME;
@@ -854,15 +854,15 @@ void UpdateDemoParameters()
         gl.quadtree->ReloadLeafPrimitive();
     }
 
-    //    if (stat.frame > 10 && stat.frame % 30 == 0) {
+    //    if (benchStats.frame > 10 && benchStats.frame % 30 == 0) {
     //        gl.mgl.set->uni_lvl++;
     //       UpdateMeshSettings();
 
     //    }
 
-    if (stat.frame > settling_frames_count) {
+    if (benchStats.frame > settling_frames_count) {
         SaveFBToBMP(NO_GUI);
-        if(stat.frame - settling_frames_count >= 1*60)
+        if(benchStats.frame - settling_frames_count >= 1*60)
             gl.end = true;
     }
 #endif
