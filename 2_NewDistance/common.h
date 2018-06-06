@@ -167,7 +167,7 @@ struct Transforms
         utility::SetUniformFloat(pid, "fov", fov);
     }
 
-    void updateMV()
+    void UpdateMV()
     {
         MV = V * M;
         MVP = P * MV;

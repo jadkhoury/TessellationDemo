@@ -28,16 +28,12 @@ struct CameraManager {
 } cam = {};
 
 struct OpenGLManager {
-
-
     bool pause;
     int w_width, w_height;
     int gui_width, gui_height;
 
     bool lbutton_down, rbutton_down;
     double x0, y0;
-
-
 } gl = {0};
 
 struct Mesh {
@@ -91,7 +87,8 @@ void Mesh::Init()
     quadtree = new QuadTree();
     tranforms = new Transforms();
     mesh_data = {};
-    grid_quads_count = roundUpToSq(1);
+    grid_quads_count = 1;
+    grid_quads_count = roundUpToSq(grid_quads_count);
     filepath = "bigguy.obj";
 
     mode = TERRAIN;
@@ -115,9 +112,45 @@ void Mesh::Init()
         /*float morph_k*/ 0.0,
     };
 
-    LoadMeshData(true);
+    this->LoadMeshData(true);
     quadtree->Init(&mesh.mesh_data, mesh.tranforms, init_settings);
+}
 
+/*
+ * Fill the Mesh_Data structure with vertices and indices
+ * Either:
+ * - Loads a grid for the terrain mode
+ * - Loads an .obj file using the parsing function in mesh_utils.h
+ * Depending on the index array filled by the parsing function, sets the
+ * quadtree to the correct polygon rendering mode
+ */
+void Mesh::LoadMeshData(bool init = false)
+{
+    QuadTree::Settings& settings = (init) ? init_settings : quadtree->settings;
+
+    if (mode == TERRAIN)
+    {
+        meshutils::LoadGrid(&mesh_data,  grid_quads_count);
+        LoadMeshBuffers();
+        settings.displace = true;
+        settings.adaptive_factor = 50.0;
+
+    } else if (mode == MESH) {
+
+        meshutils::ParseObj(filepath, 0, &mesh_data);
+        if (mesh_data.quad_count > 0 && mesh_data.triangle_count == 0) {
+            settings.prim_type = QUADS;
+        } else if (mesh_data.quad_count == 0 && mesh_data.triangle_count > 0) {
+            settings.prim_type = TRIANGLES;
+        } else {
+            cout << "ERROR when parsing obj" << endl;
+        }
+        settings.adaptive_factor = 1.0;
+        LoadMeshBuffers();
+        settings.displace = false;
+    }
+    if (!init)
+        quadtree->Reinitialize();
 }
 
 /*
@@ -164,46 +197,9 @@ bool Mesh::LoadMeshBuffers()
     return (glGetError() == GL_NO_ERROR);
 }
 
-/*
- * Fill the Mesh_Data structure with vertices and indices
- * Either:
- * - Loads a grid for the terrain mode
- * - Loads an .obj file using the parsing function in mesh_utils.h
- * Depending on the index array filled by the parsing function, sets the
- * quadtree to the correct polygon rendering mode
- */
-void Mesh::LoadMeshData(bool init = false)
-{
-    QuadTree::Settings& settings = (init) ? init_settings : quadtree->settings;
-
-    if (mode == TERRAIN)
-    {
-        meshutils::LoadGrid(&mesh_data,  grid_quads_count);
-        LoadMeshBuffers();
-        settings.displace = true;
-        settings.adaptive_factor = 50.0;
-
-    } else if (mode == MESH) {
-
-        meshutils::ParseObj(filepath, 0, &mesh_data);
-        if (mesh_data.quad_count > 0 && mesh_data.triangle_count == 0) {
-            settings.prim_type = QUADS;
-        } else if (mesh_data.quad_count == 0 && mesh_data.triangle_count > 0) {
-            settings.prim_type = TRIANGLES;
-        } else {
-            cout << "ERROR when parsing obj" << endl;
-        }
-        settings.adaptive_factor = 1.0;
-        LoadMeshBuffers();
-        settings.displace = false;
-    }
-    if (!init)
-        quadtree->Reinitialize();
-}
-
 void Mesh::UpdateTransforms()
 {
-    tranforms->updateMV();
+    tranforms->UpdateMV();
     quadtree->UploadTransforms();
 }
 
@@ -216,6 +212,9 @@ void Mesh::Draw(float deltaT, bool freeze)
     quadtree->Draw(deltaT);
 }
 
+
+
+
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// Benchmarking Functions
@@ -223,7 +222,6 @@ void Mesh::Draw(float deltaT, bool freeze)
 
 void BenchStats::Init()
 {
-
     current_t = glfwGetTime() * 0.001;
     last_t = current_t;
     delta_T = 0;
@@ -241,7 +239,7 @@ void BenchStats::Init()
 
 void BenchStats::UpdateTime()
 {
-    current_t = glfwGetTime() * 0.001;
+    current_t = glfwGetTime();
     delta_T = current_t - last_t;
     last_t = current_t;
 }
@@ -297,13 +295,13 @@ void InitTranforms()
     mesh.UpdateTransforms();
 }
 
-void UpdateFOV()
+void UpdateForNewFOV()
 {
     mesh.tranforms->P = glm::perspective(glm::radians(mesh.tranforms->fov), 1.0f, 0.1f, 1024.0f);
     mesh.UpdateTransforms();
 }
 
-void UpdateView()
+void UpdateForNewView()
 {
     mesh.tranforms->V = glm::lookAt(cam.pos, cam.look, cam.up);
     mesh.UpdateTransforms();
@@ -339,11 +337,11 @@ void RenderImgui()
             InitTranforms();
         }
         if (ImGui::Checkbox("Render Projection", &set.render_projection)) {
-            mesh.quadtree->UploadMeshSettings();
+            mesh.quadtree->UploadSettings();
         }
         ImGui::SameLine();
         if (ImGui::SliderFloat("FOV", &mesh.tranforms->fov, 10, 75.0)) {
-            UpdateFOV();
+            UpdateForNewFOV();
         }
         if (ImGui::Button("Reinit Cam")) {
             InitTranforms();
@@ -352,21 +350,21 @@ void RenderImgui()
         ImGui::Checkbox("Rotate Mesh", &set.rotateMesh);
         if (ImGui::Combo("Color mode", &set.color_mode,
                          "LoD & Morph\0White Wireframe\0Primitive Highlight\0Frustum\0Cull\0Debug\0\0")) {
-            mesh.quadtree->UploadMeshSettings();
+            mesh.quadtree->UploadSettings();
         }
         if (ImGui::Checkbox("Uniform", &set.uniform)) {
-            mesh.quadtree->UploadMeshSettings();
+            mesh.quadtree->UploadSettings();
         }
         ImGui::SameLine();
         if (ImGui::SliderInt("", &set.uni_lvl, 0, 20)) {
-            mesh.quadtree->UploadMeshSettings();
+            mesh.quadtree->UploadSettings();
         }
         if (ImGui::SliderFloat("LoD Factor", &set.adaptive_factor, 1, max_lod)) {
-            mesh.quadtree->UploadMeshSettings();
+            mesh.quadtree->UploadSettings();
         }
 
         if (ImGui::Checkbox("Readback primitive count", &set.map_primcount)) {
-            mesh.quadtree->UploadMeshSettings();
+            mesh.quadtree->UploadSettings();
         }
         if ( set.map_primcount) {
             ImGui::Text(utility::LongToString(mesh.quadtree->GetPrimcount()).c_str());
@@ -379,14 +377,14 @@ void RenderImgui()
         }
         if (ImGui::SliderInt("CPU LoD", &set.cpu_lod, 2, 8)) {
             mesh.quadtree->ReloadLeafPrimitive();
-            mesh.quadtree->UploadQuadtreeSettings();
+            mesh.quadtree->UploadSettings();
         }
         if (ImGui::Checkbox("Morph  ", &set.morph)) {
-            mesh.quadtree->UploadQuadtreeSettings();
+            mesh.quadtree->UploadSettings();
         }
 
         if (ImGui::Checkbox("Cull", &set.cull)) {
-            mesh.quadtree->UploadQuadtreeSettings();
+            mesh.quadtree->UploadSettings();
         }
         ImGui::SameLine();
         if (ImGui::Checkbox("Freeze", &set.freeze)) {
@@ -397,19 +395,19 @@ void RenderImgui()
             mesh.quadtree->Reinitialize();
         }
         if (ImGui::Checkbox("Debug morph", &set.debug_morph)) {
-            mesh.quadtree->UploadQuadtreeSettings();
+            mesh.quadtree->UploadSettings();
         }
         if (ImGui::SliderFloat("morphK", &set.morph_k, 0, 1.0)) {
-            mesh.quadtree->UploadQuadtreeSettings();
+            mesh.quadtree->UploadSettings();
         }
 
         ImGui::Text("Frame  %07i\n", benchStats.frame_count);
         ImGui::Text("FPS    %07i\n", benchStats.fps);
         ImGuiTime("deltaT", benchStats.delta_T);
         ImGui::Text("\nQuadtree Perf:");
-        ImGuiTime("avg Total   dT (1s)", benchStats.avg_qt_gpu_render + benchStats.avg_qt_gpu_compute);
-        ImGuiTime("avg Compute dT (1s)", benchStats.avg_qt_gpu_compute);
-        ImGuiTime("avg Render  dT (1s)", benchStats.avg_qt_gpu_render);
+        ImGuiTime("avg GPU Compute dT (1s)", benchStats.avg_qt_gpu_compute);
+        ImGuiTime("avg GPU Render  dT (1s)", benchStats.avg_qt_gpu_render);
+        ImGuiTime("avg Total GPU   dT (1s)", benchStats.avg_qt_gpu_render + benchStats.avg_qt_gpu_compute);
         ImGui::Text("\n\n");
 
         static float values_qt_gpu_compute[80] = { 0 };
@@ -551,7 +549,7 @@ void mouseMotionCallback(GLFWwindow* window, double x, double y)
         cam.right     = glm::normalize(mat3(h_rotation) * mat3(v_rotation) * cam.right);
         cam.up = -glm::normalize(glm::cross(cam.direction, cam.right));
         cam.look = cam.pos + cam.direction;
-        UpdateView();
+        UpdateForNewView();
 
         gl.x0 = x;
         gl.y0 = y;
@@ -567,7 +565,7 @@ void mouseMotionCallback(GLFWwindow* window, double x, double y)
 
         cam.pos += -cam.right * vec3(dx) + cam.up * vec3(dy);
         cam.look = cam.pos + cam.direction;
-        UpdateView();
+        UpdateForNewView();
 
         gl.x0 = x;
         gl.y0 = y;
@@ -583,7 +581,7 @@ void mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
     vec3 forward = vec3(yoffset * 0.05) * cam.direction ;
     cam.pos += forward;
     cam.look = cam.pos + cam.direction;
-    UpdateView();
+    UpdateForNewView();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

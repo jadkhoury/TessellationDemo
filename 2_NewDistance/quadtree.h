@@ -6,6 +6,7 @@
 
 class QuadTree
 {
+
 public:
     struct Settings
     {
@@ -26,7 +27,7 @@ public:
         bool debug_morph; // Toggle morph debuging
         float morph_k;    // Control morph factor
 
-        void UploadSettings(uint pid)
+        void Upload(uint pid)
         {
             utility::SetUniformBool(pid, "uniform_subdiv", uniform);
             utility::SetUniformInt(pid, "uniform_level", uni_lvl);
@@ -34,10 +35,6 @@ public:
             utility::SetUniformBool(pid, "heightmap", displace);
             utility::SetUniformInt(pid, "color_mode", color_mode);
             utility::SetUniformBool(pid, "render_MVP", render_projection);
-        }
-
-        void UploadQuadtreeSettings(uint pid)
-        {
             utility::SetUniformBool(pid, "morph", morph);
             utility::SetUniformBool(pid, "cull", cull);
             utility::SetUniformFloat(pid, "cpu_lod", float(cpu_lod));
@@ -48,7 +45,6 @@ public:
     } settings;
 
 private:
-
     Commands* commands_;
     Transforms* transfo_;
 
@@ -89,8 +85,7 @@ private:
     {
         utility::SetUniformInt(compute_program_, "num_mesh_tri", mesh_data_->triangle_count);
         utility::SetUniformInt(compute_program_, "num_mesh_quad", mesh_data_->quad_count);
-        settings.UploadQuadtreeSettings(compute_program_);
-        settings.UploadSettings(compute_program_);
+        settings.Upload(compute_program_);
     }
 
     void configureCopyProgram ()
@@ -104,8 +99,7 @@ private:
     {
         utility::SetUniformInt(render_program_, "num_vertices", leaf_geometry.v.count);
         utility::SetUniformInt(render_program_, "num_indices", leaf_geometry.idx.count);
-        settings.UploadQuadtreeSettings(render_program_);
-        settings.UploadSettings(render_program_);
+        settings.Upload(render_program_);
     }
 
     void pushMacrosToProgram(djg_program* djp)
@@ -444,22 +438,28 @@ public:
         transfo_->UploadTransforms(render_program_);
     }
 
-    void UploadMeshSettings()
+    void UploadSettings()
     {
-        settings.UploadSettings(compute_program_);
-        settings.UploadSettings(render_program_);
+        settings.Upload(compute_program_);
+        settings.Upload(render_program_);
     }
 
-    void UploadQuadtreeSettings()
-    {
-        settings.UploadQuadtreeSettings(compute_program_);
-        settings.UploadQuadtreeSettings(render_program_);
-    }
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// The Program
+    ///
+    ///
 
-    ////////////////////////////////////////////////////////////////////////////////
-    ///
-    /// Zee Program
-    ///
+    /*
+     * Initialize the Quadtree:
+     * - Recieve the mesh data and transform poniters
+     * - Sets the settings to their initial values
+     * - Generate the leaf geometry
+     * - Load the buffers for the nodes and the leaf geometry
+     * - Load the glsl programs
+     * - Initialize the command class instance
+     * - Update the uniform values once again, after all these loadings
+     */
     void Init(Mesh_Data* m_data, Transforms* transfo, const Settings& init_settings)
     {
         cout << "******************************************************" << endl;
@@ -489,6 +489,9 @@ public:
 
     }
 
+    /*
+     * Render function
+     */
     void Draw(float deltaT)
     {
         if (settings.freeze)
