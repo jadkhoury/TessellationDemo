@@ -154,6 +154,3 @@ Shader containing the LoD functions used to subdivide the quadtree, and used dur
 
 ### `ltree_jk.glsl`
 My own implementation of the quadtree management functions (key generation for parent/children, level evaluation, mapping from one space to another)
-
-
-

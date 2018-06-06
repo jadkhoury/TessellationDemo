@@ -15,7 +15,7 @@ const vec2 triangle_centroid = vec2(1.0/3.0, 1.0/3.0);
 float distanceToLod(vec3 pos)
 {
     float x = distance(pos, cam_pos);
-    float tmp = (x * tan(radians(fov)))/ (sqrt(2.0) * 2 * adaptive_factor);
+    float tmp = (x * tan(radians(fov/2.0)))/ (sqrt(2.0) * 2 * adaptive_factor);
     tmp = clamp(tmp, 0.0, 1.0) ;
     return -log2(tmp);
 }
@@ -26,5 +26,4 @@ float computeTessLevelFromKey(uvec4 key, bool parent) {
 
     return distanceToLod(mesh_p.xyz);
 }
-
 #endif // LOD_GLSL

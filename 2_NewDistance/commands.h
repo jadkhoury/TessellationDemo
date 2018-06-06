@@ -56,7 +56,7 @@ private:
     int primCount_delete_;
     int primCount_read_, primCount_write_;
 
-    uint num_idx_; // Number of vertex indices for the current leaf geometry 
+    uint num_idx_; // Number of vertex indices for the current leaf geometry
 
 
     // Loads the buffer that will contain the atomic counter array
@@ -136,7 +136,7 @@ public:
 
     // Binds the relevant buffers for the compute pass
     // Uploads the atomic array indices
-    // Update the atomic indices 
+    // Update the atomic indices
     void BindForCompute(GLuint program)
     {
         utility::SetUniformInt(program, "read_index", primCount_read_);
@@ -169,7 +169,7 @@ public:
     }
 
     // Return the number of nodes to render stored in the current Draw command
-    // To help asynchronicity, first copy from command buffer to proxy buffer, then from proxy to CPU 
+    // To help asynchronicity, first copy from command buffer to proxy buffer, then from proxy to CPU
     int GetPrimCount()
     {
         glCopyNamedBufferSubData(buffers_[DrawIndirect], buffers_[Copy], sizeof(uint), 0, sizeof(uint));
@@ -203,16 +203,6 @@ public:
 
     void ReloadCommands()
     {
-        loadCommandBuffers();
-    }
-
-    // Reinitialize the command buffer from a new number of indices, nodes, and workgroup
-    void ReinitializeCommands(uint tri_num_idx, uint num_workgroup, uint init_node_count)
-    {
-        num_idx_ = tri_num_idx;
-        init_draw_command_  = { GLuint(num_idx_),  0 , 0, 0, 0, uvec3(0)};
-        init_dispatch_command_ = { GLuint(num_workgroup), 1, 1 };
-        init_node_count_ = init_node_count;
         loadCommandBuffers();
     }
 

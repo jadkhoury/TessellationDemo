@@ -239,7 +239,6 @@ private:
         int max_num_nodes = max_ssbo_size / sizeof(uvec4);
         // cout << "max_num_nodes  " << max_num_nodes << endl;
         // cout << "max_ssbo_size " << max_ssbo_size << "B" << endl;
-
         uvec4* nodes_array =  new uvec4[max_num_nodes];
         if (settings.prim_type == TRIANGLES) {
             init_node_count_ = 3 * mesh_data_->triangle_count;
@@ -259,8 +258,8 @@ private:
         }
 
         init_wg_count_ = ceil(init_node_count_ / float(local_WG_count));
-        // cout << "init_node_count_ " << utility::LongToString (init_node_count_) << endl;
-        // cout << "init_wg_count_ " << init_wg_count_ << endl;
+         cout << "init_node_count_ " << utility::LongToString (init_node_count_) << endl;
+         cout << "init_wg_count_ " << init_wg_count_ << endl;
 
         utility::EmptyBuffer(&nodes_bo_[0]);
         utility::EmptyBuffer(&nodes_bo_[1]);
@@ -351,6 +350,7 @@ private:
         utility::EmptyBuffer(&leaf_geometry.idx.bo);
         glCreateBuffers(1, &leaf_geometry.idx.bo);
         glNamedBufferStorage(leaf_geometry.idx.bo, leaf_geometry.idx.size, (const void*)indices.data(),  0);
+
         return (glGetError() == GL_NO_ERROR);
     }
 
@@ -414,7 +414,7 @@ public:
         loadLeafVao();
         loadNodesBuffers();
         loadPrograms();
-        commands_->ReinitializeCommands(leaf_geometry.idx.count, init_wg_count_, init_node_count_);
+        commands_->Init(leaf_geometry.idx.count, init_wg_count_, init_node_count_);
     }
 
     int GetPrimcount()

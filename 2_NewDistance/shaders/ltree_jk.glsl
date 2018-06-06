@@ -844,6 +844,4 @@ vec4 lt_Tree_to_MeshPrimitive(in vec2 p, in uvec4 key, in bool parent, int prim_
         return lt_Tree_to_MeshQuad(p, key, parent);
 }
 
-
-
 #endif

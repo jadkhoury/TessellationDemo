@@ -32,7 +32,6 @@ uniform float cpu_lod;
 
 uniform int heightmap;
 
-
 /**
  *   U
  *   |\
@@ -137,7 +136,7 @@ void cull_writeKey(uvec4 new_key)
  * - Use the BB to check for culling
  * - If not culled, store the (possibly morphed) key in the SSBO for Render
  */
-void cullPass(uvec4 key, mat4 mesh_coord, mat4 mv_coord)
+void cullPass(uvec4 key, mat4 mesh_coord)
 {
     if(cull > 0) {
         vec4 b_min = vec4(10e6);
@@ -190,12 +189,9 @@ void main(void)
         mesh_coord[R] = heightDisplace(mesh_coord[R], n);
     }
 
-    mv_coord[O] = MV * mesh_coord[O];
-    mv_coord[U] = MV * mesh_coord[U];
-    mv_coord[R] = MV * mesh_coord[R];
 
     computePass(key, invocation_idx);
-    cullPass(key, mesh_coord, mv_coord);
+    cullPass(key, mesh_coord);
 
     return;
 }
