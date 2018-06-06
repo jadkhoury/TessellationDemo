@@ -34,7 +34,7 @@ struct OpenGLManager {
 
     bool lbutton_down, rbutton_down;
     double x0, y0;
-} gl = {0};
+} gl = {};
 
 struct Mesh {
     uint mode;
@@ -45,13 +45,14 @@ struct Mesh {
     Mesh_Data mesh_data;
     uint grid_quads_count;
     string filepath;
+    const string default_filepath = "bigguy.obj";
 
     void Init();
     bool LoadMeshBuffers();
     void LoadMeshData(bool init);
     void UpdateTransforms();
     void Draw(float deltaT, bool freeze);
-} mesh = {0};
+} mesh = {};
 
 struct BenchStats {
     float last_t;
@@ -68,7 +69,7 @@ struct BenchStats {
     void Init();
     void UpdateTime();
     void UpdateStats();
-} benchStats = {0};
+} benchStats = {};
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -89,9 +90,11 @@ void Mesh::Init()
     mesh_data = {};
     grid_quads_count = 1;
     grid_quads_count = roundUpToSq(grid_quads_count);
-    filepath = "bigguy.obj";
 
-    mode = TERRAIN;
+    if (filepath != default_filepath)
+        mode = MESH;
+    else
+        mode = TERRAIN;
 
     init_settings = {
         /*int uni_lvl*/ 0,
@@ -325,7 +328,7 @@ void ImGuiTime(string s, float tmp)
 void RenderImgui()
 {
 
-    QuadTree::Settings&set = mesh.quadtree->settings;
+    QuadTree::Settings& settings_ref = mesh.quadtree->settings;
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(ImVec2(gl.gui_width, gl.gui_height));
     float max_lod = (mesh.mode == TERRAIN) ? 100.0 : 10.0;
@@ -336,7 +339,7 @@ void RenderImgui()
             mesh.LoadMeshData();
             InitTranforms();
         }
-        if (ImGui::Checkbox("Render Projection", &set.render_projection)) {
+        if (ImGui::Checkbox("Render Projection", &settings_ref.render_projection)) {
             mesh.quadtree->UploadSettings();
         }
         ImGui::SameLine();
@@ -347,57 +350,59 @@ void RenderImgui()
             InitTranforms();
         }
         ImGui::Text("\n------ Mesh settings ------");
-        ImGui::Checkbox("Rotate Mesh", &set.rotateMesh);
-        if (ImGui::Combo("Color mode", &set.color_mode,
+        ImGui::Checkbox("Rotate Mesh", &settings_ref.rotateMesh);
+        if (ImGui::Combo("Color mode", &settings_ref.color_mode,
                          "LoD & Morph\0White Wireframe\0Primitive Highlight\0Frustum\0Cull\0Debug\0\0")) {
             mesh.quadtree->UploadSettings();
         }
-        if (ImGui::Checkbox("Uniform", &set.uniform)) {
+        if (ImGui::Checkbox("Uniform", &settings_ref.uniform)) {
             mesh.quadtree->UploadSettings();
         }
         ImGui::SameLine();
-        if (ImGui::SliderInt("", &set.uni_lvl, 0, 20)) {
+        if (ImGui::SliderInt("", &settings_ref.uni_lvl, 0, 20)) {
             mesh.quadtree->UploadSettings();
         }
-        if (ImGui::SliderFloat("LoD Factor", &set.adaptive_factor, 1, max_lod)) {
+        if (ImGui::SliderFloat("LoD Factor", &settings_ref.adaptive_factor, 1, max_lod)) {
             mesh.quadtree->UploadSettings();
         }
 
-        if (ImGui::Checkbox("Readback primitive count", &set.map_primcount)) {
+        if (ImGui::Checkbox("Readback primitive count", &settings_ref.map_primcount)) {
             mesh.quadtree->UploadSettings();
         }
-        if ( set.map_primcount) {
+        if ( settings_ref.map_primcount) {
             ImGui::Text(utility::LongToString(mesh.quadtree->GetPrimcount()).c_str());
         }
 
         ImGui::Text("\n------ QuadTree settings ------");
-        if (ImGui::Combo("Root primitive", &set.prim_type, "Triangle\0Quad\0\0")) {
+        if (ImGui::Combo("Root primitive", &settings_ref.prim_type, "Triangle\0Quad\0\0")) {
             mesh.LoadMeshBuffers();
             mesh.quadtree->Reinitialize();
         }
-        if (ImGui::SliderInt("CPU LoD", &set.cpu_lod, 2, 8)) {
+        if (ImGui::SliderInt("CPU LoD", &settings_ref.cpu_lod, 0, 8)) {
+            if(settings_ref.cpu_lod < 2)
+                settings_ref.morph = false;
             mesh.quadtree->ReloadLeafPrimitive();
             mesh.quadtree->UploadSettings();
         }
-        if (ImGui::Checkbox("Morph  ", &set.morph)) {
+        if (ImGui::Checkbox("Morph  ", &settings_ref.morph)) {
             mesh.quadtree->UploadSettings();
         }
 
-        if (ImGui::Checkbox("Cull", &set.cull)) {
+        if (ImGui::Checkbox("Cull", &settings_ref.cull)) {
             mesh.quadtree->UploadSettings();
         }
         ImGui::SameLine();
-        if (ImGui::Checkbox("Freeze", &set.freeze)) {
+        if (ImGui::Checkbox("Freeze", &settings_ref.freeze)) {
             mesh.quadtree->ReconfigureShaders();
         }
         ImGui::SameLine();
         if (ImGui::Button("Reinitialize QuadTree")) {
             mesh.quadtree->Reinitialize();
         }
-        if (ImGui::Checkbox("Debug morph", &set.debug_morph)) {
+        if (ImGui::Checkbox("Debug morph", &settings_ref.debug_morph)) {
             mesh.quadtree->UploadSettings();
         }
-        if (ImGui::SliderFloat("morphK", &set.morph_k, 0, 1.0)) {
+        if (ImGui::SliderFloat("morphK", &settings_ref.morph_k, 0, 1.0)) {
             mesh.quadtree->UploadSettings();
         }
 
@@ -459,7 +464,7 @@ void RenderImgui()
                          std::to_string(ImGui::GetIO().Framerate).c_str(), 0.0f, 1000, ImVec2(0,80));
 
         // PRIMCOUNT
-        if ( set.map_primcount) {
+        if ( settings_ref.map_primcount) {
             tmp_max = *std::max_element(values_primcount, values_primcount+80);
             if (tmp_max > max_primcount || tmp_max < 0.2 * max_primcount)
                 max_primcount = tmp_max;
@@ -633,8 +638,31 @@ void Cleanup() {
     delete[] mesh.mesh_data.t_idx_array;
 }
 
+void HandleArguments(int argc, char **argv)
+{
+    if (argc == 1) {
+        mesh.filepath = mesh.default_filepath;
+       cout << "Using default mesh: " << mesh.default_filepath << endl;
+    } else {
+        if (argc > 2)
+            cout << "Only takes in 1 obj file name, ignoring other arguments" << endl;
+        string file = argv[1];
+        cout << "Trying to open " << file << " ... ";
+        ifstream f(file.c_str());
+        if (f.good()) {
+            cout << "OK" << endl;
+            mesh.filepath = file;
+        } else {
+            mesh.filepath = mesh.default_filepath;
+            cout << "failure, keeping default mesh " << mesh.filepath << endl;
+        }
+    }
+}
+
 int main(int argc, char **argv)
 {
+    HandleArguments(argc, argv);
+
     gl.w_width = 1024;
     gl.w_height = 1024;
     gl.gui_width = 512;

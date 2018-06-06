@@ -1,6 +1,7 @@
 # Compute Shader Surface Subdivision
 
 This repository contains the demo code for the research project Tessellation On Compute Shader.
+Requires OpenGL 4.5 min.
 
 # Cloning
 
@@ -13,6 +14,20 @@ If you accidentally omitted the `--recursive` flag when cloning the repository y
 ```sh
 git submodule update --init --recursive
 ```
+
+# Running
+Enter the following commands in the terminal
+```sh
+cd TessellationDemo
+mkdir build
+cd build
+cmake ../
+make
+./new_distance 
+or
+./new_distance <.obj file name>
+```
+
 
 
 # 2_NewDistance
@@ -49,6 +64,35 @@ TessellactionDemo/
 │       └── ...
 └── README.md
 ```
+## The GUI & imput
+### Trackball model for the mouse: 
+* left-click + drag for camera rotation
+* right-click + drag for camera panning
+* Mouse wheel to advance on camera line of sight
+
+### GUI:
+* Mode: switch between terrain and mesh
+* Render Projection: toggles the MVP Matrix
+* FoV: Controls field of view of camera
+* Reinit Cam: Reinitialize the camera for current mode
+* Rotate Mesh: 
+* Color Mode: Switch between different rendering mode highlighting different properties of the quadtree algorithm
+* Uniform: Toggle uniform subdivision (with slider for level)
+* LoD Factor: Factor of the adaptive subdivision
+* Readback Primitive Count: Readbacks the number of primitive instanced 
+* Root Primitive: Switch between Triangles and Quads in terrain mode (auto switch for mesh)
+* CPU LoD: Level of subdivision of the instanced mesh (cannot be less than 2 for morphing in distance tessellation)
+* The rest is self-explanatory
+
+## The Code
+
+### `TL;DR`
+For the reader, the sections of interest are 
+* `quadtree.h`
+* `Mesh` data structure and functions in `main.cpp`
+* eventually `common.h` for data struct references & includes used.
+To use a custom mesh, use the full path as argument of the executable file, *e.g.* `./new_distance /home/person/path/to/example.obj`
+
 
 ### `commands.h`:  
 * Manages and binds the atomic counter array keeping track of the number of primitives to instanciate. 
@@ -62,7 +106,6 @@ header file containging all the using & includes used across the project:
     * 3D position
     * 3D normal
     * 2D UV coordinate
-    * 
 * `struct Mesh_Data`: Stores all data necessary to represent a mesh
 * `struct Transfo`:  Nice little struct to manage transforms
 
@@ -81,7 +124,7 @@ Class containing the CPU side of the main work of this project: the quadtree alg
     * `render_program_`: implemented in `quadtree_render.glsl`
     * More information in the code
 * Manages the 3 buffers containing the nodes of the quadtrees: 
-    * Complete Quadtree at frame0 t-1 (read)
+    * Complete Quadtree at frame t-1 (read)
     * Complete Quadtree at frame t (write)
     * Culled Quadtree at frame t (write)
 * Generate the leaf geometry (aka the instanced triangle grid), and manages the buffers and vertex arrays storing them
@@ -96,4 +139,3 @@ Class containing the CPU side of the main work of this project: the quadtree alg
 * `CameraManager`: represents the current camera state, used to update the `Transforms` instance of the `Mesh` pased to the `QuadTree`  
 * Displays the GUI using the `imgui` API
 * Stores the input callbacks.
-
