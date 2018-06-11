@@ -528,7 +528,7 @@ bool lt_hasDestroyBit_64(in uvec4 key)
 
 void lt_getTriangleXform_64 (in uvec2 key, out mat3 xform, out mat3 parent_xform, in bvec2 morph)
 {
-
+#if 0
     uint current_half = (key.x == 0) ? key.y : key.x;
     bool round2 = (key.x == 0) ? true : false;
     vec2 tr = vec2(0.0);
@@ -598,6 +598,41 @@ void lt_getTriangleXform_64 (in uvec2 key, out mat3 xform, out mat3 parent_xform
         }
     }
     xform = lt_buildXformMatrix(tr, scale, cosT, sinT);
+
+#else
+    uint b, s;
+    mat3 xf = mat3(1.0);
+    mat3 last_xf;
+
+    mat3  x_0 = mat3(-0.5,  -0.5, 0.5,
+                     -0.5,   0.5, 0.5,
+                      0,     0,   1);
+
+
+    mat3 x_1 = mat3( 0.5, -0.5, 0.5,
+                     -0.5, -0.5, 0.5,
+                     0,    0,   1);
+    x_0 = transpose(x_0);
+    x_1 = transpose(x_1);
+
+    mat3 current_x;
+    bool first = true;
+
+    b = key.y & 0x1;
+    last_xf = (b == 0) ? x_0 : x_1;
+//    key = lt_rightShift_64(key, 1);
+
+    while (key.x > 0 || key.y > 1)
+    {
+        b = key.y & 0x1;
+        current_x = (b == 0) ? x_0 : x_1;
+        xf = current_x * xf;
+        key = lt_rightShift_64(key, 1);
+    }
+    parent_xform = xf * inverse(last_xf);
+    xform = xf;
+#endif
+
 }
 
 void lt_getTriangleXform_64 (in uvec2 nodeID, out mat3 xform, out mat3 parent_xform)
@@ -668,10 +703,6 @@ void lt_getMeshTriangle(in uint meshPolygonID, out Triangle triangle)
         v.n = mesh_v[mesh_t_idx[meshPolygonID + i]].n;
         v.uv = mesh_v[mesh_t_idx[meshPolygonID + i]].uv;
         triangle.vertex[i] = v;
-
-        //		triangle.vertex[i].p = mesh_v[mesh_t_idx[meshPolygonID + i]].p;
-        //		triangle.vertex[i].n = mesh_v[mesh_t_idx[meshPolygonID + i]].n;
-        //		triangle.vertex[i].uv = mesh_v[mesh_t_idx[meshPolygonID + i]].uv;
     }
 }
 
