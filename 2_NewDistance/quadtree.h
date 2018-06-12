@@ -131,10 +131,9 @@ private:
         if (!glIsProgram(compute_program_))
             compute_program_ = 0;
         djg_program* djp = djgp_create();
+        djgp_push_string(djp, "#extension ARB_shader_atomic_counter_ops : require \n");
         pushMacrosToProgram(djp);
-
         char buf[1024];
-
         djgp_push_file(djp, strcat2(buf, shader_dir, "gpu_noise_lib.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "dj_frustum.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "dj_heightmap.glsl"));

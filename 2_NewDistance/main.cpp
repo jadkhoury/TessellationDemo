@@ -350,7 +350,13 @@ void RenderImgui()
             InitTranforms();
         }
         ImGui::Text("\n------ Mesh settings ------");
-        ImGui::Checkbox("Rotate Mesh", &settings_ref.rotateMesh);
+        if (ImGui::Checkbox("Displace Mesh", &settings_ref.displace)) {
+            mesh.quadtree->UploadSettings();
+        }
+        if (ImGui::Checkbox("Rotate Mesh", &settings_ref.rotateMesh)) {
+            mesh.quadtree->UploadSettings();
+        }
+
         if (ImGui::Combo("Color mode", &settings_ref.color_mode,
                          "LoD & Morph\0White Wireframe\0Primitive Highlight\0Frustum\0Cull\0Debug\0\0")) {
             mesh.quadtree->UploadSettings();

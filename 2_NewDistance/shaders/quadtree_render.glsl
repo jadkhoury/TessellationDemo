@@ -64,13 +64,6 @@ vec4 levelColor(uint lvl)
     return c;
 }
 
-vec4 morphColor(in uvec4 key, in vec4 color)
-{
-    if (lt_hasXMorphBit_64(key) || lt_hasYMorphBit_64(key))
-        return RED;
-    else
-        return color;
-}
 
 vec4 rootColor(in vec2 pos, in vec4 color)
 {
@@ -181,7 +174,6 @@ void main()
     switch (color_mode) {
     case LOD:
         v_color = levelColor(level);
-        v_color = morphColor(key, v_color);
         break;
     case FRUSTUM:
         v_color = distanceColor(v_pos);

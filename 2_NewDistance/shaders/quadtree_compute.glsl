@@ -69,11 +69,20 @@ vec4 heightDisplace(in vec4 v, in vec4 n) {
  * Store the resulting key in the SBBO for the next compute pass
  * Increments the dispatch counter every n times such that we only use enough Workgroups
  */
-void compute_writeKey(uvec2 new_nodeID, uint in_idx)
+void compute_writeKey(uvec2 new_nodeID, uvec4 current_key)
 {
-    uvec4 new_key = uvec4(new_nodeID, nodes_in[in_idx].z, (nodes_in[in_idx].w & 0x3));
+    uvec4 new_key = uvec4(new_nodeID, current_key.z, (current_key.w & 0x3));
     uint idx = atomicCounterIncrement(primCount_full[write_index]);
     nodes_out_full[idx] = new_key;
+}
+
+void compute_writeChildren(uvec2 children[4], uvec4 current_key)
+{
+    uint idx = atomicCounterAddARB(primCount_full[write_index], 4u);
+    for(int i = 0; i<4; ++i) {
+        uvec4 new_key = uvec4(children[i], current_key.z, (current_key.w & 0x3));
+        nodes_out_full[idx + i] = new_key;
+    }
 }
 
 
@@ -100,20 +109,18 @@ void computePass(uvec4 key, uint invocation_idx)
         should_divide = float(current_lvl) < targetLevel;
         should_merge  = float(current_lvl) >= parentLevel + 1.0;
     }
-
     if (should_divide && !lt_isLeaf_64(nodeID)) {
         uvec2 childrenID[4];
         lt_children_64(nodeID, childrenID);
-        for (int i = 0; i < 4; ++i)
-            compute_writeKey(childrenID[i], invocation_idx);
+        compute_writeChildren(childrenID, key);
     } else if (should_merge && !lt_isRoot_64(nodeID)) {
         //Merge
         if (lt_isUpperLeft_64(nodeID)) {
             uvec2 parentID = lt_parent_64(nodeID);
-            compute_writeKey(parentID, invocation_idx);
+            compute_writeKey(parentID, key);
         }
     } else {
-        compute_writeKey(nodeID, invocation_idx);
+        compute_writeKey(nodeID, key);
     }
 }
 
@@ -136,9 +143,22 @@ void cull_writeKey(uvec4 new_key)
  * - Use the BB to check for culling
  * - If not culled, store the (possibly morphed) key in the SSBO for Render
  */
-void cullPass(uvec4 key, mat4 mesh_coord)
+void cullPass(uvec4 key)
 {
-    if(cull > 0) {
+    if(cull > 0)
+    {
+        mat4 mesh_coord;
+        mesh_coord[O] = lt_Leaf_to_MeshPrimitive(unit_O, key, false, prim_type);
+        mesh_coord[U] = lt_Leaf_to_MeshPrimitive(unit_U, key, false, prim_type);
+        mesh_coord[R] = lt_Leaf_to_MeshPrimitive(unit_R, key, false, prim_type);
+
+        if (heightmap > 0) {
+            vec4 n = vec4(0,0,1,0);
+            mesh_coord[O] = heightDisplace(mesh_coord[O], n);
+            mesh_coord[U] = heightDisplace(mesh_coord[U], n);
+            mesh_coord[R] = heightDisplace(mesh_coord[R], n);
+        }
+
         vec4 b_min = vec4(10e6);
         b_min = min(b_min, mesh_coord[O]);
         b_min = min(b_min, mesh_coord[U]);
@@ -176,22 +196,8 @@ void main(void)
     if (invocation_idx >= active_nodes)
         return;
 
-    mat4 mesh_coord, mv_coord;
-
-    mesh_coord[O] = lt_Leaf_to_MeshPrimitive(unit_O, key, false, prim_type);
-    mesh_coord[U] = lt_Leaf_to_MeshPrimitive(unit_U, key, false, prim_type);
-    mesh_coord[R] = lt_Leaf_to_MeshPrimitive(unit_R, key, false, prim_type);
-
-    if (heightmap > 0) {
-        vec4 n = vec4(0,0,1,0);
-        mesh_coord[O] = heightDisplace(mesh_coord[O], n);
-        mesh_coord[U] = heightDisplace(mesh_coord[U], n);
-        mesh_coord[R] = heightDisplace(mesh_coord[R], n);
-    }
-
-
     computePass(key, invocation_idx);
-    cullPass(key, mesh_coord);
+    cullPass(key);
 
     return;
 }
