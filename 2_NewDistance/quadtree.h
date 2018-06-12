@@ -27,6 +27,8 @@ public:
         bool debug_morph; // Toggle morph debuging
         float morph_k;    // Control morph factor
 
+        uint wg_count; // Control morph factor
+
         void Upload(uint pid)
         {
             utility::SetUniformBool(pid, "uniform_subdiv", uniform);
@@ -66,8 +68,8 @@ private:
     GLuint render_program_, compute_program_, copy_program_;
 
     //Compute Shader parameters
-    const uvec3 local_WG_size_ = vec3(1024,1,1);
-    uint local_WG_count = local_WG_size_.x * local_WG_size_.y * local_WG_size_.z;
+    uvec3 local_WG_size_;
+    uint local_WG_count;
     uint prim_count_, init_node_count_, init_wg_count_;
 
 
@@ -256,10 +258,6 @@ private:
             }
         }
 
-        init_wg_count_ = ceil(init_node_count_ / float(local_WG_count));
-         cout << "init_node_count_ " << utility::LongToString (init_node_count_) << endl;
-         cout << "init_wg_count_ " << init_wg_count_ << endl;
-
         utility::EmptyBuffer(&nodes_bo_[0]);
         utility::EmptyBuffer(&nodes_bo_[1]);
         utility::EmptyBuffer(&nodes_bo_[2]);
@@ -443,6 +441,15 @@ public:
         settings.Upload(render_program_);
     }
 
+    void UpdateWGCount()
+    {
+        local_WG_size_ = vec3(settings.wg_count,1,1);
+        local_WG_count = local_WG_size_.x * local_WG_size_.y * local_WG_size_.z;
+        init_wg_count_ = ceil(init_node_count_ / float(local_WG_count));
+
+        Reinitialize();
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     ///
     /// The Program
@@ -472,10 +479,14 @@ public:
         compute_clock = djgc_create();
         render_clock = djgc_create();
 
+        local_WG_size_ = vec3(settings.wg_count,1,1);
+        local_WG_count = local_WG_size_.x * local_WG_size_.y * local_WG_size_.z;
 
         loadLeafBuffers(settings.cpu_lod);
         loadLeafVao();
         loadNodesBuffers();
+
+        init_wg_count_ = ceil(init_node_count_ / float(local_WG_count));
 
         if (!loadPrograms())
             throw std::runtime_error("shader creation error");

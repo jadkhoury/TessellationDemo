@@ -113,6 +113,7 @@ void Mesh::Init()
         /*bool cull*/ true,
         /*bool debug_morph*/ false,
         /*float morph_k*/ 0.0,
+        /*uint wg_count*/ 512
     };
 
     this->LoadMeshData(true);
@@ -411,6 +412,15 @@ void RenderImgui()
         if (ImGui::SliderFloat("morphK", &settings_ref.morph_k, 0, 1.0)) {
             mesh.quadtree->UploadSettings();
         }
+
+        ImGui::Text("\n------ Benchmarking ------");
+        static int tmp = log2(settings_ref.wg_count);
+        if (ImGui::SliderInt("wg count (pow2)", &tmp, 2, 11)) {
+            settings_ref.wg_count = 1 << tmp;
+            mesh.quadtree->UpdateWGCount();
+        }
+        ImGui::SameLine();
+        ImGui::Text(std::to_string(settings_ref.wg_count).c_str());
 
         ImGui::Text("Frame  %07i\n", benchStats.frame_count);
         ImGui::Text("FPS    %07i\n", benchStats.fps);
