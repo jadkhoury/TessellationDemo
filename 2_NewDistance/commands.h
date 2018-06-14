@@ -136,7 +136,7 @@ public:
 
     // Binds the relevant buffers for the compute pass
     // Uploads the atomic array indices
-    // Update the atomic indices
+    // Update the atomic counters indices
     void BindForCompute(GLuint program)
     {
         utility::SetUniformInt(program, "read_index", primCount_read_);

@@ -69,13 +69,58 @@ layout (std430, binding = MESH_T_IDX_B) readonly buffer Mesh_T_Idx
     uint  mesh_t_idx[];
 };
 
+uvec4 lt_getKey_64(uint idx);
 
-// ************************ IMPLEMENTATIONS ************************ //
+uvec2 lt_leftShift_64(in uvec2 nodeID, in uint shift);
+uvec2 lt_rightShift_64(uvec2 nodeID, uint shift);
+int lt_findMSB_64(uvec2 nodeID);
+
+void lt_children_64 (in uvec2 nodeID, out uvec2 children[4]);
+uvec2 lt_parent_64 (in uvec2 nodeID);
+uint lt_level_64 (in uvec2 nodeID);
+
+bool lt_isLeaf_64 (in uvec2 nodeID);
+bool lt_isRoot_64 (in uvec2 nodeID);
+bool lt_isLeft_64 (in uvec2 nodeID);
+bool lt_isRight_64 (in uvec2 nodeID);
+bool lt_isUpper_64 (in uvec2 nodeID);
+bool lt_isLower_64 (in uvec2 nodeID);
+bool lt_isUpperLeft_64 (in uvec2 nodeID);
+
+void lt_getTriangleXform_64 (in uvec2 key, out mat3 xform, out mat3 parent_xform);
+void lt_getTriangleXform_64 (in uvec2 nodeID, out mat3 xform);
+
+vec2 lt_mapTo2DTriangle(Triangle2D t, vec2 uv);
+vec4 lt_mapTo3DTriangle(Triangle t, vec2 uv);
+vec4 lt_mapTo3DQuad(Quad q, vec2 uv);
+
+void lt_getMeshTriangle(in uint meshPolygonID, out Triangle triangle);
+void lt_getMeshQuad(in uint meshPolygonID, out Quad quad);
+void lt_getRootTriangle(in uint rootID, out Triangle2D t);
+vec4 lt_getMeanPrimNormal(in uvec4 key, in int prim_type);
+
+vec2 lt_Leaf_to_Tree_64(in vec2 p, in uvec2 nodeID, in bool parent);
+vec2 lt_Leaf_to_Tree_64(in vec2 p, uvec2 nodeID);
+
+vec2 lt_Tree_to_QuadRoot(in vec2 p, in uint rootID);
+
+vec4 lt_Root_to_MeshTriangle(in vec2 p, in uint meshPolygonID);
+vec4 lt_Root_to_MeshQuad(in vec2 p, in uint meshPolygonID);
+
+vec4 lt_Leaf_to_MeshTriangle(in vec2 p, in uvec4 key, in bool parent);
+vec4 lt_Leaf_to_MeshQuad(in vec2 p, in uvec4 key, in bool parent);
+vec4 lt_Leaf_to_MeshPrimitive(in vec2 p, in uvec4 key, in bool parent, int prim_type);
+
+vec4 lt_Tree_to_MeshTriangle(in vec2 p, in uvec4 key, in bool parent);
+vec4 lt_Tree_to_MeshQuad(in vec2 p, in uvec4 key, in bool parent);
+vec4 lt_Tree_to_MeshPrimitive(in vec2 p, in uvec4 key, in bool parent, int prim_type);
 
 uvec4 lt_getKey_64(uint idx)
 {
     return nodes_in[idx];
 }
+
+// --------- Bitwise operations reimplemented for concatenated ints --------- //
 
 uvec2 lt_leftShift_64(in uvec2 nodeID, in uint shift)
 {
@@ -89,11 +134,10 @@ uvec2 lt_leftShift_64(in uvec2 nodeID, in uint shift)
 uvec2 lt_rightShift_64(uvec2 nodeID, uint shift)
 {
     uvec2 result = nodeID;
-
+    //Extract the "shift" last bits of x and prepend them to y
     result.y = result.y >> shift;
     result.y |= result.x << (32 - shift);
     result.x = result.x >> shift;
-
     return result;
 }
 
@@ -102,16 +146,7 @@ int lt_findMSB_64(uvec2 nodeID)
     return (nodeID.x == 0) ? findMSB(nodeID.y) : (findMSB(nodeID.x) + 32);
 }
 
-// ------------- Children and Parents --------------- //
-
-void lt_children_32 (in uint nodeID, out uint children[4])
-{
-    nodeID = nodeID << 2u;
-    children[0] = nodeID;
-    children[1] = nodeID | 0x1;
-    children[2] = nodeID | 0x2;
-    children[3] = nodeID | 0x3;
-}
+// -------------------------- Children and Parents -------------------------- //
 
 void lt_children_64 (in uvec2 nodeID, out uvec2 children[4])
 {
@@ -122,24 +157,12 @@ void lt_children_64 (in uvec2 nodeID, out uvec2 children[4])
     children[3] = uvec2(nodeID.x, nodeID.y | 0x3);
 }
 
-
-uint lt_parent_32 (in uint nodeID)
-{
-    return nodeID >> 2u;
-}
-
 uvec2 lt_parent_64 (in uvec2 nodeID)
 {
     return lt_rightShift_64(nodeID, 2u);
 }
 
-// --------------------- Level ---------------------- //
-
-uint lt_level_32 (in uint nodeID)
-{
-    uint i = findMSB(nodeID);
-    return (i >> 1u);
-}
+// --------------------------------- Level ---------------------------------- //
 
 uint lt_level_64 (in uvec2 nodeID)
 {
@@ -147,21 +170,11 @@ uint lt_level_64 (in uvec2 nodeID)
     return (i >> 1u);
 }
 
-// ------------------ Leaf & Root ------------------- //
-
-bool lt_isLeaf_32 (in uint nodeID)
-{
-    return (findMSB(nodeID) == 15u);
-}
+// ------------------------------ Leaf & Root ------------------------------- //
 
 bool lt_isLeaf_64 (in uvec2 nodeID)
 {
     return (lt_level_64(nodeID) == 31u);
-}
-
-bool lt_isRoot_32 (in uint nodeID)
-{
-    return (findMSB(nodeID) == 0u);
 }
 
 bool lt_isRoot_64 (in uvec2 nodeID)
@@ -169,59 +182,35 @@ bool lt_isRoot_64 (in uvec2 nodeID)
     return (lt_findMSB_64(nodeID) == 0u);
 }
 
-// -------------------- Position --------------------- //
+// -------------------------------- Position -------------------------------- //
 
-// For Quads
-bool lt_isLeft_32 (in uint nodeID)
-{
-    return !bool(nodeID & 0x1);
-}
 bool lt_isLeft_64 (in uvec2 nodeID)
 {
     return !bool(nodeID.y & 0x1);
 }
 
-bool lt_isRight_32 (in uint nodeID)
-{
-    return bool(nodeID & 0x1);
-}
 bool lt_isRight_64 (in uvec2 nodeID)
 {
     return bool(nodeID.y & 0x1);
 }
 
-bool lt_isUpper_32 (in uint nodeID)
-{
-    return !bool(nodeID & 0x2);
-}
 bool lt_isUpper_64 (in uvec2 nodeID)
 {
     return !bool(nodeID.y & 0x2);
 }
 
-bool lt_isLower_32 (in uint nodeID)
-{
-    return bool(nodeID & 0x2);
-}
 bool lt_isLower_64 (in uvec2 nodeID)
 {
     return bool(nodeID.y & 0x2);
 }
 
-bool lt_isUpperLeft_32 (in uint nodeID)
-{
-    return !(bool(nodeID & 0x3));
-}
 bool lt_isUpperLeft_64 (in uvec2 nodeID)
 {
     return !(bool(nodeID.y & 0x3));
 }
 
 
-// key:  ---- ---- ---- --01 b1b2-- ---- ---- ----
-// mask: ---- ---- ---- ----  11--  ---- ---- ----
-// ----------------- Triangle XForm ------------------ //
-
+// ----------------------------- Triangle XForm ----------------------------- //
 
 mat3 jk_bitToMatrix(in uint b)
 {
@@ -235,10 +224,13 @@ mat3 jk_bitToMatrix(in uint b)
 void lt_getTriangleXform_64 (in uvec2 key, out mat3 xform, out mat3 parent_xform)
 {
     mat3 xf = mat3(1);
+
+    // Handles the root triangle case
     if (key.x == 0 && key.y == 1){
         xform = xf;
         return;
     }
+
     uint lsb = key.y & 3;
     key = lt_rightShift_64(key, 2);
     while (key.x > 0 || key.y > 1) {
@@ -257,21 +249,7 @@ void lt_getTriangleXform_64 (in uvec2 nodeID, out mat3 xform)
     lt_getTriangleXform_64(nodeID, xform, tmp);
 }
 
-void lt_getTriangleXform_32(in uint nodeID, out mat3 xform, out mat3 parent_xform)
-{
-    uvec2 new_nodeID = uvec2(0u, nodeID);
-    lt_getTriangleXform_64(new_nodeID, xform, parent_xform);
-}
-
-void lt_getTriangleXform_32(in uint nodeID, out mat3 xform)
-{
-    mat3 tmp;
-    uvec2 new_nodeID = uvec2(0u, nodeID);
-    lt_getTriangleXform_64(new_nodeID, xform, tmp);
-}
-
-
-// ----------------------- Mappings ----------------------- //
+// -------------------------------- Mappings -------------------------------- //
 
 // *** Map to given primitive *** //
 vec2 lt_mapTo2DTriangle(Triangle2D t, vec2 uv)
@@ -346,13 +324,9 @@ vec4 lt_getMeanPrimNormal(in uvec4 key, in int prim_type) {
 // *** Leaf to Tree vertex *** //
 vec2 lt_Leaf_to_Tree_64(in vec2 p, in uvec2 nodeID, in bool parent)
 {
-    mat3 xform;
-    if(parent){
-        mat3 tmp;
-        lt_getTriangleXform_64(nodeID, tmp, xform);
-    } else {
-        lt_getTriangleXform_64(nodeID, xform);
-    }
+    mat3 xf, pxf, xform;
+    lt_getTriangleXform_64(nodeID, xf, pxf);
+    xform = (parent) ? pxf : xf;
     return (xform * vec3(p, 1)).xy;
 }
 
@@ -433,8 +407,6 @@ vec4 lt_Tree_to_MeshQuad(in vec2 p, in uvec4 key, in bool parent)
     tmp = lt_Tree_to_QuadRoot(p, rootID);
     return lt_Root_to_MeshQuad(tmp, meshPolygonID);
 }
-
-
 
 vec4 lt_Tree_to_MeshPrimitive(in vec2 p, in uvec4 key, in bool parent, int prim_type)
 {

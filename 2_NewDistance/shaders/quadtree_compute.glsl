@@ -78,13 +78,12 @@ void compute_writeKey(uvec2 new_nodeID, uvec4 current_key)
 
 void compute_writeChildren(uvec2 children[4], uvec4 current_key)
 {
-    uint idx = atomicCounterAddARB(primCount_full[write_index], 4u);
     for(int i = 0; i<4; ++i) {
+        uint idx = atomicCounterIncrement(primCount_full[write_index]);
         uvec4 new_key = uvec4(children[i], current_key.z, (current_key.w & 0x3));
-        nodes_out_full[idx + i] = new_key;
+        nodes_out_full[idx] = new_key;
     }
 }
-
 
 /* Emulates what was previously the Compute Pass:
  * - Compute the LoD stored in the key
@@ -95,26 +94,28 @@ void compute_writeChildren(uvec2 children[4], uvec4 current_key)
  */
 void computePass(uvec4 key, uint invocation_idx)
 {
-    // Check if a merge or division is required
     uvec2 nodeID = key.xy;
     uint current_lvl = lt_level_64(nodeID);
 
+
+    // Check if a merge or division is required
     bool should_divide, should_merge;
     if (uniform_subdiv > 0) {
         should_divide = current_lvl < uniform_level;
         should_merge = current_lvl > uniform_level;
     } else {
-        float parentLevel = computeTessLevelFromKey(key, true);
+        float parentTargetLevel = computeTessLevelFromKey(key, true);
         float targetLevel = computeTessLevelFromKey(key, false);
         should_divide = float(current_lvl) < targetLevel;
-        should_merge  = float(current_lvl) >= parentLevel + 1.0;
+        should_merge  = float(current_lvl) >= parentTargetLevel + 1.0;
     }
+
+    // Perform merge, subdiv, or passthrough
     if (should_divide && !lt_isLeaf_64(nodeID)) {
         uvec2 childrenID[4];
         lt_children_64(nodeID, childrenID);
         compute_writeChildren(childrenID, key);
     } else if (should_merge && !lt_isRoot_64(nodeID)) {
-        //Merge
         if (lt_isUpperLeft_64(nodeID)) {
             uvec2 parentID = lt_parent_64(nodeID);
             compute_writeKey(parentID, key);

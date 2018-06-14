@@ -45,10 +45,6 @@ uniform int morph;
 uniform int heightmap;
 uniform int num_vertices, num_indices;
 
-
-uniform int interpolation;
-uniform float alpha;
-
 uniform int debug_morph;
 uniform float morph_k;
 
@@ -266,8 +262,6 @@ float gridFactor (vec2 vBC, float width) {
 void main()
 {
     float h;
-    //vec3 n = normalize(rock_normal(g_pos, 10000, h));
-    //color.rgb = 3.0 * irradiance(n) * albedo(g_pos,n);
 
     vec4 white_leaves = vec4(vec3(gridFactor(g_leaf_uv, 0.5)), 1);
     switch (color_mode)
