@@ -104,8 +104,9 @@ void computePass(uvec4 key, uint invocation_idx)
         should_divide = current_lvl < uniform_level;
         should_merge = current_lvl > uniform_level;
     } else {
-        float parentTargetLevel = computeTessLevelFromKey(key, true);
-        float targetLevel = computeTessLevelFromKey(key, false);
+        float parentTargetLevel, targetLevel;
+        computeTessLvlWithParent(key, targetLevel, parentTargetLevel);
+
         should_divide = float(current_lvl) < targetLevel;
         should_merge  = float(current_lvl) >= parentTargetLevel + 1.0;
     }

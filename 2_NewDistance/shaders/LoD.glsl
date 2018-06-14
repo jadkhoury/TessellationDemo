@@ -29,4 +29,17 @@ float computeTessLevelFromKey(uvec4 key, bool parent) {
 
     return distanceToLod(mesh_p.xyz);
 }
+
+void computeTessLvlWithParent(uvec4 key, out float lvl, out float parent_lvl) {
+    vec4 p_mesh, pp_mesh;
+    lt_Leaf_n_Parent_to_MeshPrimitive(triangle_centroid, key, p_mesh, pp_mesh, prim_type);
+    p_mesh  = M * p_mesh;
+    pp_mesh = M * pp_mesh;
+
+    lvl        = distanceToLod(p_mesh.xyz);
+    parent_lvl = distanceToLod(pp_mesh.xyz);
+}
+
+
+
 #endif // LOD_GLSL
