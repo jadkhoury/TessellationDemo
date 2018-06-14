@@ -294,14 +294,14 @@ void InitTranforms()
     mesh.tranforms->cam_pos = cam.pos;
     mesh.tranforms->V = glm::lookAt(cam.pos, cam.look, cam.up);
     mesh.tranforms->fov = 45.0;
-    mesh.tranforms->P = glm::perspective(glm::radians(mesh.tranforms->fov), 1.0f, 0.1f, 1024.0f);
+    mesh.tranforms->P = glm::perspective(glm::radians(mesh.tranforms->fov), gl.w_width/(float)gl.w_height, 0.1f, 1024.0f);
 
     mesh.UpdateTransforms();
 }
 
 void UpdateForNewFOV()
 {
-    mesh.tranforms->P = glm::perspective(glm::radians(mesh.tranforms->fov), 1.0f, 0.1f, 1024.0f);
+    mesh.tranforms->P = glm::perspective(glm::radians(mesh.tranforms->fov), gl.w_width/(float)gl.w_height, 0.1f, 1024.0f);
     mesh.UpdateTransforms();
 }
 
@@ -679,8 +679,8 @@ int main(int argc, char **argv)
 {
     HandleArguments(argc, argv);
 
-    gl.w_width = 1024;
-    gl.w_height = 1024;
+    gl.w_width = 1920;
+    gl.w_height = 1080;
     gl.gui_width = 512;
     gl.gui_height = gl.w_height;
 
