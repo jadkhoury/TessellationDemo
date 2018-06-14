@@ -34,22 +34,23 @@ struct OpenGLManager {
 
     bool lbutton_down, rbutton_down;
     double x0, y0;
+
+    uint mode;
+    string filepath;
+    const string default_filepath = "bigguy.obj";
 } gl = {};
 
 struct Mesh {
-    uint mode;
     QuadTree* quadtree;
     Transforms* tranforms;
     QuadTree::Settings init_settings;
 
     Mesh_Data mesh_data;
     uint grid_quads_count;
-    string filepath;
-    const string default_filepath = "bigguy.obj";
 
-    void Init();
+    void Init(std::string filepath);
     bool LoadMeshBuffers();
-    void LoadMeshData(bool init);
+    void LoadMeshData(std::string filepath);
     void UpdateTransforms();
     void Draw(float deltaT, bool freeze);
 } mesh = {};
@@ -109,7 +110,6 @@ void reorderIndices(uint* i_array, const Vertex* v, uint count){
     }
 }
 
-
 /*
  * Fill the Mesh_Data structure with vertices and indices
  * Either:
@@ -118,29 +118,26 @@ void reorderIndices(uint* i_array, const Vertex* v, uint count){
  * Depending on the index array filled by the parsing function, sets the
  * quadtree to the correct polygon rendering mode
  */
-void Mesh::LoadMeshData(bool init = false)
+void Mesh::LoadMeshData(string filepath)
 {
-    QuadTree::Settings& settings = (init) ? init_settings : quadtree->settings;
-
-    if (mode == TERRAIN) {
+    if (filepath == "") {
         meshutils::LoadGrid(&mesh_data,  grid_quads_count);
         LoadMeshBuffers();
-        settings.displace = true;
-        settings.adaptive_factor = 50.0;
+        init_settings.displace = true;
+        init_settings.adaptive_factor = 50.0;
 
-    } else if (mode == MESH) {
-
+    } else {
         meshutils::ParseObj(filepath, 0, &mesh_data);
         if (mesh_data.quad_count > 0 && mesh_data.triangle_count == 0) {
-            settings.prim_type = QUADS;
+            init_settings.prim_type = QUADS;
         } else if (mesh_data.quad_count == 0 && mesh_data.triangle_count > 0) {
-            settings.prim_type = TRIANGLES;
+            init_settings.prim_type = TRIANGLES;
         } else {
             cout << "ERROR when parsing obj" << endl;
         }
-        settings.adaptive_factor = 1.0;
+        init_settings.adaptive_factor = 1.0;
         LoadMeshBuffers();
-        settings.displace = false;
+        init_settings.displace = false;
     }
 }
 
@@ -194,18 +191,13 @@ void Mesh::UpdateTransforms()
     quadtree->UploadTransforms();
 }
 
-void Mesh::Init()
+void Mesh::Init(string filepath)
 {
     quadtree = new QuadTree();
     tranforms = new Transforms();
     mesh_data = {};
     grid_quads_count = 5;
     grid_quads_count = roundUpToSq(grid_quads_count);
-
-    if (filepath != default_filepath)
-        mode = MESH;
-    else
-        mode = MESH;
 
     init_settings = {
         /*int uni_lvl*/ 0,
@@ -227,14 +219,14 @@ void Mesh::Init()
         /*uint wg_count*/ 512
     };
 
-    this->LoadMeshData(true);
+    this->LoadMeshData(filepath);
     quadtree->Init(&(this->mesh_data), this->tranforms, init_settings);
 }
 
 void Mesh::Draw(float deltaT, bool freeze)
 {
-    if (!freeze && (mode == MESH) &&  quadtree->settings.rotateMesh) {
-        tranforms->M = glm::rotate(tranforms->M, 2000.0f*deltaT , vec3(0.0f, 0.0f, 1.0f));
+    if (!freeze && (gl.mode == MESH) &&  quadtree->settings.rotateMesh) {
+        tranforms->M = glm::rotate(tranforms->M, 2.0f*deltaT , vec3(0.0f, 0.0f, 1.0f));
         UpdateTransforms();
     }
     quadtree->Draw(deltaT);
@@ -302,8 +294,8 @@ void PrintCamStuff()
 
 void InitTranforms()
 {
-    cam.pos = INIT_CAM_POS[mesh.mode];
-    cam.look = INIT_CAM_LOOK[mesh.mode];
+    cam.pos = INIT_CAM_POS[gl.mode];
+    cam.look = INIT_CAM_LOOK[gl.mode];
 
     cam.up = vec3(0.0f, 0.0f, 1.0f);
     cam.direction = glm::normalize(cam.look - cam.pos);
@@ -353,13 +345,15 @@ void RenderImgui()
     QuadTree::Settings& settings_ref = mesh.quadtree->settings;
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(ImVec2(gl.gui_width, gl.gui_height));
-    float max_lod = (mesh.mode == TERRAIN) ? 100.0 : 10.0;
+    float max_lod = (gl.mode == TERRAIN) ? 100.0 : 10.0;
 
     ImGui::Begin("Parameters", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
     {
-        if (ImGui::Combo("Mode", (int*)&mesh.mode, "Terrain\0Mesh\0\0")) {
-            mesh.LoadMeshData();
-
+        if (ImGui::Combo("Mode", (int*)&gl.mode, "Terrain\0Mesh\0\0")) {
+            if(gl.mode == TERRAIN)
+                mesh.Init("");
+            else
+                mesh.Init(gl.filepath);
             InitTranforms();
         }
         if (ImGui::Checkbox("Render Projection", &settings_ref.render_projection)) {
@@ -639,18 +633,17 @@ void Init()
 
     gl.pause = false;
 
-
     INIT_CAM_POS[TERRAIN]  = vec3(3.9, 3.6, 0.6);
     INIT_CAM_LOOK[TERRAIN] = vec3(3.3, 2.9, 0.33);
     INIT_CAM_POS[MESH]  = vec3(3.4, 3.4, 2.4);
     INIT_CAM_LOOK[MESH] =  vec3(2.8, 2.8, 2.0);
 
-    mesh.Init();
+    gl.mode = TERRAIN;
+    if(gl.filepath != gl.default_filepath)
+        gl.mode = MESH;
+    mesh.Init((gl.mode == MESH) ? gl.filepath : "");
     benchStats.Init();
     InitTranforms();
-
-
-
 
     cout << "END OF INITIALIZATION" << endl;
     cout << "******************************************************" << endl << endl;
@@ -679,8 +672,8 @@ void Cleanup() {
 void HandleArguments(int argc, char **argv)
 {
     if (argc == 1) {
-        mesh.filepath = mesh.default_filepath;
-       cout << "Using default mesh: " << mesh.default_filepath << endl;
+        gl.filepath = gl.default_filepath;
+       cout << "Using default mesh: " << gl.default_filepath << endl;
     } else {
         if (argc > 2)
             cout << "Only takes in 1 obj file name, ignoring other arguments" << endl;
@@ -689,10 +682,10 @@ void HandleArguments(int argc, char **argv)
         ifstream f(file.c_str());
         if (f.good()) {
             cout << "OK" << endl;
-            mesh.filepath = file;
+            gl.filepath = file;
         } else {
-            mesh.filepath = mesh.default_filepath;
-            cout << "failure, keeping default mesh " << mesh.filepath << endl;
+            gl.filepath = gl.default_filepath;
+            cout << "failure, keeping default mesh " << gl.filepath << endl;
         }
     }
 }
