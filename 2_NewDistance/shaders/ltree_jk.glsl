@@ -412,7 +412,7 @@ vec4 lt_Leaf_to_MeshTriangle(in vec2 p, in uvec4 key, in bool parent)
     uint rootID = key.w & 0x3;
     vec2 tmp = p;
     tmp = lt_Leaf_to_Tree_64(tmp, nodeID, parent);
-    tmp = lt_Tree_to_TriangleRoot(tmp, rootID);
+//    tmp = lt_Tree_to_TriangleRoot(tmp, rootID);
     return lt_Root_to_MeshTriangle(tmp, meshPolygonID);
 }
 
@@ -440,7 +440,8 @@ vec4 lt_Tree_to_MeshTriangle(in vec2 p, in uvec4 key, in bool parent)
     uvec2 nodeID = key.xy;
     uint meshPolygonID = key.z;
     uint rootID = key.w & 0x3;
-    vec2 tmp = lt_Tree_to_TriangleRoot(p, rootID);
+    vec2 tmp = p;
+//    tmp = lt_Tree_to_TriangleRoot(p, rootID);
     return lt_Root_to_MeshTriangle(tmp, meshPolygonID);
 }
 
@@ -449,7 +450,8 @@ vec4 lt_Tree_to_MeshQuad(in vec2 p, in uvec4 key, in bool parent)
     uvec2 nodeID = key.xy;
     uint meshPolygonID = key.z;
     uint rootID = key.w & 0x3;
-    vec2 tmp = lt_Tree_to_QuadRoot(p, rootID);
+    vec2 tmp = p;
+    tmp = lt_Tree_to_QuadRoot(p, rootID);
     return lt_Root_to_MeshQuad(tmp, meshPolygonID);
 }
 

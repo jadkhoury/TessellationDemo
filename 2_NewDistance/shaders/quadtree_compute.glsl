@@ -190,7 +190,7 @@ void main(void)
     if (prim_type == QUADS) {
         active_nodes = max(num_mesh_quad*4, int(atomicCounter(primCount_full[read_index])));
     } else if (prim_type ==  TRIANGLES) {
-        active_nodes = max(num_mesh_tri*3, int(atomicCounter(primCount_full[read_index])));
+        active_nodes = max(num_mesh_tri/**3*/, int(atomicCounter(primCount_full[read_index])));
     }
     if (invocation_idx >= active_nodes)
         return;

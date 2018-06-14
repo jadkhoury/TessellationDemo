@@ -242,14 +242,14 @@ private:
         // cout << "max_ssbo_size " << max_ssbo_size << "B" << endl;
         uvec4* nodes_array =  new uvec4[max_num_nodes];
         if (settings.prim_type == TRIANGLES) {
-            init_node_count_ = 3 * mesh_data_->triangle_count;
+            init_node_count_ = /*3 **/ mesh_data_->triangle_count;
             for (int ctr = 0; ctr < mesh_data_->triangle_count; ++ctr) {
-                nodes_array[3*ctr+0] = uvec4(0, 0x1, uint(ctr*3), 0);
-                nodes_array[3*ctr+1] = uvec4(0, 0x1, uint(ctr*3), 1);
-                nodes_array[3*ctr+2] = uvec4(0, 0x1, uint(ctr*3), 2);
+                nodes_array[/*3**/ctr+0] = uvec4(0, 0x1, uint(ctr*3), 0);
+//                nodes_array[3*ctr+1] = uvec4(0, 0x1, uint(ctr*3), 1);
+//                nodes_array[3*ctr+2] = uvec4(0, 0x1, uint(ctr*3), 2);
             }
         } else if (settings.prim_type == QUADS) {
-            init_node_count_ = 4 * mesh_data_->quad_count;
+            init_node_count_ = /*4 **/ mesh_data_->quad_count;
             for (int ctr = 0; ctr < mesh_data_->quad_count; ++ctr) {
                 nodes_array[4*ctr+0] = uvec4(0, 0x1, uint(ctr*4), 0);
                 nodes_array[4*ctr+1] = uvec4(0, 0x1, uint(ctr*4), 1);

@@ -83,6 +83,32 @@ int roundUpToSq(int n)
     return (sq * sq);
 }
 
+void reorderIndices(uint* i_array, const Vertex* v, uint count){
+    uint  i0, i1, i2;
+    float d01, d02, d12, max_d;
+    for(uint i=0; i < count; i+= 3)
+    {
+        i0 = i_array[i + 0];
+        i1 = i_array[i + 1];
+        i2 = i_array[i + 2];
+
+        d01 = glm::distance(v[i0].p, v[i1].p);
+        d02 = glm::distance(v[i0].p, v[i2].p);
+        d12 = glm::distance(v[i1].p, v[i2].p);
+
+        max_d = std::max(d01, std::max(d02, d12));
+        if(max_d == d01){
+            i_array[i + 0] = i2;
+            i_array[i + 1] = i0;
+            i_array[i + 2] = i1;
+        } else if (max_d == d02) {
+            i_array[i + 0] = i1;
+            i_array[i + 1] = i0;
+            i_array[i + 2] = i2;
+        }
+    }
+}
+
 void Mesh::Init()
 {
     quadtree = new QuadTree();
@@ -185,7 +211,7 @@ bool Mesh::LoadMeshBuffers()
                              0);
     }
 
-
+    reorderIndices(mesh_data.t_idx_array, mesh_data.v_array, mesh_data.t_idx.count);
     utility::EmptyBuffer(&mesh_data.t_idx.bo);
     glCreateBuffers(1, &(mesh_data.t_idx.bo));
     if (mesh_data.triangle_count > 0) {
