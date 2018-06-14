@@ -242,19 +242,15 @@ private:
         // cout << "max_ssbo_size " << max_ssbo_size << "B" << endl;
         uvec4* nodes_array =  new uvec4[max_num_nodes];
         if (settings.prim_type == TRIANGLES) {
-            init_node_count_ = /*3 **/ mesh_data_->triangle_count;
-            for (int ctr = 0; ctr < mesh_data_->triangle_count; ++ctr) {
-                nodes_array[/*3**/ctr+0] = uvec4(0, 0x1, uint(ctr*3), 0);
-//                nodes_array[3*ctr+1] = uvec4(0, 0x1, uint(ctr*3), 1);
-//                nodes_array[3*ctr+2] = uvec4(0, 0x1, uint(ctr*3), 2);
+            init_node_count_ = mesh_data_->triangle_count;
+            for (int ctr = 0; ctr < init_node_count_; ++ctr) {
+                nodes_array[ctr] = uvec4(0, 0x1, uint(ctr*3), 0);
             }
         } else if (settings.prim_type == QUADS) {
-            init_node_count_ = /*4 **/ mesh_data_->quad_count;
-            for (int ctr = 0; ctr < mesh_data_->quad_count; ++ctr) {
-                nodes_array[4*ctr+0] = uvec4(0, 0x1, uint(ctr*4), 0);
-                nodes_array[4*ctr+1] = uvec4(0, 0x1, uint(ctr*4), 1);
-                nodes_array[4*ctr+2] = uvec4(0, 0x1, uint(ctr*4), 2);
-                nodes_array[4*ctr+3] = uvec4(0, 0x1, uint(ctr*4), 3);
+            init_node_count_ = 2 * mesh_data_->quad_count;
+            for (int ctr = 0; ctr < init_node_count_; ++ctr) {
+                nodes_array[2*ctr+0] = uvec4(0, 0x1, uint(ctr*4), 0);
+                nodes_array[2*ctr+1] = uvec4(0, 0x1, uint(ctr*4), 1);
             }
         }
 
@@ -557,8 +553,7 @@ public:
 //         commands_->PrintAtomicArray();
 
         glDisable(GL_RASTERIZER_DISCARD);
-
-
+        glDisable(GL_CULL_FACE);
 RENDER_PASS:
         if (settings.map_primcount) {
             prim_count_ = commands_->GetPrimCount();

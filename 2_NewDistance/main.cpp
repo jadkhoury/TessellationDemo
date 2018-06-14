@@ -109,42 +109,6 @@ void reorderIndices(uint* i_array, const Vertex* v, uint count){
     }
 }
 
-void Mesh::Init()
-{
-    quadtree = new QuadTree();
-    tranforms = new Transforms();
-    mesh_data = {};
-    grid_quads_count = 1;
-    grid_quads_count = roundUpToSq(grid_quads_count);
-
-    if (filepath != default_filepath)
-        mode = MESH;
-    else
-        mode = TERRAIN;
-
-    init_settings = {
-        /*int uni_lvl*/ 0,
-        /*float adaptive_factor*/ 1,
-        /*bool uniform*/ false,
-        /*bool map_primcount*/ true,
-        /*bool rotateMesh*/ false,
-        /*bool displace*/ true,
-        /*int color_mode*/ LOD,
-        /*bool render_projection*/ true,
-
-        /*int prim_type*/ TRIANGLES,
-        /*bool morph*/ true,
-        /*bool freeze*/ false,
-        /*int cpu_lod*/ 2,
-        /*bool cull*/ true,
-        /*bool debug_morph*/ false,
-        /*float morph_k*/ 0.0,
-        /*uint wg_count*/ 512
-    };
-
-    this->LoadMeshData(true);
-    quadtree->Init(&mesh.mesh_data, mesh.tranforms, init_settings);
-}
 
 /*
  * Fill the Mesh_Data structure with vertices and indices
@@ -158,8 +122,7 @@ void Mesh::LoadMeshData(bool init = false)
 {
     QuadTree::Settings& settings = (init) ? init_settings : quadtree->settings;
 
-    if (mode == TERRAIN)
-    {
+    if (mode == TERRAIN) {
         meshutils::LoadGrid(&mesh_data,  grid_quads_count);
         LoadMeshBuffers();
         settings.displace = true;
@@ -179,8 +142,6 @@ void Mesh::LoadMeshData(bool init = false)
         LoadMeshBuffers();
         settings.displace = false;
     }
-    if (!init)
-        quadtree->Reinitialize();
 }
 
 /*
@@ -233,6 +194,43 @@ void Mesh::UpdateTransforms()
     quadtree->UploadTransforms();
 }
 
+void Mesh::Init()
+{
+    quadtree = new QuadTree();
+    tranforms = new Transforms();
+    mesh_data = {};
+    grid_quads_count = 5;
+    grid_quads_count = roundUpToSq(grid_quads_count);
+
+    if (filepath != default_filepath)
+        mode = MESH;
+    else
+        mode = MESH;
+
+    init_settings = {
+        /*int uni_lvl*/ 0,
+        /*float adaptive_factor*/ 1,
+        /*bool uniform*/ false,
+        /*bool map_primcount*/ true,
+        /*bool rotateMesh*/ false,
+        /*bool displace*/ true,
+        /*int color_mode*/ LOD,
+        /*bool render_projection*/ true,
+
+        /*int prim_type*/ TRIANGLES,
+        /*bool morph*/ true,
+        /*bool freeze*/ false,
+        /*int cpu_lod*/ 2,
+        /*bool cull*/ true,
+        /*bool debug_morph*/ false,
+        /*float morph_k*/ 0.0,
+        /*uint wg_count*/ 512
+    };
+
+    this->LoadMeshData(true);
+    quadtree->Init(&(this->mesh_data), this->tranforms, init_settings);
+}
+
 void Mesh::Draw(float deltaT, bool freeze)
 {
     if (!freeze && (mode == MESH) &&  quadtree->settings.rotateMesh) {
@@ -241,9 +239,6 @@ void Mesh::Draw(float deltaT, bool freeze)
     }
     quadtree->Draw(deltaT);
 }
-
-
-
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -364,6 +359,7 @@ void RenderImgui()
     {
         if (ImGui::Combo("Mode", (int*)&mesh.mode, "Terrain\0Mesh\0\0")) {
             mesh.LoadMeshData();
+
             InitTranforms();
         }
         if (ImGui::Checkbox("Render Projection", &settings_ref.render_projection)) {

@@ -300,13 +300,11 @@ vec4 lt_mapTo3DQuad(Quad q, vec2 uv)
 // *** Get the given primitive *** //
 void lt_getMeshTriangle(in uint meshPolygonID, out Triangle triangle)
 {
-    Vertex v;
     for (int i = 0; i < 3; ++i)
     {
-        v.p = mesh_v[mesh_t_idx[meshPolygonID + i]].p;
-        v.n = mesh_v[mesh_t_idx[meshPolygonID + i]].n;
-        v.uv = mesh_v[mesh_t_idx[meshPolygonID + i]].uv;
-        triangle.vertex[i] = v;
+        triangle.vertex[i].p = mesh_v[mesh_t_idx[meshPolygonID + i]].p;
+        triangle.vertex[i].n = mesh_v[mesh_t_idx[meshPolygonID + i]].n;
+        triangle.vertex[i].uv = mesh_v[mesh_t_idx[meshPolygonID + i]].uv;
     }
 }
 
@@ -320,23 +318,12 @@ void lt_getMeshQuad(in uint meshPolygonID, out Quad quad)
     }
 }
 
-void lt_getRootTriangle(in uint rootID, in int prim_type, out Triangle2D t)
+void lt_getRootTriangle(in uint rootID, out Triangle2D t)
 {
-    if (prim_type == TRIANGLES) {
-        uint b1b2 = rootID & 0x3;
-        uint b1 = (b1b2 & 0x2) >> 1;
-        uint b2 = (b1b2 & 0x1);
-        t.p[0] = vec2(1.0/3.0, 1.0/3.0);
-        t.p[1] = vec2(b2, 1-(b1^b2));
-        t.p[2] = vec2(b1, b2);
-    } else if (prim_type == QUADS) {
-        uint b1b2 = rootID & 0x3;
-        uint b1 = (b1b2 & 0x2) >> 1;
-        uint b2 = (b1b2 & 0x1);
-        t.p[0] = vec2(0.5, 0.5);
-        t.p[1] = vec2(b1, b2);
-        t.p[2] = vec2(b2, 1-b1);
-    }
+    uint b = rootID & 0x1;
+    t.p[0] = vec2(b, b);
+    t.p[1] = vec2(b, 1-b);
+    t.p[2] = vec2(1-b, b);
 }
 
 // *** Get the given primitive mean normal *** //
@@ -378,14 +365,7 @@ vec2 lt_Leaf_to_Tree_64(in vec2 p, uvec2 nodeID)
 vec2 lt_Tree_to_QuadRoot(in vec2 p, in uint rootID)
 {
     Triangle2D t;
-    lt_getRootTriangle(rootID, QUADS, t);
-    return lt_mapTo2DTriangle(t, p);
-}
-
-vec2 lt_Tree_to_TriangleRoot(in vec2 p, in uint rootID)
-{
-    Triangle2D t;
-    lt_getRootTriangle(rootID, TRIANGLES, t);
+    lt_getRootTriangle(rootID, t);
     return lt_mapTo2DTriangle(t, p);
 }
 
@@ -412,7 +392,6 @@ vec4 lt_Leaf_to_MeshTriangle(in vec2 p, in uvec4 key, in bool parent)
     uint rootID = key.w & 0x3;
     vec2 tmp = p;
     tmp = lt_Leaf_to_Tree_64(tmp, nodeID, parent);
-//    tmp = lt_Tree_to_TriangleRoot(tmp, rootID);
     return lt_Root_to_MeshTriangle(tmp, meshPolygonID);
 }
 
