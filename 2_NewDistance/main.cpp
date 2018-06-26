@@ -129,9 +129,9 @@ void Mesh::LoadMeshData(string filepath)
     } else {
         meshutils::ParseObj(filepath, 0, &mesh_data);
         if (mesh_data.quad_count > 0 && mesh_data.triangle_count == 0) {
-            init_settings.prim_type = QUADS;
+            init_settings.poly_type = QUADS;
         } else if (mesh_data.quad_count == 0 && mesh_data.triangle_count > 0) {
-            init_settings.prim_type = TRIANGLES;
+            init_settings.poly_type = TRIANGLES;
         } else {
             cout << "ERROR when parsing obj" << endl;
         }
@@ -208,7 +208,7 @@ void Mesh::Init(string filepath)
         /*int color_mode*/ LOD,
         /*bool render_projection*/ true,
 
-        /*int prim_type*/ TRIANGLES,
+        /*int poly_type*/ TRIANGLES,
         /*bool morph*/ true,
         /*bool freeze*/ false,
         /*int cpu_lod*/ 2,
@@ -375,7 +375,7 @@ void RenderImgui()
         }
 
         if (ImGui::Combo("Color mode", &settings_ref.color_mode,
-                         "LoD & Morph\0White Wireframe\0Primitive Highlight\0Frustum\0Cull\0Debug\0\0")) {
+                         "LoD & Morph\0White Wireframe\0Polygone Highlight\0Frustum\0Cull\0Debug\0\0")) {
             mesh.quadtree->UploadSettings();
         }
         if (ImGui::Checkbox("Uniform", &settings_ref.uniform)) {
@@ -389,7 +389,7 @@ void RenderImgui()
             mesh.quadtree->UploadSettings();
         }
 
-        if (ImGui::Checkbox("Readback primitive count", &settings_ref.map_primcount)) {
+        if (ImGui::Checkbox("Readback instance count", &settings_ref.map_primcount)) {
             mesh.quadtree->UploadSettings();
         }
         if ( settings_ref.map_primcount) {
@@ -397,7 +397,7 @@ void RenderImgui()
         }
 
         ImGui::Text("\n------ QuadTree settings ------");
-        if (ImGui::Combo("Root primitive", &settings_ref.prim_type, "Triangle\0Quad\0\0")) {
+        if (ImGui::Combo("Polygon type", &settings_ref.poly_type, "Triangle\0Quad\0\0")) {
             mesh.LoadMeshBuffers();
             mesh.quadtree->Reinitialize();
         }

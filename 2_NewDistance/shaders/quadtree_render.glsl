@@ -1,7 +1,7 @@
 #line 2
 /**
  * In LoD:
- * uniform int prim_type;
+ * uniform int poly_type;
  * uniform vec3 cam_pos;
  * uniform mat4 M, V, P, MV, MVP;
  */
@@ -117,7 +117,7 @@ vec2 morphVertexInUnit(uvec4 key, vec2 leaf_p, vec2 tree_p)
 {
     mat3 t;
     lt_getTriangleXform_64(key.xy, t);
-    vec4 mesh_p = M * lt_Leaf_to_MeshPrimitive(leaf_p, key, false, prim_type);
+    vec4 mesh_p = M * lt_Leaf_to_MeshPrimitive(leaf_p, key, false, poly_type);
     float vertex_lvl = distanceToLod(mesh_p.xyz);
 
 
@@ -154,17 +154,17 @@ void main()
     uint level = lt_level_64(key.xy);
 
     vec4 p, n;
-    v_pos = lt_Leaf_to_MeshPrimitive(v_uv, key, false, prim_type).xyz;
+    v_pos = lt_Leaf_to_MeshPrimitive(v_uv, key, false, poly_type).xyz;
     vec2 tree_pos = lt_Leaf_to_Tree_64(v_uv, nodeID);
     if (morph > 0)
         tree_pos = morphVertexInUnit(key, v_uv, tree_pos);
-    v_pos = lt_Tree_to_MeshPrimitive(tree_pos, key, false, prim_type).xyz;
+    v_pos = lt_Tree_to_MeshPrimitive(tree_pos, key, false, poly_type).xyz;
 
     if (heightmap > 0) {
         n = vec4(0,0,1,0);
         v_pos =  heightDisplace(v_pos, n.xyz);
     } else {
-        n = lt_getMeanPrimNormal(key, prim_type);
+        n = lt_getMeanPrimNormal(key, poly_type);
     }
 
     switch (color_mode) {

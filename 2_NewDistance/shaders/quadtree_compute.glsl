@@ -4,7 +4,7 @@
 
 /**
  * In LoD:
- * uniform int prim_type;
+ * uniform int poly_type;
  * uniform vec3 cam_pos;
  * uniform mat4 M, V, P, MV, MVP;
  */
@@ -149,9 +149,9 @@ void cullPass(uvec4 key)
     if(cull > 0)
     {
         mat4 mesh_coord;
-        mesh_coord[O] = lt_Leaf_to_MeshPrimitive(unit_O, key, false, prim_type);
-        mesh_coord[U] = lt_Leaf_to_MeshPrimitive(unit_U, key, false, prim_type);
-        mesh_coord[R] = lt_Leaf_to_MeshPrimitive(unit_R, key, false, prim_type);
+        mesh_coord[O] = lt_Leaf_to_MeshPrimitive(unit_O, key, false, poly_type);
+        mesh_coord[U] = lt_Leaf_to_MeshPrimitive(unit_U, key, false, poly_type);
+        mesh_coord[R] = lt_Leaf_to_MeshPrimitive(unit_R, key, false, poly_type);
 
         if (heightmap > 0) {
             vec4 n = vec4(0,0,1,0);
@@ -190,9 +190,9 @@ void main(void)
     // Check if the current instance should work
     int active_nodes;
 
-    if (prim_type == QUADS) {
+    if (poly_type == QUADS) {
         active_nodes = max(num_mesh_quad * 2, int(atomicCounter(primCount_full[read_index])));
-    } else if (prim_type ==  TRIANGLES) {
+    } else if (poly_type ==  TRIANGLES) {
         active_nodes = max(num_mesh_tri, int(atomicCounter(primCount_full[read_index])));
     }
     if (invocation_idx >= active_nodes)

@@ -3,7 +3,7 @@
 #ifndef LOD_GLSL
 #define LOD_GLSL
 
-uniform int prim_type;
+uniform int poly_type;
 uniform float adaptive_factor;
 
 
@@ -40,7 +40,7 @@ float distanceToLod(vec3 pos)
 }
 
 float computeTessLevelFromKey(uvec4 key, bool parent) {
-    vec4 mesh_p = lt_Leaf_to_MeshPrimitive(triangle_centroid, key, parent, prim_type);
+    vec4 mesh_p = lt_Leaf_to_MeshPrimitive(triangle_centroid, key, parent, poly_type);
     mesh_p = M * mesh_p;
 
     return distanceToLod(mesh_p.xyz);
@@ -48,7 +48,7 @@ float computeTessLevelFromKey(uvec4 key, bool parent) {
 
 void computeTessLvlWithParent(uvec4 key, out float lvl, out float parent_lvl) {
     vec4 p_mesh, pp_mesh;
-    lt_Leaf_n_Parent_to_MeshPrimitive(triangle_centroid, key, p_mesh, pp_mesh, prim_type);
+    lt_Leaf_n_Parent_to_MeshPrimitive(triangle_centroid, key, p_mesh, pp_mesh, poly_type);
     p_mesh  = M * p_mesh;
     pp_mesh = M * pp_mesh;
 
@@ -56,24 +56,19 @@ void computeTessLvlWithParent(uvec4 key, out float lvl, out float parent_lvl) {
     parent_lvl = distanceToLod(pp_mesh.xyz);
 }
 
-vec3 nvertex(vec3 bmin, vec3 bmax, vec3 n)
-{
-    bvec3 b = greaterThan(n, vec3(0));
-    return mix(bmin, bmax, b);
-}
-
 bool culltest(mat4 mvp, vec3 bmin, vec3 bmax)
 {
-    float a = 1.0;
-
-    for (int i = 0; i < 6 && a >= 0.0; ++i) {
-        vec3 n = nvertex(bmin, bmax, frustum_planes[i].xyz);
-
-        a = dot(vec4(n, 1.0), frustum_planes[i]);
+    bool inside = true;
+    bvec3 b;
+    vec3 n;
+    for (int i = 0; i < 6; ++i) {
+        b = greaterThan(frustum_planes[i].xyz, vec3(0));
+        n = mix(bmin, bmax, b);
+        inside = inside && dot(vec4(n, 1.0), frustum_planes[i]) >= 0;
     }
-
-    return (a >= 0.0);
+    return inside;
 }
+
 float closestPaneDistance(in mat4 MVP, in vec3 p)
 {
     float signed_d = 0, min_d = 10e6;

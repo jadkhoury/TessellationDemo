@@ -19,7 +19,7 @@ public:
         int color_mode;         // Switch color mode of the render
         bool render_projection; // Toggle the MVP matrix
 
-        int prim_type;    // Type of primitive of the mesh (changes number of root triangle)
+        int poly_type;    // Type of polygon of the mesh (changes number of root triangle)
         bool morph;       // Toggle T-Junction Removal
         bool freeze;      // Toggle freeze i.e. stop updating the quadtree, but keep rendering
         int cpu_lod;      // Control CPU LoD, i.e. subdivision level of the instantiated triangle grid
@@ -40,7 +40,7 @@ public:
             utility::SetUniformBool(pid, "morph", morph);
             utility::SetUniformBool(pid, "cull", cull);
             utility::SetUniformFloat(pid, "cpu_lod", float(cpu_lod));
-            utility::SetUniformInt(pid, "prim_type", prim_type);
+            utility::SetUniformInt(pid, "poly_type", poly_type);
             utility::SetUniformBool(pid, "debug_morph", debug_morph);
             utility::SetUniformFloat(pid, "morph_k", morph_k);
         }
@@ -238,12 +238,12 @@ private:
         // cout << "max_num_nodes  " << max_num_nodes << endl;
         // cout << "max_ssbo_size " << max_ssbo_size << "B" << endl;
         uvec4* nodes_array =  new uvec4[max_num_nodes];
-        if (settings.prim_type == TRIANGLES) {
+        if (settings.poly_type == TRIANGLES) {
             init_node_count_ = mesh_data_->triangle_count;
             for (int ctr = 0; ctr < init_node_count_; ++ctr) {
                 nodes_array[ctr] = uvec4(0, 0x1, uint(ctr*3), 0);
             }
-        } else if (settings.prim_type == QUADS) {
+        } else if (settings.poly_type == QUADS) {
             init_node_count_ = 2 * mesh_data_->quad_count;
             for (int ctr = 0; ctr < init_node_count_; ++ctr) {
                 nodes_array[2*ctr+0] = uvec4(0, 0x1, uint(ctr*4), 0);

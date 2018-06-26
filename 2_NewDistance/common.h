@@ -163,12 +163,13 @@ struct TransformsManager
 
     GLuint bo;
     uniforms_block transforms;
-    bool modified;
+    bool modified = true;
+
 
     void Init()
     {
         glCreateBuffers(1, &bo);
-        glNamedBufferData(bo, sizeof(uniforms_block), NULL, GL_STREAM_DRAW);
+        glNamedBufferStorage(bo, sizeof(uniforms_block), NULL, GL_DYNAMIC_STORAGE_BIT);
     }
 
     void updateFrustum()
@@ -187,10 +188,9 @@ struct TransformsManager
 
     void UploadTransforms()
     {
-        if(modified) {
+        if(modified ) {
+            glNamedBufferSubData(bo, 0, sizeof(uniforms_block), &transforms);
             modified = false;
-            glNamedBufferData(bo, sizeof(uniforms_block), &transforms, GL_STREAM_DRAW);
-            cout << "uploading" << endl;
         }
     }
 

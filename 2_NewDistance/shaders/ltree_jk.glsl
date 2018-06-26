@@ -97,7 +97,7 @@ vec4 lt_mapTo3DQuad(Quad q, vec2 uv);
 void lt_getMeshTriangle(in uint meshPolygonID, out Triangle triangle);
 void lt_getMeshQuad(in uint meshPolygonID, out Quad quad);
 void lt_getRootTriangle(in uint rootID, out Triangle2D t);
-vec4 lt_getMeanPrimNormal(in uvec4 key, in int prim_type);
+vec4 lt_getMeanPrimNormal(in uvec4 key, in int poly_type);
 
 vec2 lt_Leaf_to_Tree_64(in vec2 p, in uvec2 nodeID, in bool parent);
 vec2 lt_Leaf_to_Tree_64(in vec2 p, uvec2 nodeID);
@@ -109,18 +109,18 @@ vec4 lt_Root_to_MeshQuad(in vec2 p, in uint meshPolygonID);
 
 vec4 lt_Leaf_to_MeshTriangle(in vec2 p, in uvec4 key, in bool parent);
 vec4 lt_Leaf_to_MeshQuad(in vec2 p, in uvec4 key, in bool parent);
-vec4 lt_Leaf_to_MeshPrimitive(in vec2 p, in uvec4 key, in bool parent, int prim_type);
+vec4 lt_Leaf_to_MeshPrimitive(in vec2 p, in uvec4 key, in bool parent, int poly_type);
 
 void lt_Leaf_n_Parent_to_MeshTriangle(in vec2 p, in uvec4 key, out vec4 p_mesh, out vec4 pp_mesh);
 void lt_Leaf_n_Parent_to_MeshQuad(in vec2 p, in uvec4 key, out vec4 p_mesh, out vec4 pp_mesh);
 void lt_Leaf_n_Parent_to_MeshPrimitive(in vec2 p, in uvec4 key,
                                        out vec4 p_mesh,
                                        out vec4 pp_mesh,
-                                       uint prim_type);
+                                       uint poly_type);
 
 vec4 lt_Tree_to_MeshTriangle(in vec2 p, in uvec4 key, in bool parent);
 vec4 lt_Tree_to_MeshQuad(in vec2 p, in uvec4 key, in bool parent);
-vec4 lt_Tree_to_MeshPrimitive(in vec2 p, in uvec4 key, in bool parent, int prim_type);
+vec4 lt_Tree_to_MeshPrimitive(in vec2 p, in uvec4 key, in bool parent, int poly_type);
 
 uvec4 lt_getKey_64(uint idx)
 {
@@ -309,15 +309,15 @@ void lt_getRootTriangle(in uint rootID, out Triangle2D t)
 }
 
 // *** Get the given primitive mean normal *** //
-vec4 lt_getMeanPrimNormal(in uvec4 key, in int prim_type) {
+vec4 lt_getMeanPrimNormal(in uvec4 key, in int poly_type) {
     uint meshPolygonID = key.z;
     vec4 sum = vec4(0);
 
-    if (prim_type == TRIANGLES)
+    if (poly_type == TRIANGLES)
         for (int i = 0; i < 3; ++i)
             sum += mesh_v[mesh_t_idx[meshPolygonID + i]].n;
 
-    else if (prim_type == QUADS)
+    else if (poly_type == QUADS)
         for (int i = 0; i < 4; ++i)
             sum += mesh_v[mesh_q_idx[meshPolygonID + i]].n;
 
@@ -386,11 +386,11 @@ vec4 lt_Leaf_to_MeshQuad(in vec2 p, in uvec4 key, in bool parent)
     return lt_Root_to_MeshQuad(tmp, meshPolygonID);
 }
 
-vec4 lt_Leaf_to_MeshPrimitive(in vec2 p, in uvec4 key, in bool parent, int prim_type)
+vec4 lt_Leaf_to_MeshPrimitive(in vec2 p, in uvec4 key, in bool parent, int poly_type)
 {
-    if (prim_type == TRIANGLES)
+    if (poly_type == TRIANGLES)
         return lt_Leaf_to_MeshTriangle(p, key, parent);
-    else if (prim_type == QUADS)
+    else if (poly_type == QUADS)
         return lt_Leaf_to_MeshQuad(p, key, parent);
 }
 
@@ -434,11 +434,11 @@ void lt_Leaf_n_Parent_to_MeshQuad(in vec2 p, in uvec4 key, out vec4 p_mesh, out 
 void lt_Leaf_n_Parent_to_MeshPrimitive(in vec2 p, in uvec4 key,
                                        out vec4 p_mesh,
                                        out vec4 pp_mesh,
-                                       uint prim_type)
+                                       uint poly_type)
 {
-    if (prim_type == TRIANGLES)
+    if (poly_type == TRIANGLES)
         lt_Leaf_n_Parent_to_MeshTriangle(p, key, p_mesh, pp_mesh);
-    else if (prim_type == QUADS)
+    else if (poly_type == QUADS)
         lt_Leaf_n_Parent_to_MeshQuad(p, key, p_mesh, pp_mesh);
 }
 
@@ -464,11 +464,11 @@ vec4 lt_Tree_to_MeshQuad(in vec2 p, in uvec4 key, in bool parent)
     return lt_Root_to_MeshQuad(tmp, meshPolygonID);
 }
 
-vec4 lt_Tree_to_MeshPrimitive(in vec2 p, in uvec4 key, in bool parent, int prim_type)
+vec4 lt_Tree_to_MeshPrimitive(in vec2 p, in uvec4 key, in bool parent, int poly_type)
 {
-    if (prim_type == TRIANGLES)
+    if (poly_type == TRIANGLES)
         return lt_Tree_to_MeshTriangle(p, key, parent);
-    else if (prim_type == QUADS)
+    else if (poly_type == QUADS)
         return lt_Tree_to_MeshQuad(p, key, parent);
 }
 
