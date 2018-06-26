@@ -11,7 +11,7 @@ class TessCube
 private:
     Mesh_Data* mesh_data_;
     Settings* set_;
-    Transforms* transfo_;
+    TransformsManager* transfo_;
     GLuint vao_;
     GLuint program_;
     bool first_frame_;
@@ -119,7 +119,7 @@ public:
         double cpu, gpu;
     } ticks;
 
-    void Init(Mesh_Data* data, Transforms* tr, Settings* settings)
+    void Init(Mesh_Data* data, TransformsManager* tr, Settings* settings)
     {
         cout << "******************************************************" << endl;
         cout << "TESSCUBE" << endl;

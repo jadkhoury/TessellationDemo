@@ -16,7 +16,7 @@ class QuadTree
 private:
 
     Commands* commands_;
-    Transforms* transfo_;
+    TransformsManager* transfo_;
     Settings* set_;
 
     struct ssbo_indices {
@@ -428,7 +428,7 @@ public:
 
     // ----------------------------- ZEE PROGRAM ----------------------------- //
 
-    void Init(Mesh_Data* m_data, Transforms* transfo, Settings* settings)
+    void Init(Mesh_Data* m_data, TransformsManager* transfo, Settings* settings)
     {
         cout << "******************************************************" << endl;
         cout << "QUADTREE" << endl;

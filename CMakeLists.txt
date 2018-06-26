@@ -95,23 +95,24 @@ copy_files_once(${OBJ_FILES})
 #unset(HEADERS)
 
 # **************** Project 2_NewDistance **************** #
-message(STATUS "**** 2_NewDistance ****")
 
-set(SRC_DIR 2_NewDistance/)
+ message(STATUS "**** 2_NewDistance ****")
 
-file(GLOB_RECURSE SHADERS ${SRC_DIR}/*.glsl)
-file(GLOB_RECURSE HEADERS ${SRC_DIR}/*.h)
+ set(SRC_DIR 2_NewDistance/)
 
-include_directories(${SRC_DIR})
-aux_source_directory(${SRC_DIR} SRC_FILES)
+ file(GLOB_RECURSE SHADERS ${SRC_DIR}/*.glsl)
+ file(GLOB_RECURSE HEADERS ${SRC_DIR}/*.h)
 
-add_executable(new_distance ${SRC_FILES} ${SHADERS} ${HEADERS})
+ include_directories(${SRC_DIR})
+ aux_source_directory(${SRC_DIR} SRC_FILES)
 
-target_link_libraries(new_distance glad glfw imgui)
+ add_executable(new_distance ${SRC_FILES} ${SHADERS} ${HEADERS})
 
-unset(SRC_FILES)
-unset(SHADERS)
-unset(HEADERS)
+ target_link_libraries(new_distance glad glfw imgui)
+
+ unset(SRC_FILES)
+ unset(SHADERS)
+ unset(HEADERS)
 
 
 

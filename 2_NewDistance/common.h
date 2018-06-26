@@ -144,7 +144,7 @@ struct Mesh_Data
 };
 
 // Nice little struct to manage transforms
-struct Transforms
+struct uniforms_block
 {
     mat4 M     = mat4(1.0);
     mat4 V     = mat4(1.0);
@@ -152,26 +152,56 @@ struct Transforms
     mat4 MVP   = mat4(1.0);
     mat4 MV    = mat4(1.0);
     mat4 invMV = mat4(1.0);
-    float fov;
-    vec3 cam_pos;
+    vec4 frustum_planes[6];
 
-    void UploadTransforms(uint pid)
+    vec3 cam_pos = vec3(1.0);
+    float fov = 45.0;
+};
+
+struct TransformsManager
+{
+
+    GLuint bo;
+    uniforms_block transforms;
+    bool modified;
+
+    void Init()
     {
-        utility::SetUniformMat4(pid, "M", M);
-        utility::SetUniformMat4(pid, "V", V);
-        utility::SetUniformMat4(pid, "P", P);
-        utility::SetUniformMat4(pid, "MVP", MVP);
-        utility::SetUniformMat4(pid, "MV", MV);
-        utility::SetUniformMat4(pid, "invMV", invMV);
-        utility::SetUniformVec3(pid, "cam_pos", cam_pos);
-        utility::SetUniformFloat(pid, "fov", fov);
+        glCreateBuffers(1, &bo);
+        glNamedBufferData(bo, sizeof(uniforms_block), NULL, GL_STREAM_DRAW);
+    }
+
+    void updateFrustum()
+    {
+        mat4& MVP = transforms.MVP;
+        for (int i = 0; i < 3; ++i)
+            for (int j = 0; j < 2; ++j) {
+                transforms.frustum_planes[i*2+j].x = MVP[0][3] + (j == 0 ? MVP[0][i] : -MVP[0][i]);
+                transforms.frustum_planes[i*2+j].y = MVP[1][3] + (j == 0 ? MVP[1][i] : -MVP[1][i]);
+                transforms.frustum_planes[i*2+j].z = MVP[2][3] + (j == 0 ? MVP[2][i] : -MVP[2][i]);
+                transforms.frustum_planes[i*2+j].w = MVP[3][3] + (j == 0 ? MVP[3][i] : -MVP[3][i]);
+                vec3 tmp = vec3(transforms.frustum_planes[i*2+j]);
+                transforms.frustum_planes[i*2+j] *= glm::length(tmp);
+            }
+    }
+
+    void UploadTransforms()
+    {
+        if(modified) {
+            modified = false;
+            glNamedBufferData(bo, sizeof(uniforms_block), &transforms, GL_STREAM_DRAW);
+            cout << "uploading" << endl;
+        }
     }
 
     void UpdateMV()
     {
-        MV = V * M;
-        MVP = P * MV;
-        invMV = glm::transpose(glm::inverse(MV));
+        transforms.MV = transforms.V * transforms.M;
+        transforms.MVP = transforms.P * transforms.MV;
+        transforms.invMV = glm::transpose(glm::inverse(transforms.MV));
+        updateFrustum();
+        modified = true;
+
     }
 };
 

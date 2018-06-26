@@ -48,7 +48,7 @@ public:
 
 private:
     Commands* commands_;
-    Transforms* transfo_;
+    TransformsManager* transfo_;
 
     struct ssbo_indices {
         int read = 0;
@@ -137,7 +137,6 @@ private:
         pushMacrosToProgram(djp);
         char buf[1024];
         djgp_push_file(djp, strcat2(buf, shader_dir, "gpu_noise_lib.glsl"));
-        djgp_push_file(djp, strcat2(buf, shader_dir, "dj_frustum.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "dj_heightmap.glsl"));
 
         djgp_push_file(djp, strcat2(buf, shader_dir, "ltree_jk.glsl"));
@@ -200,7 +199,6 @@ private:
         char buf[1024];
 
         djgp_push_file(djp, strcat2(buf, shader_dir, "gpu_noise_lib.glsl"));
-        djgp_push_file(djp, strcat2(buf, shader_dir, "dj_frustum.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "ltree_jk.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "LoD.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "dj_heightmap.glsl"));
@@ -223,7 +221,6 @@ private:
         v &= loadComputeProgram();
         v &= loadCopyProgram();
         v &= loadRenderProgram();
-        UploadTransforms();
         return v;
     }
 
@@ -425,12 +422,6 @@ public:
         commands_->UpdateLeafGeometry(leaf_geometry.idx.count);
     }
 
-    void UploadTransforms()
-    {
-        transfo_->UploadTransforms(compute_program_);
-        transfo_->UploadTransforms(render_program_);
-    }
-
     void UploadSettings()
     {
         settings.Upload(compute_program_);
@@ -462,7 +453,7 @@ public:
      * - Initialize the command class instance
      * - Update the uniform values once again, after all these loadings
      */
-    void Init(Mesh_Data* m_data, Transforms* transfo, const Settings& init_settings)
+    void Init(Mesh_Data* m_data, TransformsManager* transfo, const Settings& init_settings)
     {
         cout << "******************************************************" << endl;
         cout << "QUADTREE" << endl;
@@ -487,6 +478,7 @@ public:
         if (!loadPrograms())
             throw std::runtime_error("shader creation error");
 
+        transfo_->Init();
         commands_->Init(leaf_geometry.idx.count, init_wg_count_, init_node_count_);
 
         ReconfigureShaders();
@@ -520,6 +512,7 @@ public:
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODES_IN_B, nodes_bo_[ssbo_idx_.read]);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODES_OUT_FULL_B, nodes_bo_[ssbo_idx_.write_full]);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODES_OUT_CULLED_B, nodes_bo_[ssbo_idx_.write_culled]);
+            glBindBufferBase(GL_UNIFORM_BUFFER, 0, transfo_->bo);
             commands_->BindForCompute(compute_program_);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_V_B, mesh_data_->v.bo);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_Q_IDX_B, mesh_data_->q_idx.bo);
@@ -541,6 +534,7 @@ public:
             commands_->BindForCopy(copy_program_);
             glBindBufferBase(GL_UNIFORM_BUFFER, LEAF_VERT_B, leaf_geometry.v.bo);
             glBindBufferBase(GL_UNIFORM_BUFFER, LEAF_IDX_B, leaf_geometry.idx.bo);
+
             glDispatchCompute(1,1,1);
             glMemoryBarrier(GL_COMMAND_BARRIER_BIT);
         }
@@ -577,6 +571,7 @@ RENDER_PASS:
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_V_B, mesh_data_->v.bo);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_Q_IDX_B, mesh_data_->q_idx.bo);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_T_IDX_B, mesh_data_->t_idx.bo);
+            glBindBufferBase(GL_UNIFORM_BUFFER, 0, transfo_->bo);
             commands_->BindForRender();
             glBindVertexArray(leaf_geometry.vao);
             glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, BUFFER_OFFSET(0));

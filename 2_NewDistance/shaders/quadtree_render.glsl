@@ -71,7 +71,7 @@ vec4 rootColor(in vec2 pos, in vec4 color)
 
 vec4 distanceColor(vec3 p)
 {
-    float d = dfc_closestPaneDistance(MVP, p) * 3;
+    float d = closestPaneDistance(MVP, p) * 3;
     vec4 color = BLUE;
     if(abs(d) < 0.01)
         color = vec4(1);
@@ -84,7 +84,7 @@ vec4 distanceColor(vec3 p)
 
 vec4 cullColor(vec3 p)
 {
-    if (dcf_cull(MVP, p, p))
+    if (culltest(MVP, p, p))
         return GREEN;
     else
         return RED;

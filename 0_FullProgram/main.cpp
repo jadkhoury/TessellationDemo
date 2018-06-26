@@ -29,7 +29,7 @@ struct CameraManager {
 struct OpenGLManager {
     QuadTree* quadtree;
     TessCube* tesscube;
-    Transforms* tranforms;
+    TransformsManager* tranforms;
     Settings* set;
     Point* point;
 
@@ -734,13 +734,13 @@ void Init()
     gl.quadtree= new QuadTree();
     gl.tesscube = new TessCube();
     gl.point = new Point();
-    gl.tranforms = new Transforms();
+    gl.tranforms = new TransformsManager();
     gl.set = new Settings();
     gl.mesh_data = {};
 
     gl.tesscube = new TessCube();
 //    gl.filepath = "../bigguy.obj";
-    gl.filepath = "cube.obj";
+    gl.filepath = "triangle.obj";
     gl.run_demo = false;
     gl.end = false;
     gl.force_dt = false;

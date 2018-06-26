@@ -197,7 +197,7 @@ struct Settings
     }
 };
 
-struct Transforms
+struct TransformsManager
 {
     mat4 M     = mat4(1.0);
     mat4 V     = mat4(1.0);

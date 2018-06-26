@@ -270,7 +270,6 @@ vec4 lt_mapTo3DTriangle(Triangle t, vec2 uv)
             uv.x * t.vertex[2].p +
             uv.y * t.vertex[1].p;
     return result;
-    //return vec4(mapped, 1.0);
 }
 
 vec4 lt_mapTo3DQuad(Quad q, vec2 uv)
@@ -278,8 +277,6 @@ vec4 lt_mapTo3DQuad(Quad q, vec2 uv)
     vec4 p01 = mix(q.vertex[0].p, q.vertex[1].p, uv.x);
     vec4 p32 = mix(q.vertex[3].p, q.vertex[2].p, uv.x);
     return mix(p01, p32, uv.y);
-    //	vec4 mixed = mix(p01, p32, uv.y);
-    //	return vec4(mixed, 1.0);
 }
 
 // *** Get the given primitive *** //
@@ -447,7 +444,6 @@ void lt_Leaf_n_Parent_to_MeshPrimitive(in vec2 p, in uvec4 key,
 
 // ******* Transformation to and from Tree ******* //
 // Used to avoid unnecessary computations around the render pass morphing
-//
 vec4 lt_Tree_to_MeshTriangle(in vec2 p, in uvec4 key, in bool parent)
 {
     uvec2 nodeID = key.xy;

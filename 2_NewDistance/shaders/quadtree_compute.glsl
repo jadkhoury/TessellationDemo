@@ -170,8 +170,9 @@ void cullPass(uvec4 key)
         b_max = max(b_max, mesh_coord[U]);
         b_max = max(b_max, mesh_coord[R]);
 
-        if (dcf_cull(MVP, b_min.xyz, b_max.xyz))
+        if (culltest(MVP, b_min.xyz, b_max.xyz))
             cull_writeKey(key);
+
     } else {
         cull_writeKey(key);
     }

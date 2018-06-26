@@ -42,7 +42,7 @@ struct OpenGLManager {
 
 struct Mesh {
     QuadTree* quadtree;
-    Transforms* tranforms;
+    TransformsManager* tranforms_manager;
     QuadTree::Settings init_settings;
 
     Mesh_Data mesh_data;
@@ -187,14 +187,13 @@ bool Mesh::LoadMeshBuffers()
 
 void Mesh::UpdateTransforms()
 {
-    tranforms->UpdateMV();
-    quadtree->UploadTransforms();
+    tranforms_manager->UpdateMV();
 }
 
 void Mesh::Init(string filepath)
 {
     quadtree = new QuadTree();
-    tranforms = new Transforms();
+    tranforms_manager = new TransformsManager();
     mesh_data = {};
     grid_quads_count = 5;
     grid_quads_count = roundUpToSq(grid_quads_count);
@@ -202,7 +201,7 @@ void Mesh::Init(string filepath)
     init_settings = {
         /*int uni_lvl*/ 0,
         /*float adaptive_factor*/ 1,
-        /*bool uniform*/ false,
+        /*bool uniform*/ true,
         /*bool map_primcount*/ true,
         /*bool rotateMesh*/ false,
         /*bool displace*/ true,
@@ -220,16 +219,63 @@ void Mesh::Init(string filepath)
     };
 
     this->LoadMeshData(filepath);
-    quadtree->Init(&(this->mesh_data), this->tranforms, init_settings);
+    quadtree->Init(&(this->mesh_data), this->tranforms_manager, init_settings);
 }
 
 void Mesh::Draw(float deltaT, bool freeze)
 {
     if (!freeze && (gl.mode == MESH) &&  quadtree->settings.rotateMesh) {
-        tranforms->M = glm::rotate(tranforms->M, 2.0f*deltaT , vec3(0.0f, 0.0f, 1.0f));
+        tranforms_manager->transforms.M = glm::rotate(tranforms_manager->transforms.M, 2.0f*deltaT , vec3(0.0f, 0.0f, 1.0f));
         UpdateTransforms();
     }
+    tranforms_manager->UploadTransforms();
     quadtree->Draw(deltaT);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// Camera and Transforms
+///
+
+void PrintCamStuff()
+{
+    cout << "Position: " << glm::to_string(cam.pos) << endl;
+    cout << "Look: " << glm::to_string(cam.look) << endl;
+    cout << "Up: " << glm::to_string(cam.up) << endl;
+    cout << "Right: " << glm::to_string(cam.right) << endl << endl;
+}
+
+void InitTranforms()
+{
+    cam.pos = INIT_CAM_POS[gl.mode];
+    cam.look = INIT_CAM_LOOK[gl.mode];
+
+    cam.up = vec3(0.0f, 0.0f, 1.0f);
+    cam.direction = glm::normalize(cam.look - cam.pos);
+    cam.look = cam.pos + cam.direction;
+
+    cam.right = glm::normalize(glm::cross(cam.direction, cam.up));
+    cam.up = -glm::normalize(glm::cross(cam.direction, cam.right));
+
+    mesh.tranforms_manager->transforms.cam_pos = cam.pos;
+    mesh.tranforms_manager->transforms.V = glm::lookAt(cam.pos, cam.look, cam.up);
+    mesh.tranforms_manager->transforms.fov = 45.0;
+    mesh.tranforms_manager->transforms.P = glm::perspective(glm::radians(mesh.tranforms_manager->transforms.fov), gl.w_width/(float)gl.w_height, 0.1f, 1024.0f);
+
+    mesh.UpdateTransforms();
+}
+
+void UpdateForNewFOV()
+{
+    mesh.tranforms_manager->transforms.P = glm::perspective(glm::radians(mesh.tranforms_manager->transforms.fov), gl.w_width/(float)gl.w_height, 0.1f, 1024.0f);
+    mesh.UpdateTransforms();
+}
+
+void UpdateForNewView()
+{
+    mesh.tranforms_manager->transforms.V = glm::lookAt(cam.pos, cam.look, cam.up);
+    mesh.tranforms_manager->transforms.cam_pos = cam.pos;
+    mesh.UpdateTransforms();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -281,52 +327,6 @@ void BenchStats::UpdateStats()
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
-/// Camera and Transforms
-///
-
-void PrintCamStuff()
-{
-    cout << "Position: " << glm::to_string(cam.pos) << endl;
-    cout << "Look: " << glm::to_string(cam.look) << endl;
-    cout << "Up: " << glm::to_string(cam.up) << endl;
-    cout << "Right: " << glm::to_string(cam.right) << endl << endl;
-}
-
-void InitTranforms()
-{
-    cam.pos = INIT_CAM_POS[gl.mode];
-    cam.look = INIT_CAM_LOOK[gl.mode];
-
-    cam.up = vec3(0.0f, 0.0f, 1.0f);
-    cam.direction = glm::normalize(cam.look - cam.pos);
-    cam.look = cam.pos + cam.direction;
-
-    cam.right = glm::normalize(glm::cross(cam.direction, cam.up));
-    cam.up = -glm::normalize(glm::cross(cam.direction, cam.right));
-
-    mesh.tranforms->cam_pos = cam.pos;
-    mesh.tranforms->V = glm::lookAt(cam.pos, cam.look, cam.up);
-    mesh.tranforms->fov = 45.0;
-    mesh.tranforms->P = glm::perspective(glm::radians(mesh.tranforms->fov), gl.w_width/(float)gl.w_height, 0.1f, 1024.0f);
-
-    mesh.UpdateTransforms();
-}
-
-void UpdateForNewFOV()
-{
-    mesh.tranforms->P = glm::perspective(glm::radians(mesh.tranforms->fov), gl.w_width/(float)gl.w_height, 0.1f, 1024.0f);
-    mesh.UpdateTransforms();
-}
-
-void UpdateForNewView()
-{
-    mesh.tranforms->V = glm::lookAt(cam.pos, cam.look, cam.up);
-    mesh.UpdateTransforms();
-    mesh.tranforms->cam_pos = cam.pos;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-///
 /// GUI Functions
 ///
 
@@ -360,7 +360,7 @@ void RenderImgui()
             mesh.quadtree->UploadSettings();
         }
         ImGui::SameLine();
-        if (ImGui::SliderFloat("FOV", &mesh.tranforms->fov, 10, 75.0)) {
+        if (ImGui::SliderFloat("FOV", &mesh.tranforms_manager->transforms.fov, 10, 75.0)) {
             UpdateForNewFOV();
         }
         if (ImGui::Button("Reinit Cam")) {
