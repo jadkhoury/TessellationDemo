@@ -166,7 +166,7 @@ public:
     void Draw(float deltaT, uint mode)
     {
         if (!quadtree->settings.freeze && (mode == MESH) &&  quadtree->settings.rotateMesh) {
-            tranforms_manager->transforms.M = glm::rotate(tranforms_manager->transforms.M, 2.0f*deltaT , vec3(0.0f, 0.0f, 1.0f));
+            tranforms_manager->block.M = glm::rotate(tranforms_manager->block.M, 2.0f*deltaT , vec3(0.0f, 0.0f, 1.0f));
             UpdateTransforms();
         }
         tranforms_manager->UploadTransforms();

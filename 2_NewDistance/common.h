@@ -144,7 +144,7 @@ struct Mesh_Data
 };
 
 // Nice little struct to manage transforms
-struct uniforms_block
+struct TransformBlock
 {
     mat4 M     = mat4(1.0);
     mat4 V     = mat4(1.0);
@@ -160,45 +160,43 @@ struct uniforms_block
 
 struct TransformsManager
 {
-
     GLuint bo;
-    uniforms_block transforms;
+    TransformBlock block;
     bool modified = true;
-
 
     void Init()
     {
         glCreateBuffers(1, &bo);
-        glNamedBufferStorage(bo, sizeof(uniforms_block), NULL, GL_DYNAMIC_STORAGE_BIT);
+        glNamedBufferStorage(bo, sizeof(TransformBlock), NULL, GL_DYNAMIC_STORAGE_BIT);
     }
 
     void updateFrustum()
     {
-        mat4& MVP = transforms.MVP;
+        mat4& MVP = block.MVP;
         for (int i = 0; i < 3; ++i)
             for (int j = 0; j < 2; ++j) {
-                transforms.frustum_planes[i*2+j].x = MVP[0][3] + (j == 0 ? MVP[0][i] : -MVP[0][i]);
-                transforms.frustum_planes[i*2+j].y = MVP[1][3] + (j == 0 ? MVP[1][i] : -MVP[1][i]);
-                transforms.frustum_planes[i*2+j].z = MVP[2][3] + (j == 0 ? MVP[2][i] : -MVP[2][i]);
-                transforms.frustum_planes[i*2+j].w = MVP[3][3] + (j == 0 ? MVP[3][i] : -MVP[3][i]);
-                vec3 tmp = vec3(transforms.frustum_planes[i*2+j]);
-                transforms.frustum_planes[i*2+j] *= glm::length(tmp);
+                block.frustum_planes[i*2+j].x = MVP[0][3] + (j == 0 ? MVP[0][i] : -MVP[0][i]);
+                block.frustum_planes[i*2+j].y = MVP[1][3] + (j == 0 ? MVP[1][i] : -MVP[1][i]);
+                block.frustum_planes[i*2+j].z = MVP[2][3] + (j == 0 ? MVP[2][i] : -MVP[2][i]);
+                block.frustum_planes[i*2+j].w = MVP[3][3] + (j == 0 ? MVP[3][i] : -MVP[3][i]);
+                vec3 tmp = vec3(block.frustum_planes[i*2+j]);
+                block.frustum_planes[i*2+j] *= glm::length(tmp);
             }
     }
 
     void UploadTransforms()
     {
         if(modified ) {
-            glNamedBufferSubData(bo, 0, sizeof(uniforms_block), &transforms);
+            glNamedBufferSubData(bo, 0, sizeof(TransformBlock), &block);
             modified = false;
         }
     }
 
     void UpdateMV()
     {
-        transforms.MV = transforms.V * transforms.M;
-        transforms.MVP = transforms.P * transforms.MV;
-        transforms.invMV = glm::transpose(glm::inverse(transforms.MV));
+        block.MV = block.V * block.M;
+        block.MVP = block.P * block.MV;
+        block.invMV = glm::transpose(glm::inverse(block.MV));
         updateFrustum();
         modified = true;
 

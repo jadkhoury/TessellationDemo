@@ -12,7 +12,6 @@
 ///
 /// Const and Structs
 ///
-
 static const GLfloat black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 static const GLfloat grey[] = { 0.05f, 0.05f, 0.1f, 1.0f };
 static const GLfloat one = 1.0;
@@ -67,6 +66,7 @@ Mesh mesh;
 /// Camera and Transforms
 ///
 
+
 void PrintCamStuff()
 {
     cout << "Position: " << glm::to_string(cam.pos) << endl;
@@ -77,34 +77,37 @@ void PrintCamStuff()
 
 void InitTranforms()
 {
+    TransformBlock& tb = mesh.tranforms_manager->block;
+
     cam.pos = INIT_CAM_POS[gl.mode];
     cam.look = INIT_CAM_LOOK[gl.mode];
 
     cam.up = vec3(0.0f, 0.0f, 1.0f);
     cam.direction = glm::normalize(cam.look - cam.pos);
-    cam.look = cam.pos + cam.direction;
-
     cam.right = glm::normalize(glm::cross(cam.direction, cam.up));
-    cam.up = -glm::normalize(glm::cross(cam.direction, cam.right));
 
-    mesh.tranforms_manager->transforms.cam_pos = cam.pos;
-    mesh.tranforms_manager->transforms.V = glm::lookAt(cam.pos, cam.look, cam.up);
-    mesh.tranforms_manager->transforms.fov = 45.0;
-    mesh.tranforms_manager->transforms.P = glm::perspective(glm::radians(mesh.tranforms_manager->transforms.fov), gl.w_width/(float)gl.w_height, 0.1f, 1024.0f);
+    tb.cam_pos = cam.pos;
+    tb.V = glm::lookAt(cam.pos, cam.look, cam.up);
+    tb.fov = 45.0;
+    tb.P = glm::perspective(glm::radians(tb.fov), gl.w_width/(float)gl.w_height, 0.1f, 1024.0f);
 
     mesh.UpdateTransforms();
 }
 
 void UpdateForNewFOV()
 {
-    mesh.tranforms_manager->transforms.P = glm::perspective(glm::radians(mesh.tranforms_manager->transforms.fov), gl.w_width/(float)gl.w_height, 0.1f, 1024.0f);
+    TransformBlock& tb = mesh.tranforms_manager->block;
+
+    tb.P = glm::perspective(glm::radians(tb.fov), gl.w_width/(float)gl.w_height, 0.1f, 1024.0f);
     mesh.UpdateTransforms();
 }
 
 void UpdateForNewView()
 {
-    mesh.tranforms_manager->transforms.V = glm::lookAt(cam.pos, cam.look, cam.up);
-    mesh.tranforms_manager->transforms.cam_pos = cam.pos;
+    TransformBlock& tb = mesh.tranforms_manager->block;
+
+    tb.V = glm::lookAt(cam.pos, cam.look, cam.up);
+    tb.cam_pos = cam.pos;
     mesh.UpdateTransforms();
 }
 
@@ -190,7 +193,7 @@ void RenderImgui()
             mesh.quadtree->UploadSettings();
         }
         ImGui::SameLine();
-        if (ImGui::SliderFloat("FOV", &mesh.tranforms_manager->transforms.fov, 10, 75.0)) {
+        if (ImGui::SliderFloat("FOV", &mesh.tranforms_manager->block.fov, 10, 75.0)) {
             UpdateForNewFOV();
         }
         if (ImGui::Button("Reinit Cam")) {
@@ -414,7 +417,6 @@ void mouseMotionCallback(GLFWwindow* window, double x, double y)
         mat4 v_rotation = glm::rotate(IDENTITY, float(dy), cam.right);
         cam.direction = glm::normalize(mat3(h_rotation) * mat3(v_rotation) * cam.direction);
         cam.right     = glm::normalize(mat3(h_rotation) * mat3(v_rotation) * cam.right);
-        cam.up = -glm::normalize(glm::cross(cam.direction, cam.right));
         cam.look = cam.pos + cam.direction;
         UpdateForNewView();
 
