@@ -1,6 +1,7 @@
 # Compute Shader Surface Subdivision
 
-[![Build Status](https://travis-ci.org/jadkhoury/TessellationDemo.svg?branch=master)](https://travis-ci.org/jadkhoury/TessellationDemo)
+[![Build Status](https://travis-ci.org/jadkhoury/TessellationDemo.svg?branch=master)](https://travis-ci.org/jadkhoury/TessellationDemo) [![Build status](https://ci.appveyor.com/api/projects/status/445xn4iwo7p280yw?svg=true)](https://ci.appveyor.com/project/jadkhoury/tessellationdemo)
+
 
 This repository contains the demo code for the research project Tessellation On Compute Shader.
 Requires OpenGL 4.5 min.
