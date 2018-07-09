@@ -59,12 +59,10 @@ void computeTessLvlWithParent(uvec4 key, out float lvl, out float parent_lvl) {
 bool culltest(mat4 mvp, vec3 bmin, vec3 bmax)
 {
     bool inside = true;
-    bvec3 b;
-    vec3 n;
     for (int i = 0; i < 6; ++i) {
-        b = greaterThan(frustum_planes[i].xyz, vec3(0));
-        n = mix(bmin, bmax, b);
-        inside = inside && dot(vec4(n, 1.0), frustum_planes[i]) >= 0;
+        bvec3 b = greaterThan(frustum_planes[i].xyz, vec3(0));
+        vec3 n = mix(bmin, bmax, b);
+        inside = inside && (dot(vec4(n, 1.0), frustum_planes[i]) >= 0);
     }
     return inside;
 }

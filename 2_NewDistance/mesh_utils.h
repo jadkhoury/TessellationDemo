@@ -60,7 +60,8 @@ void LoadGrid(Mesh_Data* mesh_data, int grid_quads_count)
     mesh_data->t_idx.count = count;
     mesh_data->t_idx_array = new uint[mesh_data->t_idx.count];
     for (uint i = 0; i < mesh_data->t_idx.count; ++i) {
-        mesh_data->t_idx_array[i] = uint(indices[i]);
+        int k = mesh_data->t_idx.count - i - 1;
+        mesh_data->t_idx_array[i] = uint(indices[k]);
     }
     mesh_data->quad_count = mesh_data->q_idx.count / 4;
     mesh_data->triangle_count = mesh_data->t_idx.count / 3;

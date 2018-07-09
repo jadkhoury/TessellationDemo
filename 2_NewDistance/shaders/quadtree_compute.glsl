@@ -149,6 +149,9 @@ void cullPass(uvec4 key)
     if(cull > 0)
     {
         mat4 mesh_coord;
+        vec4 b_min = vec4(10e6);
+        vec4 b_max = vec4(-10e6);
+
         mesh_coord[O] = lt_Leaf_to_MeshPrimitive(unit_O, key, false, poly_type);
         mesh_coord[U] = lt_Leaf_to_MeshPrimitive(unit_U, key, false, poly_type);
         mesh_coord[R] = lt_Leaf_to_MeshPrimitive(unit_R, key, false, poly_type);
@@ -160,12 +163,10 @@ void cullPass(uvec4 key)
             mesh_coord[R] = heightDisplace(mesh_coord[R], n);
         }
 
-        vec4 b_min = vec4(10e6);
         b_min = min(b_min, mesh_coord[O]);
         b_min = min(b_min, mesh_coord[U]);
         b_min = min(b_min, mesh_coord[R]);
 
-        vec4 b_max = vec4(-10e6);
         b_max = max(b_max, mesh_coord[O]);
         b_max = max(b_max, mesh_coord[U]);
         b_max = max(b_max, mesh_coord[R]);

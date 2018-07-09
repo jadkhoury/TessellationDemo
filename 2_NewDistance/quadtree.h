@@ -442,7 +442,6 @@ public:
     /// The Program
     ///
     ///
-
     /*
      * Initialize the Quadtree:
      * - Recieve the mesh data and transform poniters
@@ -547,7 +546,6 @@ public:
 //         commands_->PrintAtomicArray();
 
         glDisable(GL_RASTERIZER_DISCARD);
-        glDisable(GL_CULL_FACE);
 RENDER_PASS:
         if (settings.map_primcount) {
             prim_count_ = commands_->GetPrimCount();
@@ -559,7 +557,8 @@ RENDER_PASS:
          * - Render the triangles
          */
         glEnable(GL_DEPTH_TEST);
-        glDisable(GL_CULL_FACE);
+        glFrontFace(GL_CCW);
+        glEnable(GL_CULL_FACE);
 
         glClearDepth(1.0);
         glClearColor(1,1,1,1);
