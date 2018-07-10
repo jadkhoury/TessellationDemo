@@ -308,6 +308,21 @@ void lt_getRootTriangle(in uint rootID, out Triangle2D t)
     t.p[2] = vec2(1-b, b);
 }
 
+void lt_getMeshQuadTriangle(in uvec4 key, out Triangle mesh_t)
+{
+    Quad q;
+    lt_getMeshQuad(key.z, q);
+    if (key.w == 0) {
+        mesh_t.vertex[0] = q.vertex[0];
+        mesh_t.vertex[1] = q.vertex[3];
+        mesh_t.vertex[2] = q.vertex[1];
+    } else {
+        mesh_t.vertex[0] = q.vertex[2];
+        mesh_t.vertex[1] = q.vertex[1];
+        mesh_t.vertex[2] = q.vertex[3];
+    }
+}
+
 // *** Get the given primitive mean normal *** //
 vec4 lt_getMeanPrimNormal(in uvec4 key, in int poly_type) {
     uint meshPolygonID = key.z;

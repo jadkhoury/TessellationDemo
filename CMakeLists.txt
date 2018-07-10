@@ -56,23 +56,23 @@ copy_files_once(${OBJ_FILES})
 
 # **************** Project 0_FullProgram **************** #
 
-#message(STATUS "**** 0_FullProgram ****")
+message(STATUS "**** 0_FullProgram ****")
 
-#set(SRC_DIR 0_FullProgram)
+set(SRC_DIR 0_FullProgram)
 
-#file(GLOB_RECURSE SHADERS ${SRC_DIR}/*.glsl)
-#file(GLOB_RECURSE HEADERS ${SRC_DIR}/*.h)
+file(GLOB_RECURSE SHADERS ${SRC_DIR}/*.glsl)
+file(GLOB_RECURSE HEADERS ${SRC_DIR}/*.h)
 
-#include_directories(${SRC_DIR})
-#aux_source_directory(${SRC_DIR} SRC_FILES)
+include_directories(${SRC_DIR})
+aux_source_directory(${SRC_DIR} SRC_FILES)
 
-#add_executable(program ${SRC_FILES} ${SHADERS} ${HEADERS} ${GLAD_C})
+add_executable(program ${SRC_FILES} ${SHADERS} ${HEADERS} ${GLAD_C})
 
-#target_link_libraries(program glad glfw imgui)
+target_link_libraries(program glad glfw imgui)
 
-#unset(SRC_FILES)
-#unset(SHADERS)
-#unset(HEADERS)
+unset(SRC_FILES)
+unset(SHADERS)
+unset(HEADERS)
 
 # **************** Project 1_DistancePipeline **************** #
 

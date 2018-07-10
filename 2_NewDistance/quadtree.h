@@ -10,39 +10,46 @@ class QuadTree
 public:
     struct Settings
     {
-        int uni_lvl;            // Level of uniform subdivision
+        bool uniform_on;           // Toggle uniform subdivision
+        int uniform_lvl;            // Level of uniform subdivision
         float adaptive_factor;  // Factor scaling the adaptive subdivision
-        bool uniform;           // Toggle uniform subdivision
         bool map_primcount;     // Toggle the readback of the node counters
         bool rotateMesh;        // Toggle mesh rotation (for mesh)
         bool displace;          // Toggle displacement mapping (for terrain)
         int color_mode;         // Switch color mode of the render
-        bool render_projection; // Toggle the MVP matrix
+        bool projection_on; // Toggle the MVP matrix
 
         int poly_type;    // Type of polygon of the mesh (changes number of root triangle)
-        bool morph;       // Toggle T-Junction Removal
+        bool morph_on;    // Toggle T-Junction Removal
         bool freeze;      // Toggle freeze i.e. stop updating the quadtree, but keep rendering
         int cpu_lod;      // Control CPU LoD, i.e. subdivision level of the instantiated triangle grid
-        bool cull;        // Toggle Cull
-        bool debug_morph; // Toggle morph debuging
+        bool cull_on;     // Toggle Cull
+        bool morph_debug; // Toggle morph debuging
         float morph_k;    // Control morph factor
+
+        bool ipl_on;
+        float ipl_alpha;
+
 
         uint wg_count; // Control morph factor
 
         void Upload(uint pid)
         {
-            utility::SetUniformBool(pid, "uniform_subdiv", uniform);
-            utility::SetUniformInt(pid, "uniform_level", uni_lvl);
+            utility::SetUniformBool(pid, "uniform_subdiv", uniform_on);
+            utility::SetUniformInt(pid, "uniform_level", uniform_lvl);
             utility::SetUniformFloat(pid, "adaptive_factor", adaptive_factor);
             utility::SetUniformBool(pid, "heightmap", displace);
             utility::SetUniformInt(pid, "color_mode", color_mode);
-            utility::SetUniformBool(pid, "render_MVP", render_projection);
-            utility::SetUniformBool(pid, "morph", morph);
-            utility::SetUniformBool(pid, "cull", cull);
+            utility::SetUniformBool(pid, "render_MVP", projection_on);
+            utility::SetUniformBool(pid, "cull", cull_on);
             utility::SetUniformFloat(pid, "cpu_lod", float(cpu_lod));
             utility::SetUniformInt(pid, "poly_type", poly_type);
-            utility::SetUniformBool(pid, "debug_morph", debug_morph);
+            utility::SetUniformBool(pid, "morph", morph_on);
+            utility::SetUniformBool(pid, "morph_debug", morph_debug);
             utility::SetUniformFloat(pid, "morph_k", morph_k);
+
+            utility::SetUniformBool(pid, "ipl_on", ipl_on);
+            utility::SetUniformFloat(pid, "ipl_alpha", ipl_alpha);
         }
     } settings;
 
@@ -139,7 +146,9 @@ private:
         djgp_push_file(djp, strcat2(buf, shader_dir, "gpu_noise_lib.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "dj_heightmap.glsl"));
 
+
         djgp_push_file(djp, strcat2(buf, shader_dir, "ltree_jk.glsl"));
+
         djgp_push_file(djp, strcat2(buf, shader_dir, "LoD.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "quadtree_compute.glsl"));
         if (!djgp_to_gl(djp, 450, false, true, &compute_program_))
@@ -202,6 +211,8 @@ private:
         djgp_push_file(djp, strcat2(buf, shader_dir, "ltree_jk.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "LoD.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "dj_heightmap.glsl"));
+        djgp_push_file(djp, strcat2(buf, shader_dir, "PN_interpolation.glsl"));
+
         djgp_push_file(djp, strcat2(buf, shader_dir, "quadtree_render.glsl"));
         if (!djgp_to_gl(djp, 450, false, true, &render_program_))
         {
@@ -558,7 +569,7 @@ RENDER_PASS:
          */
         glEnable(GL_DEPTH_TEST);
         glFrontFace(GL_CCW);
-        glEnable(GL_CULL_FACE);
+//        glEnable(GL_CULL_FACE);
 
         glClearDepth(1.0);
         glClearColor(1,1,1,1);

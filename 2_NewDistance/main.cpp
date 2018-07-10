@@ -189,7 +189,7 @@ void RenderImgui()
                 mesh.Init(gl.filepath);
             InitTranforms();
         }
-        if (ImGui::Checkbox("Render Projection", &settings_ref.render_projection)) {
+        if (ImGui::Checkbox("Render Projection", &settings_ref.projection_on)) {
             mesh.quadtree->UploadSettings();
         }
         ImGui::SameLine();
@@ -211,11 +211,11 @@ void RenderImgui()
                          "LoD & Morph\0White Wireframe\0Polygone Highlight\0Frustum\0Cull\0Debug\0\0")) {
             mesh.quadtree->UploadSettings();
         }
-        if (ImGui::Checkbox("Uniform", &settings_ref.uniform)) {
+        if (ImGui::Checkbox("Uniform", &settings_ref.uniform_on)) {
             mesh.quadtree->UploadSettings();
         }
         ImGui::SameLine();
-        if (ImGui::SliderInt("", &settings_ref.uni_lvl, 0, 20)) {
+        if (ImGui::SliderInt("", &settings_ref.uniform_lvl, 0, 20)) {
             mesh.quadtree->UploadSettings();
         }
         if (ImGui::SliderFloat("LoD Factor", &settings_ref.adaptive_factor, 1, max_lod)) {
@@ -236,15 +236,15 @@ void RenderImgui()
         }
         if (ImGui::SliderInt("CPU LoD", &settings_ref.cpu_lod, 0, 8)) {
             if(settings_ref.cpu_lod < 2)
-                settings_ref.morph = false;
+                settings_ref.morph_on = false;
             mesh.quadtree->ReloadLeafPrimitive();
             mesh.quadtree->UploadSettings();
         }
-        if (ImGui::Checkbox("Morph  ", &settings_ref.morph)) {
+        if (ImGui::Checkbox("Morph  ", &settings_ref.morph_on)) {
             mesh.quadtree->UploadSettings();
         }
 
-        if (ImGui::Checkbox("Cull", &settings_ref.cull)) {
+        if (ImGui::Checkbox("Cull", &settings_ref.cull_on)) {
             mesh.quadtree->UploadSettings();
         }
         ImGui::SameLine();
@@ -255,11 +255,19 @@ void RenderImgui()
         if (ImGui::Button("Reinitialize QuadTree")) {
             mesh.quadtree->Reinitialize();
         }
-        if (ImGui::Checkbox("Debug morph", &settings_ref.debug_morph)) {
+        if (ImGui::Checkbox("Debug morph", &settings_ref.morph_debug)) {
             mesh.quadtree->UploadSettings();
         }
         if (ImGui::SliderFloat("morphK", &settings_ref.morph_k, 0, 1.0)) {
             mesh.quadtree->UploadSettings();
+        }
+        if (ImGui::Checkbox("Interpolate", &settings_ref.ipl_on)) {
+            mesh.quadtree->UploadSettings();
+        }
+        ImGui::SameLine();
+        if (ImGui::SliderFloat("alpha", &settings_ref.ipl_alpha, 0, 1.0)) {
+            mesh.quadtree->UploadSettings();
+
         }
 
         ImGui::Text("\n------ Benchmarking ------");

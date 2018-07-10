@@ -45,8 +45,12 @@ uniform int morph;
 uniform int heightmap;
 uniform int num_vertices, num_indices;
 
-uniform int debug_morph;
+uniform int morph_debug;
 uniform float morph_k;
+
+
+uniform int ipl_on;
+uniform float ipl_alpha;
 
 // ------------------- Color Functions ------------------- //
 
@@ -110,6 +114,7 @@ vec4 diffuseColor(vec3 p_mv, vec3 n_mv, vec3 light_dir)
     return vec4(c,1);
 }
 
+
 // ------------------- Geometry Functions ------------------- //
 
 // based on Filip Strugar's CDLOD paper (until intPart & signVec)
@@ -123,7 +128,7 @@ vec2 morphVertexInUnit(uvec4 key, vec2 leaf_p, vec2 tree_p)
 
     float node_lvl = lt_level_64(key.xy);
     float tessLevel = clamp(node_lvl -  vertex_lvl, 0.0, 1.0);
-    float morphK = (debug_morph > 0) ? morph_k : smoothstep(0.4, 0.5, tessLevel);
+    float morphK = (morph_debug > 0) ? morph_k : smoothstep(0.4, 0.5, tessLevel);
 
     float patchTessFactor = 0x1 << int(cpu_lod); // = nb of intervals per side of node primitive
     vec2 fracPart = fract(leaf_p * patchTessFactor * 0.5) * 2.0 / patchTessFactor;
@@ -143,30 +148,50 @@ vec3 heightDisplace(in vec3 v, out vec3 n) {
 // ------------------------ Main ------------------------ //
 void main()
 {
-    uint instanceID;
+    // Recover information about the current vertex
     v_uv = tri_p.xy;
-    instanceID = gl_InstanceID;
 
+    // Recover data about the current quadtree node
+    uint instanceID = gl_InstanceID;
     uvec4 key = lt_getKey_64(instanceID);
     uvec2 nodeID = key.xy;
     uint meshPolygonID = key.z;
     uint rootID = key.w & 0x3;
     uint level = lt_level_64(key.xy);
 
-    vec4 p, n;
-    v_pos = lt_Leaf_to_MeshPrimitive(v_uv, key, false, poly_type).xyz;
-    vec2 tree_pos = lt_Leaf_to_Tree_64(v_uv, nodeID);
-    if (morph > 0)
-        tree_pos = morphVertexInUnit(key, v_uv, tree_pos);
-    v_pos = lt_Tree_to_MeshPrimitive(tree_pos, key, false, poly_type).xyz;
 
-    if (heightmap > 0) {
-        n = vec4(0,0,1,0);
-        v_pos =  heightDisplace(v_pos, n.xyz);
+
+    vec4 p, n;
+    if(ipl_on == 0) {
+        // Compute mesh-space position after morphing
+        v_pos = lt_Leaf_to_MeshPrimitive(v_uv, key, false, poly_type).xyz;
+        vec2 tree_pos = lt_Leaf_to_Tree_64(v_uv, nodeID);
+        if (morph > 0)
+            tree_pos = morphVertexInUnit(key, v_uv, tree_pos);
+        v_pos = lt_Tree_to_MeshPrimitive(tree_pos, key, false, poly_type).xyz;
+
+        // Update normal and position for displacement mapping
+        if (heightmap > 0) {
+            n = vec4(0,0,1,0);
+            v_pos =  heightDisplace(v_pos, n.xyz);
+        } else {
+            n = lt_getMeanPrimNormal(key, poly_type);
+        }
     } else {
-        n = lt_getMeanPrimNormal(key, poly_type);
+        vec2 tree_pos = lt_Leaf_to_Tree_64(v_uv, nodeID);
+        p = vec4(0.0);
+        n = vec4(0.0);
+        if (morph > 0)
+            tree_pos = morphVertexInUnit(key, v_uv, tree_pos);
+        PNInterpolation(key, tree_pos, poly_type, ipl_alpha, p, n);
+        v_pos = p.xyz;
+
+
     }
 
+
+
+    // Assign color to current vertex
     switch (color_mode) {
     case LOD:
         v_color = levelColor(level);
@@ -178,11 +203,19 @@ void main()
         v_color = cullColor(v_pos);
         break;
     case DEBUG:
+#if 0
         vec3 normal_mv = vec3(invMV * n);
         vec3 v_pos_mv =  vec3(MV * vec4(v_pos,1));
         vec3 light_pos = vec3(V * vec4(10,0,0,1));
         vec3 light_dir = light_pos - v_pos_mv;
         v_color = diffuseColor(v_pos_mv, normal_mv, light_dir);
+#else
+        v_color = vec4(n.xyz*0.5+0.5, 1.0);
+        if(key.w == 0)
+            v_color = RED * 0.5 + 0.5;
+        else
+            v_color = BLUE * 0.5 + 0.5;
+#endif
         break;
     default:
         v_color = vec4(1);

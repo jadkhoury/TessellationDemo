@@ -154,8 +154,10 @@ public:
             /*bool freeze*/ false,
             /*int cpu_lod*/ 2,
             /*bool cull*/ true,
-            /*bool debug_morph*/ false,
+            /*bool morph_debug*/ false,
             /*float morph_k*/ 0.0,
+            /*bool ipl_on*/ false,
+            /*float ipl_alpha*/ 0.0,
             /*uint wg_count*/ 512
         };
 

@@ -1,5 +1,3 @@
-#line 3002
-
 float displace(vec3 p, float screen_resolution) {
     p+=2.0;
     const float H = 0.99;
