@@ -1,6 +1,16 @@
 #ifndef PNINTERP_GLSL
 #define PNINTERP_GLSL
 
+#ifndef LTREE_GLSL
+struct Vertex {
+    vec4 p;
+    vec4 n;
+    vec2 uv;
+    vec2 align;
+};
+#endif
+
+
 // PN patch data
 struct PnPatch
 {
@@ -128,11 +138,12 @@ void Interpolate_pn(Triangle target_T, vec3 uvw, float alpha, out vec4 result_p,
 void PNInterpolation(uvec4 key, vec2 uv, int poly_type, float alpha, out vec4 final_pos, out vec4 final_n)
 {
     uint meshPolygonID = key.z;
+    uint rootID = key.w;
     Triangle mesh_t;
     if (poly_type == TRIANGLES)
         lt_getMeshTriangle(meshPolygonID, mesh_t);
     else
-        lt_getMeshQuadTriangle(key, mesh_t);
+        lt_getQuadMeshTriangle(meshPolygonID, rootID, mesh_t);
 
     float u = uv.x, v = uv.y, w = 1.0-u-v;
     vec3 uvw = vec3(v, u, w);
