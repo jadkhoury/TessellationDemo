@@ -38,6 +38,8 @@ struct OpenGLManager {
     uint mode;
     string filepath;
     const string default_filepath = "bigguy.obj";
+
+    bool auto_lod;
 } gl = {};
 
 
@@ -218,17 +220,22 @@ void RenderImgui()
         if (ImGui::SliderInt("", &settings_ref.uniform_lvl, 0, 20)) {
             mesh.quadtree->UploadSettings();
         }
+        ImGui::Checkbox("Auto LoD", &gl.auto_lod);
+        ImGui::SameLine();
         if (ImGui::SliderFloat("LoD Factor", &settings_ref.adaptive_factor, 1, max_lod)) {
             mesh.quadtree->UploadSettings();
         }
-
         if (ImGui::Checkbox("Readback instance count", &settings_ref.map_primcount)) {
             mesh.quadtree->UploadSettings();
         }
-        if ( settings_ref.map_primcount) {
-            ImGui::Text(utility::LongToString(mesh.quadtree->GetPrimcount()).c_str());
+        if (settings_ref.map_primcount) {
+            ImGui::Text("Total    : "); ImGui::SameLine();
+            ImGui::Text(utility::LongToString(mesh.quadtree->full_node_count_).c_str());
+            ImGui::Text("Drawn    : "); ImGui::SameLine();
+            ImGui::Text(utility::LongToString(mesh.quadtree->drawn_node_count).c_str());
+            ImGui::Text("Triangles: "); ImGui::SameLine();
+            ImGui::Text(utility::LongToString(mesh.quadtree->drawn_node_count*16).c_str());
         }
-
         ImGui::Text("\n------ QuadTree settings ------");
         if (ImGui::Combo("Polygon type", &settings_ref.poly_type, "Triangle\0Quad\0\0")) {
             mesh.LoadMeshBuffers();
@@ -308,7 +315,7 @@ void RenderImgui()
             values_qt_gpu_render[offset]  = mesh.quadtree->ticks.gpu_render  * 1000.0;
 
             values_fps[offset] = ImGui::GetIO().Framerate;
-            values_primcount[offset] = mesh.quadtree->GetPrimcount();
+            values_primcount[offset] = mesh.quadtree->full_node_count_;
 
             offset = (offset+1) % IM_ARRAYSIZE(values_qt_gpu_compute);
             refresh_time += 1.0f/30.0f;
@@ -472,6 +479,7 @@ void Init()
     cout << "INITIALIZATION" << endl;
 
     gl.pause = false;
+    gl.auto_lod = false;
 
     INIT_CAM_POS[TERRAIN]  = vec3(3.9, 3.6, 0.6);
     INIT_CAM_LOOK[TERRAIN] = vec3(3.3, 2.9, 0.33);
@@ -500,19 +508,18 @@ void Draw()
     benchStats.UpdateStats();
     RenderImgui();
 
-#define AUTO_LOD
-#ifdef AUTO_LOD
-    static float upperFPS = 70, lowerFPS = 60;
-    if (!mesh.quadtree->settings.uniform_on) {
-        if (benchStats.delta_T < 1.0/upperFPS) {
-            mesh.quadtree->settings.adaptive_factor *= 1.01;
-            mesh.quadtree->UploadSettings();
-        } else if (benchStats.delta_T > 1.0/lowerFPS){
-            mesh.quadtree->settings.adaptive_factor *= 0.99;
-            mesh.quadtree->UploadSettings();
+    if (gl.auto_lod) {
+        static float upperFPS = 70, lowerFPS = 60;
+        if (!mesh.quadtree->settings.uniform_on) {
+            if (benchStats.delta_T < 1.0/upperFPS) {
+                mesh.quadtree->settings.adaptive_factor *= 1.01;
+                mesh.quadtree->UploadSettings();
+            } else if (benchStats.delta_T > 1.0/lowerFPS){
+                mesh.quadtree->settings.adaptive_factor *= 0.99;
+                mesh.quadtree->UploadSettings();
+            }
         }
     }
-#endif
 }
 
 void Cleanup() {

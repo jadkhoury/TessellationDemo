@@ -43,7 +43,7 @@ private:
         DispatchIndirect,  // Dispatch command
         NodeCounterFull,   // Array of atomic counters of unculled nodes
         NodeCounterCulled, // Array of atomic counters of all nodes
-        Copy,              // Proxy buffer used to read back from GPU
+        Proxy,              // Proxy buffer used to read back from GPU
         BUFFER_COUNT
     };
     static const int NUM_ELEM = 16; // Number of atomic counters in the array
@@ -80,10 +80,10 @@ private:
 
     bool loadCopyBuffer()
     {
-        utility::EmptyBuffer(&buffers_[Copy]);
-        glCreateBuffers(1, &buffers_[Copy]);
+        utility::EmptyBuffer(&buffers_[Proxy]);
+        glCreateBuffers(1, &buffers_[Proxy]);
         uint zeros[NUM_ELEM] = {0};
-        glNamedBufferStorage(buffers_[Copy], NUM_ELEM * sizeof(uint), &zeros,
+        glNamedBufferStorage(buffers_[Proxy], NUM_ELEM * sizeof(uint), &zeros,
                              GL_DYNAMIC_STORAGE_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
         return (glGetError() == GL_NO_ERROR);
 
@@ -170,11 +170,22 @@ public:
 
     // Return the number of nodes to render stored in the current Draw command
     // To help asynchronicity, first copy from command buffer to proxy buffer, then from proxy to CPU
-    int GetPrimCount()
+    int GetDrawnNodeCount()
     {
-        glCopyNamedBufferSubData(buffers_[DrawIndirect], buffers_[Copy], sizeof(uint), 0, sizeof(uint));
-        uint* data = (uint*) glMapNamedBuffer(buffers_[Copy], GL_READ_ONLY);
-        glUnmapNamedBuffer(buffers_[Copy]);
+        glCopyNamedBufferSubData(buffers_[DrawIndirect], buffers_[Proxy],
+                                 sizeof(uint), 0, sizeof(uint));
+        uint* data = (uint*) glMapNamedBuffer(buffers_[Proxy], GL_READ_ONLY);
+        glUnmapNamedBuffer(buffers_[Proxy]);
+        return data[0];
+    }
+
+    int GetFullNodeCount()
+    {
+        glCopyNamedBufferSubData(buffers_[NodeCounterFull], buffers_[Proxy],
+                                 sizeof(uint)*primCount_read_, 0, sizeof(uint));
+
+        uint* data = (uint*) glMapNamedBuffer(buffers_[Proxy], GL_READ_ONLY);
+        glUnmapNamedBuffer(buffers_[Proxy]);
         return data[0];
     }
 
@@ -182,9 +193,9 @@ public:
     void PrintAtomicArray()
     {
         cout << "AtomicArray: ";
-        glCopyNamedBufferSubData(buffers_[NodeCounterFull], buffers_[Copy], 0, 0, NUM_ELEM * sizeof(uint));
-        uint* data = (uint*) glMapNamedBuffer(buffers_[Copy], GL_READ_ONLY);
-        glUnmapNamedBuffer(buffers_[Copy]);
+        glCopyNamedBufferSubData(buffers_[NodeCounterFull], buffers_[Proxy], 0, 0, NUM_ELEM * sizeof(uint));
+        uint* data = (uint*) glMapNamedBuffer(buffers_[Proxy], GL_READ_ONLY);
+        glUnmapNamedBuffer(buffers_[Proxy]);
         for (int i = 0; i < NUM_ELEM; ++i) {
             cout << data[i] << " ";
         }
@@ -195,9 +206,9 @@ public:
     void PrintWGCountInDispatch()
     {
         cout << "WG size X in Dispatch bufffer: ";
-        glCopyNamedBufferSubData(buffers_[DispatchIndirect], buffers_[Copy], 0, 0, sizeof(uint));
-        uint* data = (uint*) glMapNamedBuffer(buffers_[Copy], GL_READ_ONLY);
-        glUnmapNamedBuffer(buffers_[Copy]);
+        glCopyNamedBufferSubData(buffers_[DispatchIndirect], buffers_[Proxy], 0, 0, sizeof(uint));
+        uint* data = (uint*) glMapNamedBuffer(buffers_[Proxy], GL_READ_ONLY);
+        glUnmapNamedBuffer(buffers_[Proxy]);
         cout << data[0] << endl;
     }
 
@@ -210,8 +221,8 @@ public:
     // (i.e. different CPU LoD => different number of indices )
     void UpdateLeafGeometry(uint tri_num_v)
     {
-        glNamedBufferSubData(buffers_[Copy], 0, sizeof(uint), &tri_num_v);
-        glCopyNamedBufferSubData(buffers_[Copy], buffers_[DrawIndirect], 0, 0, sizeof(uint));
+        glNamedBufferSubData(buffers_[Proxy], 0, sizeof(uint), &tri_num_v);
+        glCopyNamedBufferSubData(buffers_[Proxy], buffers_[DrawIndirect], 0, 0, sizeof(uint));
     }
 
     void Cleanup()

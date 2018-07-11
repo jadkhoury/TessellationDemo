@@ -52,6 +52,8 @@ public:
             utility::SetUniformFloat(pid, "ipl_alpha", ipl_alpha);
         }
     } settings;
+    uint full_node_count_, drawn_node_count;
+
 
 private:
     Commands* commands_;
@@ -77,7 +79,7 @@ private:
     //Compute Shader parameters
     uvec3 local_WG_size_;
     uint local_WG_count;
-    uint prim_count_, init_node_count_, init_wg_count_;
+    uint init_node_count_, init_wg_count_;
 
 
     djg_clock* compute_clock;
@@ -418,11 +420,6 @@ public:
         commands_->Init(leaf_geometry.idx.count, init_wg_count_, init_node_count_);
     }
 
-    int GetPrimcount()
-    {
-        return prim_count_;
-    }
-
     void ReloadLeafPrimitive()
     {
         loadLeafBuffers(settings.cpu_lod);
@@ -471,7 +468,6 @@ public:
         transfo_ = transfo;
         settings = init_settings;
 
-        prim_count_ = 0;
         commands_ = new Commands();
         compute_clock = djgc_create();
         render_clock = djgc_create();
@@ -559,7 +555,9 @@ public:
         glDisable(GL_RASTERIZER_DISCARD);
 RENDER_PASS:
         if (settings.map_primcount) {
-            prim_count_ = commands_->GetPrimCount();
+            drawn_node_count = commands_->GetDrawnNodeCount();
+            full_node_count_ = commands_->GetFullNodeCount();
+
         }
         /*
          * RENDER PASS
