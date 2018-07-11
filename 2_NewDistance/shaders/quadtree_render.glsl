@@ -165,10 +165,10 @@ void main()
     if(ipl_on == 0) {
         // Compute mesh-space position after morphing
         v_pos = lt_Leaf_to_MeshPrimitive(v_uv, key, false, poly_type).xyz;
-        vec2 tree_pos = lt_Leaf_to_Tree_64(v_uv, nodeID);
+        vec2 tree_pos = lt_Leaf_to_Tree_64(v_uv, nodeID, false);
         if (morph > 0)
             tree_pos = morphVertexInUnit(key, v_uv, tree_pos);
-        v_pos = lt_Tree_to_MeshPrimitive(tree_pos, key, false, poly_type).xyz;
+        v_pos = lt_Tree_to_MeshTriangle(tree_pos, poly_type, key.z, key.w).xyz;
 
         // Update normal and position for displacement mapping
         if (heightmap > 0) {
@@ -178,7 +178,7 @@ void main()
             n = lt_getMeanPrimNormal(key, poly_type);
         }
     } else {
-        vec2 tree_pos = lt_Leaf_to_Tree_64(v_uv, nodeID);
+        vec2 tree_pos = lt_Leaf_to_Tree_64(v_uv, nodeID, false);
         p = vec4(0.0);
         n = vec4(0.0);
         if (morph > 0)

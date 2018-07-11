@@ -500,10 +500,10 @@ void Draw()
     benchStats.UpdateStats();
     RenderImgui();
 
-//#define AUTO_LOD
+#define AUTO_LOD
 #ifdef AUTO_LOD
     static float upperFPS = 70, lowerFPS = 60;
-    if (!mesh.quadtree->settings.uniform) {
+    if (!mesh.quadtree->settings.uniform_on) {
         if (benchStats.delta_T < 1.0/upperFPS) {
             mesh.quadtree->settings.adaptive_factor *= 1.01;
             mesh.quadtree->UploadSettings();
