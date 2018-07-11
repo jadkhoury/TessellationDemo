@@ -215,7 +215,7 @@ private:
         djgp_push_file(djp, strcat2(buf, shader_dir, "dj_heightmap.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "PN_interpolation.glsl"));
 
-        djgp_push_file(djp, strcat2(buf, shader_dir, "quadtree_render.glsl"));
+        djgp_push_file(djp, strcat2(buf, shader_dir, "quadtree_render_flat.glsl"));
         if (!djgp_to_gl(djp, 450, false, true, &render_program_))
         {
             cout << "X" << endl;
