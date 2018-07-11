@@ -185,11 +185,7 @@ void main()
             tree_pos = morphVertexInUnit(key, v_uv, tree_pos);
         PNInterpolation(key, tree_pos, poly_type, ipl_alpha, p, n);
         v_pos = p.xyz;
-
-
     }
-
-
 
     // Assign color to current vertex
     switch (color_mode) {
@@ -221,7 +217,6 @@ void main()
         v_color = vec4(1);
         break;
     }
-
 }
 #endif
 
@@ -303,8 +298,8 @@ void main()
         color = white_leaves;
         break;
     case PRIMITIVES:
-        vec4 red_roots = vec4(1 - gridFactor(g_root_uv, 0.5), 0.1, 0.1, 1);
-        color = (red_roots.r > 0) ? red_roots : white_leaves * 0.5;
+        vec4 poly_outline = vec4(vec3(gridFactor(g_root_uv, 1.5)), 1);
+        color = (poly_outline.r == 0) ? poly_outline : white_leaves;
         break;
     case LOD:
     case FRUSTUM:
