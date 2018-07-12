@@ -62,7 +62,7 @@ struct BenchStats {
     int frame_count, fps;
     double sec_timer;
     int last_frame_count;
-} benchStats = {0};
+} bench = {0};
 
 
 // -------------------------------- Utilities ------------------------------- //
@@ -256,22 +256,22 @@ void UpdateTime()
 
 void UpdateStats()
 {
-    benchStats.frame_count++;
-    benchStats.sec_timer += gl.delta_T;
-    if (benchStats.sec_timer < 1.0) {
-        benchStats.total_qt_gpu_compute += gl.quadtree->ticks.gpu_compute;
-        benchStats.total_qt_gpu_render += gl.quadtree->ticks.gpu_render;
-        benchStats.total_tess_render += gl.tesscube->ticks.gpu;
+    bench.frame_count++;
+    bench.sec_timer += gl.delta_T;
+    if (bench.sec_timer < 1.0) {
+        bench.total_qt_gpu_compute += gl.quadtree->ticks.gpu_compute;
+        bench.total_qt_gpu_render += gl.quadtree->ticks.gpu_render;
+        bench.total_tess_render += gl.tesscube->ticks.gpu;
     } else {
-        benchStats.fps = benchStats.frame_count - benchStats.last_frame_count;
-        benchStats.last_frame_count = benchStats.frame_count;
-        benchStats.avg_qt_gpu_compute = benchStats.total_qt_gpu_compute / double(benchStats.fps);
-        benchStats.avg_qt_gpu_render = benchStats.total_qt_gpu_render / double(benchStats.fps);
-        benchStats.avg_tess_render = benchStats.total_tess_render /  double(benchStats.fps);
-        benchStats.total_qt_gpu_compute = 0;
-        benchStats.total_qt_gpu_render = 0;
-        benchStats.total_tess_render = 0;
-        benchStats.sec_timer = 0;
+        bench.fps = bench.frame_count - bench.last_frame_count;
+        bench.last_frame_count = bench.frame_count;
+        bench.avg_qt_gpu_compute = bench.total_qt_gpu_compute / double(bench.fps);
+        bench.avg_qt_gpu_render = bench.total_qt_gpu_render / double(bench.fps);
+        bench.avg_tess_render = bench.total_tess_render /  double(bench.fps);
+        bench.total_qt_gpu_compute = 0;
+        bench.total_qt_gpu_render = 0;
+        bench.total_tess_render = 0;
+        bench.sec_timer = 0;
     }
 }
 
@@ -378,17 +378,17 @@ void RenderImgui()
         if (ImGui::SliderInt("Px edge length", &gl.set->pxEdgeLength, 2, 256)) {
             UpdateMeshSettings();
         }
-        ImGui::Text("Frame  %07i\n", benchStats.frame_count);
-        ImGui::Text("FPS    %07i\n", benchStats.fps);
+        ImGui::Text("Frame  %07i\n", bench.frame_count);
+        ImGui::Text("FPS    %07i\n", bench.fps);
         ImGuiTime("deltaT", gl.delta_T);
         if (gl.set->pipeline == QUADTREE) {
             ImGui::Text("\nQuadtree Perf:");
-            ImGuiTime("avg Total   dT (1s)", benchStats.avg_qt_gpu_render + benchStats.avg_qt_gpu_compute);
-            ImGuiTime("avg Compute dT (1s)", benchStats.avg_qt_gpu_compute);
-            ImGuiTime("avg Render  dT (1s)", benchStats.avg_qt_gpu_render);
+            ImGuiTime("avg Total   dT (1s)", bench.avg_qt_gpu_render + bench.avg_qt_gpu_compute);
+            ImGuiTime("avg Compute dT (1s)", bench.avg_qt_gpu_compute);
+            ImGuiTime("avg Render  dT (1s)", bench.avg_qt_gpu_render);
         }
         else if (gl.set->pipeline == TESS_SHADER) {
-            ImGuiTime("avg Render  dT (1s)", benchStats.avg_tess_render);
+            ImGuiTime("avg Render  dT (1s)", bench.avg_tess_render);
 
         }
         ImGui::Text("\n\n");
@@ -763,16 +763,16 @@ void Init()
     gl.point->Init();
     InitTranforms();
 
-    benchStats.avg_qt_gpu_compute = 0;
-    benchStats.avg_qt_gpu_render = 0;
-    benchStats.avg_tess_render = 0;
-    benchStats.frame_count = 0;
-    benchStats.total_qt_gpu_compute = 0;
-    benchStats.total_qt_gpu_render = 0;
-    benchStats.total_tess_render = 0;
-    benchStats.sec_timer = 0;
-    benchStats.fps = 0;
-    benchStats.last_frame_count = 0;
+    bench.avg_qt_gpu_compute = 0;
+    bench.avg_qt_gpu_render = 0;
+    bench.avg_tess_render = 0;
+    bench.frame_count = 0;
+    bench.total_qt_gpu_compute = 0;
+    bench.total_qt_gpu_render = 0;
+    bench.total_tess_render = 0;
+    bench.sec_timer = 0;
+    bench.fps = 0;
+    bench.last_frame_count = 0;
 
     cout << "END OF INITIALIZATION" << endl;
     cout << "******************************************************" << endl << endl;

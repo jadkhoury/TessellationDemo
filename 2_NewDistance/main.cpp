@@ -59,7 +59,7 @@ struct BenchStats {
     void Init();
     void UpdateTime();
     void UpdateStats();
-} benchStats = {};
+} bench = {};
 
 Mesh mesh;
 
@@ -286,13 +286,13 @@ void RenderImgui()
         ImGui::SameLine();
         ImGui::Text(std::to_string(settings_ref.wg_count).c_str());
 
-        ImGui::Text("Frame  %07i\n", benchStats.frame_count);
-        ImGui::Text("FPS    %07i\n", benchStats.fps);
-        ImGuiTime("deltaT", benchStats.delta_T);
+        ImGui::Text("Frame  %07i\n", bench.frame_count);
+        ImGui::Text("FPS    %07i\n", bench.fps);
+        ImGuiTime("deltaT", bench.delta_T);
         ImGui::Text("\nQuadtree Perf:");
-        ImGuiTime("avg GPU Compute dT (1s)", benchStats.avg_qt_gpu_compute);
-        ImGuiTime("avg GPU Render  dT (1s)", benchStats.avg_qt_gpu_render);
-        ImGuiTime("avg Total GPU   dT (1s)", benchStats.avg_qt_gpu_render + benchStats.avg_qt_gpu_compute);
+        ImGuiTime("avg GPU Compute dT (1s)", bench.avg_qt_gpu_compute);
+        ImGuiTime("avg GPU Render  dT (1s)", bench.avg_qt_gpu_render);
+        ImGuiTime("avg Total GPU   dT (1s)", bench.avg_qt_gpu_render + bench.avg_qt_gpu_compute);
         ImGui::Text("\n\n");
 
         static float values_qt_gpu_compute[80] = { 0 };
@@ -490,7 +490,7 @@ void Init()
     if(gl.filepath != gl.default_filepath)
         gl.mode = MESH;
     mesh.Init((gl.mode == MESH) ? gl.filepath : "");
-    benchStats.Init();
+    bench.Init();
     InitTranforms();
 
     cout << "END OF INITIALIZATION" << endl;
@@ -500,24 +500,24 @@ void Init()
 
 void Draw()
 {
-    benchStats.UpdateTime();
+    bench.UpdateTime();
 
     glViewport(gl.gui_width, 0, gl.w_width, gl.w_height);
-    mesh.Draw(benchStats.delta_T, gl.mode);
+    mesh.Draw(bench.delta_T, gl.mode);
     glViewport(0, 0, gl.w_width + gl.gui_width, gl.w_height);
-    benchStats.UpdateStats();
+    bench.UpdateStats();
     RenderImgui();
 
-    if (gl.auto_lod) {
+    if (gl.auto_lod && !mesh.quadtree->settings.uniform_on) {
+        float ddT = 1.0/60.0 - bench.delta_T;
+
         static float upperFPS = 70, lowerFPS = 60;
-        if (!mesh.quadtree->settings.uniform_on) {
-            if (benchStats.delta_T < 1.0/upperFPS) {
-                mesh.quadtree->settings.adaptive_factor *= 1.01;
-                mesh.quadtree->UploadSettings();
-            } else if (benchStats.delta_T > 1.0/lowerFPS){
-                mesh.quadtree->settings.adaptive_factor *= 0.99;
-                mesh.quadtree->UploadSettings();
-            }
+        if (bench.delta_T < 1.0/upperFPS) {
+            mesh.quadtree->settings.adaptive_factor *= 1.01;
+            mesh.quadtree->UploadSettings();
+        } else if (bench.delta_T > 1.0/lowerFPS){
+            mesh.quadtree->settings.adaptive_factor *= 0.99;
+            mesh.quadtree->UploadSettings();
         }
     }
 }
@@ -608,7 +608,7 @@ int main(int argc, char **argv)
         ImGui::StyleColorsDark();
 
         // delta_T condition to avoid crashing my system
-        while (!glfwWindowShouldClose(window)  && benchStats.delta_T < 5.0)
+        while (!glfwWindowShouldClose(window)  && bench.delta_T < 5.0)
         {
             glfwPollEvents();
             if (!gl.pause)

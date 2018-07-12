@@ -50,10 +50,10 @@ const vec2 unit_O = vec2(0,0);
 const vec2 unit_R = vec2(1,0);
 const vec2 unit_U = vec2(0,1);
 
-vec4 heightDisplace(in vec4 v, in vec4 n) {
-    vec4 r = v;
-    r.z = displace(r.xyz, 1000, n.xyz) * 2.0;
-    return r;
+vec4 displaceVertex(vec4 v) {
+    float f = 3e6 / distance(v.xyz, cam_pos);
+    v.z = displace(v.xy, f) * 0.3;
+    return v;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -157,10 +157,9 @@ void cullPass(uvec4 key)
         mesh_coord[R] = lt_Leaf_to_MeshPrimitive(unit_R, key, false, poly_type);
 
         if (heightmap > 0) {
-            vec4 n = vec4(0,0,1,0);
-            mesh_coord[O] = heightDisplace(mesh_coord[O], n);
-            mesh_coord[U] = heightDisplace(mesh_coord[U], n);
-            mesh_coord[R] = heightDisplace(mesh_coord[R], n);
+            mesh_coord[O] = displaceVertex(mesh_coord[O]);
+            mesh_coord[U] = displaceVertex(mesh_coord[U]);
+            mesh_coord[R] = displaceVertex(mesh_coord[R]);
         }
 
         b_min = min(b_min, mesh_coord[O]);

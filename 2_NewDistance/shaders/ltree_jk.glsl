@@ -166,6 +166,8 @@ bool lt_isUpperLeft_64 (uvec2 nodeID)
 
 // ----------------------------- Triangle XForm ----------------------------- //
 
+//#define OLD
+#ifdef OLD
 mat3 jk_bitToMatrix(uint b)
 {
     float bf = b;
@@ -203,6 +205,61 @@ void lt_getTriangleXform_64 (uvec2 nodeID, out mat3 xform)
     lt_getTriangleXform_64(nodeID, xform, tmp);
 }
 
+
+#else
+
+mat3x2 mul(mat3x2 A, mat3x2 B)
+{
+    mat2 tmp = mat2(A) * mat2(B);
+    mat3x2 r = mat3x2(tmp);
+    mat2x3 T = transpose(A);
+    r[2].x = dot(T[0], vec3(B[2], 1.0));
+    r[2].y = dot(T[1], vec3(B[2], 1.0));
+    return r;
+}
+
+mat3x2 jk_bitToMatrix(in uint bit)
+{
+    float s = float(bit) - 0.5;
+    vec2 c1 = vec2(+s, -0.5);
+    vec2 c2 = vec2(-0.5, -s);
+    vec2 c3 = vec2(+0.5, +0.5);
+    return mat3x2(c1, c2, c3);
+}
+
+void lt_getTriangleXform_64 (uvec2 nodeID, out mat3x2 xform, out mat3x2 parent_xform)
+{
+    vec2 c1 = vec2(1, 0);
+    vec2 c2 = vec2(0, 1);
+    vec2 c3 = vec2(0, 0);
+    mat3x2 xf = mat3x2(c1, c2, c3);
+
+    // Handles the root triangle case
+    if (nodeID.x == 0 && nodeID.y == 1){
+        xform = xf;
+        return;
+    }
+
+    uint lsb = nodeID.y & 3;
+    nodeID = lt_rightShift_64(nodeID, 2);
+    while (nodeID.x > 0 || nodeID.y > 1) {
+        xf = mul(jk_bitToMatrix(nodeID.y & 1) , xf);
+        nodeID = lt_rightShift_64(nodeID, 1);
+    }
+
+    parent_xform = xf;
+    xform = mul(xf, jk_bitToMatrix((lsb >> 1u) & 1u));
+    xform = mul(xform, jk_bitToMatrix(lsb & 1u));
+}
+
+
+void lt_getTriangleXform_64 (uvec2 nodeID, out mat3x2 xform)
+{
+    mat3x2 tmp;
+    lt_getTriangleXform_64(nodeID, xform, tmp);
+}
+
+#endif
 // --------------------------- Mapping to polygon  --------------------------- //
 
 // *** Map to given primitive *** //
@@ -281,7 +338,11 @@ vec4 lt_getMeanPrimNormal(uvec4 key, in int poly_type) {
 // ------------------------------ Node Mapping  ----------------------------- //
 vec2 lt_Leaf_to_Tree_64(vec2 p, uvec2 nodeID, in bool parent)
 {
+#ifdef OLD
     mat3 xf, pxf, xform;
+#else
+    mat3x2 xf, pxf, xform;
+#endif
     lt_getTriangleXform_64(nodeID, xf, pxf);
     xform = (parent) ? pxf : xf;
     return (xform * vec3(p, 1)).xy;
@@ -320,7 +381,11 @@ void lt_Leaf_n_Parent_to_MeshPrimitive(vec2 p, uvec4 key, out vec4 p_mesh, out v
     uvec2 nodeID = key.xy;
     uint meshPolygonID = key.z;
     uint rootID = key.w & 0x3;
+#ifdef OLD
     mat3 xf, pxf;
+#else
+    mat3x2 xf, pxf;
+#endif
     vec2 p2D, pp2D;
 
     lt_getTriangleXform_64(nodeID, xf, pxf);

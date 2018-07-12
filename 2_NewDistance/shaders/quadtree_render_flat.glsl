@@ -19,6 +19,8 @@ uniform int render_MVP;
 
 uniform float cpu_lod;
 
+const float height_factor = 0.3;
+
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// VERTEX_SHADER
@@ -100,7 +102,12 @@ vec4 cullColor(vec3 p)
 // based on Filip Strugar's CDLOD paper (until intPart & signVec)
 vec2 morphVertexInUnit(uvec4 key, vec2 leaf_p, vec2 tree_p)
 {
+#ifdef OLD
     mat3 t;
+#else
+    mat3x2 t;
+#endif
+
     lt_getTriangleXform_64(key.xy, t);
     vec4 mesh_p = M * lt_Leaf_to_MeshPrimitive(leaf_p, key, false, poly_type);
     float vertex_lvl = distanceToLod(mesh_p.xyz);
@@ -119,10 +126,10 @@ vec2 morphVertexInUnit(uvec4 key, vec2 leaf_p, vec2 tree_p)
     return tree_p - mat2(t) * (-1*signVec * fracPart) * morphK;
 }
 
-vec3 heightDisplace(in vec3 v, out vec3 n) {
-    vec3 r = v;
-    r.z = displace(r, 1000, n) * 2.0;
-    return r;
+vec3 displaceVertex(vec3 v) {
+    float f = 3e6 / distance(v, cam_pos);
+    v.z = displace(v.xy, f) * height_factor;
+    return v;
 }
 
 vec4 toScreenSpace(vec3 v)
@@ -161,7 +168,7 @@ void main()
         // Update normal and position for displacement mapping
         if (heightmap > 0) {
             n = vec4(0,0,1,0);
-            v_pos =  heightDisplace(v_pos, n.xyz);
+            v_pos =  displaceVertex(v_pos);
         } else {
             n = lt_getMeanPrimNormal(key, poly_type);
         }
@@ -194,24 +201,31 @@ layout (location = 2) in vec3 v_n;
 
 layout(location = 0) out vec4 color;
 
+const bool flat_n = true;
+const vec3 light_pos = vec3(00, 50, 100);
+
 
 void main()
 {
     mat3 normalMatrix = transpose(inverse(mat3(MV)));
-    vec3 n;
-#if 1
-    vec3 vpoint_mv = vec3(MV * vec4(v_pos,1));
-    vec3 dx = dFdx(vpoint_mv.xyz);
-    vec3 dy = dFdy(vpoint_mv.xyz);
-    n = normalize(cross(dx,dy));
-#else
-    n = normalize(mat3(normalMatrix) * v_n);
-#endif
+    vec3 n, p = v_pos;
+    float depth = (MVP * vec4(p, 1.0)).z;
+    vec3 dx = dFdx(p.xyz);
+    vec3 dy = dFdy(p.xyz);
+    if (flat_n){
+        n = normalize(cross(dx,dy));
+    } else {
+        float dp = sqrt(dot(dx,dx));
+        vec2 s;
+        float d = displace(p.xy, 2/(0.5*dp), s);
+        n = normalize(vec3(-s * height_factor,1));
+    }
 
-    color = vec4(irradiance(n), 1);
-//    color = vec4(n * 0.5 + 0.5, 1);
+    vec3 l = normalize(light_pos - v_pos);
 
+    vec3 c = vec3(1) * max(dot(l,n),0.0);
 
+    color = vec4(c, 1);
 }
 #endif
 
