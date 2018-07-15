@@ -155,7 +155,7 @@ void main()
 
     float nl =  max(dot(l,n),0.0);
 
-    color = vec4(vec3(nl), 1);
+    color = vec4(vertex.uv * nl, 0, 1);
 }
 #endif
 
