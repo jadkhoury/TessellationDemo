@@ -554,8 +554,8 @@ int main(int argc, char **argv)
 {
     HandleArguments(argc, argv);
 
-    gl.w_width = 1920;
-    gl.w_height = 1080;
+    gl.w_width = 1024;
+    gl.w_height = 1024;
     gl.gui_width = 512;
     gl.gui_height = gl.w_height;
 

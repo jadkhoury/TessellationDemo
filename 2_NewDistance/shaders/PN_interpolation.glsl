@@ -82,7 +82,7 @@ void getPnPatch(Triangle t, out PnPatch oPnPatch)
 }
 
 
-void Interpolate_pn(Triangle target_T, vec3 uvw, float alpha, out vec4 result_p, out vec4 result_n)
+void Interpolate_pn(Triangle target_T, vec3 uvw, float alpha, out Vertex vertex)
 {
     PnPatch pnPatch;
     getPnPatch(target_T, pnPatch);
@@ -90,7 +90,7 @@ void Interpolate_pn(Triangle target_T, vec3 uvw, float alpha, out vec4 result_p,
     vec3 uvwSquared = uvw*uvw;
     vec3 uvwCubed   = uvwSquared*uvw;
 
-    // normal
+    // Normal
     vec3 barNormal = uvw[2]*pnPatch.n200
             + uvw[0]*pnPatch.n020
             + uvw[1]*pnPatch.n002;
@@ -102,9 +102,9 @@ void Interpolate_pn(Triangle target_T, vec3 uvw, float alpha, out vec4 result_p,
             + pnPatch.n011*uvw[0]*uvw[1]
             + pnPatch.n101*uvw[2]*uvw[1];
 
-    result_n = normalize(vec4(alpha*pnNormal + (1.0-alpha)*barNormal, 0));
+    vertex.n = normalize(vec4(alpha*pnNormal + (1.0-alpha)*barNormal, 0));
 
-    // compute interpolated pos
+    // Position
     vec3 barPos = uvw[2]*pnPatch.b300
             + uvw[0]*pnPatch.b030
             + uvw[1]*pnPatch.b003;
@@ -124,19 +124,18 @@ void Interpolate_pn(Triangle target_T, vec3 uvw, float alpha, out vec4 result_p,
             + pnPatch.b012*uvwSquared[1]*uvw[0]
             + pnPatch.b111*6.0*uvw[0]*uvw[1]*uvw[2];
 
-    //	// compute texcoords
-    //    oTexCoord  = gl_TessCoord[2]*iTexCoord[0]
-    //               + gl_TessCoord[0]*iTexCoord[1]
-    //               + gl_TessCoord[1]*iTexCoord[2];
+        // compute texcoords
+        vertex.uv  = uvw[2]*target_T.vertex[0].uv
+                   + uvw[0]*target_T.vertex[1].uv
+                   + uvw[1]*target_T.vertex[2].uv;
 
 
     // final position and normal
-    vec3 finalPos = (1.0-alpha)*barPos + alpha*pnPos;
 
-    result_p = vec4(finalPos, 1.0);
+    vertex.p = vec4((1.0-alpha)*barPos + alpha*pnPos, 1.0);
 }
 
-void PNInterpolation(uvec4 key, vec2 uv, int poly_type, float alpha, out vec4 final_pos, out vec4 final_n)
+void PNInterpolation(uvec4 key, vec2 uv, int poly_type, float alpha, out Vertex vertex)
 {
     uint meshPolygonID = key.z;
     uint rootID = key.w;
@@ -150,6 +149,6 @@ void PNInterpolation(uvec4 key, vec2 uv, int poly_type, float alpha, out vec4 fi
     vec3 uvw = vec3(v, u, w);
     uvw = uvw / (u+v+w);
 
-    Interpolate_pn(mesh_t, uvw, alpha, final_pos, final_n);
+    Interpolate_pn(mesh_t, uvw, alpha, vertex);
 }
 #endif

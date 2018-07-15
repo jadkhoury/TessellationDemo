@@ -283,6 +283,22 @@ vec4 lt_mapTo3DQuad(Quad q, vec2 uv)
     return mix(p01, p32, uv.y);
 }
 
+Vertex lt_mapVertexTo3DTriangle(Triangle t, vec2 uv)
+{
+    Vertex v;
+    v.p = (1.0 - uv.x - uv.y) * t.vertex[0].p +
+            uv.x * t.vertex[2].p +
+            uv.y * t.vertex[1].p;
+    v.n = (1.0 - uv.x - uv.y) * t.vertex[0].n +
+            uv.x * t.vertex[2].n +
+            uv.y * t.vertex[1].n;
+    v.uv = (1.0 - uv.x - uv.y) * t.vertex[0].uv +
+            uv.x * t.vertex[2].uv +
+            uv.y * t.vertex[1].uv;
+    return v;
+}
+
+
 // ------------------------- Fetching Mesh Polygon  ------------------------- //
 void lt_getMeshTriangle(uint meshPolygonID, out Triangle triangle)
 {
@@ -357,6 +373,17 @@ vec4 lt_Tree_to_MeshTriangle(vec2 p, uint poly_type, uint meshPolygonID, uint ro
         lt_getQuadMeshTriangle(meshPolygonID, rootID, mesh_t);
     return lt_mapTo3DTriangle(mesh_t, p);
 }
+
+Vertex lt_Tree_to_MeshTriangleVertex(vec2 p, uint poly_type, uint meshPolygonID, uint rootID)
+{
+    Triangle mesh_t;
+    if (poly_type == TRIANGLES)
+        lt_getMeshTriangle(meshPolygonID, mesh_t);
+    else
+        lt_getQuadMeshTriangle(meshPolygonID, rootID, mesh_t);
+    return lt_mapVertexTo3DTriangle(mesh_t, p);
+}
+
 
 vec4 lt_Tree_to_MeshTriangle(vec2 p, uint meshPolygonID)
 {

@@ -23,6 +23,7 @@ uniform int uniform_subdiv;
 
 uniform int num_mesh_tri;
 uniform int num_mesh_quad;
+uniform int max_node_count;
 
 uniform int cull;
 
@@ -50,11 +51,6 @@ const vec2 unit_O = vec2(0,0);
 const vec2 unit_R = vec2(1,0);
 const vec2 unit_U = vec2(0,1);
 
-vec4 displaceVertex(vec4 v) {
-    float f = 3e6 / distance(v.xyz, cam_pos);
-    v.z = displace(v.xy, f) * 0.3;
-    return v;
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -92,7 +88,7 @@ void compute_writeChildren(uvec2 children[4], uvec4 current_key)
  *		- if adaptive subdivision: criterion using the LoD functions
  * - Store the obtained key(s) in the SSBO for the next compute pass
  */
-void computePass(uvec4 key, uint invocation_idx)
+void computePass(uvec4 key, uint invocation_idx, int active_nodes)
 {
     uvec2 nodeID = key.xy;
     uint current_lvl = lt_level_64(nodeID);
@@ -157,9 +153,9 @@ void cullPass(uvec4 key)
         mesh_coord[R] = lt_Leaf_to_MeshPrimitive(unit_R, key, false, poly_type);
 
         if (heightmap > 0) {
-            mesh_coord[O] = displaceVertex(mesh_coord[O]);
-            mesh_coord[U] = displaceVertex(mesh_coord[U]);
-            mesh_coord[R] = displaceVertex(mesh_coord[R]);
+            mesh_coord[O] = displaceVertex(mesh_coord[O], cam_pos);
+            mesh_coord[U] = displaceVertex(mesh_coord[U], cam_pos);
+            mesh_coord[R] = displaceVertex(mesh_coord[R], cam_pos);
         }
 
         b_min = min(b_min, mesh_coord[O]);
@@ -198,7 +194,7 @@ void main(void)
     if (invocation_idx >= active_nodes)
         return;
 
-    computePass(key, invocation_idx);
+    computePass(key, invocation_idx, active_nodes);
     cullPass(key);
 
     return;

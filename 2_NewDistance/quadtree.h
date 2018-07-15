@@ -80,12 +80,13 @@ private:
     uvec3 local_WG_size_;
     uint local_WG_count;
     uint init_node_count_, init_wg_count_;
-
+    int max_node_count_;
 
     djg_clock* compute_clock;
     djg_clock* render_clock;
 
     bool first_frame_ = true;
+
 
     ////////////////////////////////////////////////////////////////////////////////
     ///
@@ -96,6 +97,8 @@ private:
     {
         utility::SetUniformInt(compute_program_, "num_mesh_tri", mesh_data_->triangle_count);
         utility::SetUniformInt(compute_program_, "num_mesh_quad", mesh_data_->quad_count);
+        utility::SetUniformInt(compute_program_, "max_node_count", max_node_count_);
+
         settings.Upload(compute_program_);
     }
 
@@ -248,10 +251,10 @@ private:
         int max_ssbo_size;
         glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &max_ssbo_size);
         max_ssbo_size /= 8;
-        int max_num_nodes = max_ssbo_size / sizeof(uvec4);
-        // cout << "max_num_nodes  " << max_num_nodes << endl;
-        // cout << "max_ssbo_size " << max_ssbo_size << "B" << endl;
-        uvec4* nodes_array =  new uvec4[max_num_nodes];
+        max_node_count_ = max_ssbo_size / sizeof(uvec4);
+         cout << "max_num_nodes  " << max_node_count_ << endl;
+         cout << "max_ssbo_size " << max_ssbo_size << "B" << endl;
+        uvec4* nodes_array =  new uvec4[max_node_count_];
         if (settings.poly_type == TRIANGLES) {
             init_node_count_ = mesh_data_->triangle_count;
             for (int ctr = 0; ctr < init_node_count_; ++ctr) {
