@@ -148,9 +148,9 @@ void cullPass(uvec4 key)
         vec4 b_min = vec4(10e6);
         vec4 b_max = vec4(-10e6);
 
-        mesh_coord[O] = lt_Leaf_to_MeshPrimitive(unit_O, key, false, poly_type);
-        mesh_coord[U] = lt_Leaf_to_MeshPrimitive(unit_U, key, false, poly_type);
-        mesh_coord[R] = lt_Leaf_to_MeshPrimitive(unit_R, key, false, poly_type);
+        mesh_coord[O] = lt_Leaf_to_MeshPosition(unit_O, key, false, poly_type);
+        mesh_coord[U] = lt_Leaf_to_MeshPosition(unit_U, key, false, poly_type);
+        mesh_coord[R] = lt_Leaf_to_MeshPosition(unit_R, key, false, poly_type);
 
         if (heightmap > 0) {
             mesh_coord[O] = displaceVertex(mesh_coord[O], cam_pos);

@@ -3,20 +3,8 @@
 #ifndef LTREE_GLSL
 #define LTREE_GLSL
 
-#define M_PI 3.1415926535897932384626433832795
-#define SQRT_2_INV 0.70710678118;
-
-#define X_AXIS 0
-#define Y_AXIS 1
-
-#define X_STATE   0
-#define Y_STATE   1
-#define INC_STATE 2
-#define DEC_STATE 3
-
 // ------------------------------ Declarations ------------------------------ //
 
-// Structures
 struct Vertex {
     vec4 p;
     vec4 n;
@@ -38,8 +26,6 @@ struct Key {
     uint rootID;
 };
 
-
-// Buffers
 layout (std430, binding = NODES_IN_B) readonly buffer Data_In
 {
     uvec4 nodes_in[];
@@ -295,7 +281,7 @@ vec2 lt_Leaf_to_Tree_64(vec2 p, uvec2 nodeID, in bool parent)
 
 // ------------------------- Mapping from QT to Mesh ------------------------ //
 
-vec4 lt_Tree_to_MeshTriangle(vec2 p, uint poly_type, uint meshPolygonID, uint rootID)
+vec4 lt_Tree_to_MeshPosition(vec2 p, uint poly_type, uint meshPolygonID, uint rootID)
 {
     Triangle mesh_t;
     if (poly_type == TRIANGLES)
@@ -305,7 +291,18 @@ vec4 lt_Tree_to_MeshTriangle(vec2 p, uint poly_type, uint meshPolygonID, uint ro
     return lt_mapTo3DTriangle(mesh_t, p);
 }
 
-Vertex lt_Tree_to_MeshTriangleVertex(vec2 p, uint poly_type, uint meshPolygonID, uint rootID)
+
+vec4 lt_Leaf_to_MeshPosition(vec2 p, uvec4 key, in bool parent, int poly_type)
+{
+    uvec2 nodeID = key.xy;
+    uint meshPolygonID = key.z;
+    uint rootID = key.w & 0x3;
+    vec2 tmp = p;
+    tmp = lt_Leaf_to_Tree_64(tmp, nodeID, parent);
+    return lt_Tree_to_MeshPosition(tmp, poly_type, meshPolygonID, rootID);
+}
+
+Vertex lt_Tree_to_MeshVertex(vec2 p, uint poly_type, uint meshPolygonID, uint rootID)
 {
     Triangle mesh_t;
     if (poly_type == TRIANGLES)
@@ -315,25 +312,10 @@ Vertex lt_Tree_to_MeshTriangleVertex(vec2 p, uint poly_type, uint meshPolygonID,
     return lt_interpolateVertex(mesh_t, p);
 }
 
+// ------------------------- Mapping from QT to Mesh ------------------------ //
+//                        for both node and its parent
 
-vec4 lt_Tree_to_MeshTriangle(vec2 p, uint meshPolygonID)
-{
-    Triangle mesh_t;
-    lt_getMeshTriangle(meshPolygonID, mesh_t);
-    return lt_mapTo3DTriangle(mesh_t, p);
-}
-
-vec4 lt_Leaf_to_MeshPrimitive(vec2 p, uvec4 key, in bool parent, int poly_type)
-{
-    uvec2 nodeID = key.xy;
-    uint meshPolygonID = key.z;
-    uint rootID = key.w & 0x3;
-    vec2 tmp = p;
-    tmp = lt_Leaf_to_Tree_64(tmp, nodeID, parent);
-    return lt_Tree_to_MeshTriangle(tmp, poly_type, meshPolygonID, rootID);
-}
-
-void lt_Leaf_n_Parent_to_MeshPrimitive(vec2 p, uvec4 key, out vec4 p_mesh, out vec4 pp_mesh,
+void lt_Leaf_n_Parent_to_MeshPosition(vec2 p, uvec4 key, out vec4 p_mesh, out vec4 pp_mesh,
                                        uint poly_type)
 {
     uvec2 nodeID = key.xy;
@@ -346,8 +328,8 @@ void lt_Leaf_n_Parent_to_MeshPrimitive(vec2 p, uvec4 key, out vec4 p_mesh, out v
     p2D = (xf * vec3(p, 1)).xy;
     pp2D = (pxf * vec3(p, 1)).xy;
 
-    p_mesh  = lt_Tree_to_MeshTriangle(p2D, poly_type, meshPolygonID, rootID);
-    pp_mesh = lt_Tree_to_MeshTriangle(pp2D, poly_type, meshPolygonID, rootID);
+    p_mesh  = lt_Tree_to_MeshPosition(p2D, poly_type, meshPolygonID, rootID);
+    pp_mesh = lt_Tree_to_MeshPosition(pp2D, poly_type, meshPolygonID, rootID);
 }
 
 #endif

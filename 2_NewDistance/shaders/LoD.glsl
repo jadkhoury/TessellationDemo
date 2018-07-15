@@ -40,7 +40,7 @@ float distanceToLod(vec3 pos)
 }
 
 float computeTessLevelFromKey(uvec4 key, bool parent) {
-    vec4 mesh_p = lt_Leaf_to_MeshPrimitive(triangle_centroid, key, parent, poly_type);
+    vec4 mesh_p = lt_Leaf_to_MeshPosition(triangle_centroid, key, parent, poly_type);
     mesh_p = M * mesh_p;
 
     return distanceToLod(mesh_p.xyz);
@@ -48,7 +48,7 @@ float computeTessLevelFromKey(uvec4 key, bool parent) {
 
 void computeTessLvlWithParent(uvec4 key, out float lvl, out float parent_lvl) {
     vec4 p_mesh, pp_mesh;
-    lt_Leaf_n_Parent_to_MeshPrimitive(triangle_centroid, key, p_mesh, pp_mesh, poly_type);
+    lt_Leaf_n_Parent_to_MeshPosition(triangle_centroid, key, p_mesh, pp_mesh, poly_type);
     p_mesh  = M * p_mesh;
     pp_mesh = M * pp_mesh;
 

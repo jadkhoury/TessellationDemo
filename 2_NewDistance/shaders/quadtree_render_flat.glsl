@@ -58,7 +58,7 @@ vec2 morphVertexInUnit(uvec4 key, vec2 leaf_p, vec2 tree_p)
 {
     mat3x2 xform;
     lt_getTriangleXform_64(key.xy, xform);
-    vec4 mesh_p = M * lt_Leaf_to_MeshPrimitive(leaf_p, key, false, poly_type);
+    vec4 mesh_p = M * lt_Leaf_to_MeshPosition(leaf_p, key, false, poly_type);
     float vertex_lvl = distanceToLod(mesh_p.xyz);
 
     float node_lvl = lt_level_64(key.xy);
@@ -105,7 +105,7 @@ void main()
     if(ipl_on == 0)
     {
         // Compute mesh-space position after morphing
-        vertex = lt_Tree_to_MeshTriangleVertex(tree_pos, poly_type, key.z, key.w);
+        vertex = lt_Tree_to_MeshVertex(tree_pos, poly_type, key.z, key.w);
         // Update normal and position for displacement mapping
         if (heightmap > 0)
             vertex.p.xyz =  displaceVertex(vertex.p.xyz, cam_pos);
