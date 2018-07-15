@@ -28,7 +28,6 @@ uniform float cpu_lod;
 
 layout (location = 1) in vec2 tri_p;
 
-layout (location = 0) out vec4 v_color;
 layout (location = 2) out Vertex vertex;
 
 
@@ -53,14 +52,6 @@ uniform float morph_k;
 uniform int ipl_on;
 uniform float ipl_alpha;
 
-// ------------------- Color Functions ------------------- //
-
-vec4 UvColor(vec2 uv)
-{
-    return vec4(uv.x, uv.y, 0.2, 1.0);
-}
-
-// ------------------- Geometry Functions ------------------- //
 
 // based on Filip Strugar's CDLOD paper (until intPart & signVec)
 vec2 morphVertexInUnit(uvec4 key, vec2 leaf_p, vec2 tree_p)
@@ -70,18 +61,16 @@ vec2 morphVertexInUnit(uvec4 key, vec2 leaf_p, vec2 tree_p)
     vec4 mesh_p = M * lt_Leaf_to_MeshPrimitive(leaf_p, key, false, poly_type);
     float vertex_lvl = distanceToLod(mesh_p.xyz);
 
-
     float node_lvl = lt_level_64(key.xy);
     float tessLevel = clamp(node_lvl -  vertex_lvl, 0.0, 1.0);
     float morphK = (morph_debug > 0) ? morph_k : smoothstep(0.4, 0.5, tessLevel);
-
-    float patchTessFactor = 0x1 << int(cpu_lod); // = nb of intervals per side of node primitive
+    // nb of intervals per side of node primitive
+    float patchTessFactor = 0x1 << int(cpu_lod);
     vec2 fracPart = fract(leaf_p * patchTessFactor * 0.5) * 2.0 / patchTessFactor;
     vec2 intPart = floor(leaf_p * patchTessFactor * 0.5);
-    vec2 signVec = mod(intPart, 2.0) * vec2(2.0) - vec2(1.0);
-    if(patchTessFactor == 2)
-        signVec.x *= -1;
-    return tree_p - mat2(xform) * (-1*signVec * fracPart) * morphK;
+    vec2 signVec = mod(intPart, 2.0) * vec2(-2.0) + vec2(1.0);
+
+    return tree_p - mat2(xform) * (signVec * fracPart) * morphK;
 }
 
 
@@ -164,11 +153,9 @@ void main()
 
     vec3 l = normalize(light_pos - vertex.p.xyz);
 
-    vec3 c = vec3(0.5) * max(dot(l,n),0.0);
+    float nl =  max(dot(l,n),0.0);
 
-    color = vec4(vertex.uv * max(dot(l,n),0.0), 0, 1);
-
-
+    color = vec4(vec3(nl), 1);
 }
 #endif
 
