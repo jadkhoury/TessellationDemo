@@ -220,7 +220,7 @@ private:
         djgp_push_file(djp, strcat2(buf, shader_dir, "LoD.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "noise.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "PN_interpolation.glsl"));
-
+        djgp_push_file(djp, strcat2(buf, shader_dir, "phong_interpolation.glsl"));
 
         djgp_push_file(djp, strcat2(buf, shader_dir, "quadtree_render_flat.glsl"));
         if (!djgp_to_gl(djp, 450, false, true, &render_program_))

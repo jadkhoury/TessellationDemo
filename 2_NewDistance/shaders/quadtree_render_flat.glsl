@@ -115,6 +115,7 @@ void main()
         PNInterpolation(mesh_t, tree_pos, poly_type, itpl_alpha, vertex);
         break;
     case PHONG:
+        PhongInterpolation(mesh_t, tree_pos, poly_type, itpl_alpha, vertex);
         break;
     }
 
