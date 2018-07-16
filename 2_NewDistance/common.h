@@ -59,8 +59,6 @@ using std::runtime_error;
 using std::map;
 
 
-//using namespace std;
-
 enum { TERRAIN,
        MESH,
        MODES_COUNT
@@ -80,6 +78,10 @@ enum { TRIANGLES,
        NUM_TYPES
      } PrimTypes;
 
+enum { LINEAR,
+       PN,
+       PHONG
+     } ItplTypes;
 
 // Represents a buffer
 struct BufferData {

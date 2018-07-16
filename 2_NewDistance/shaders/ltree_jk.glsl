@@ -226,6 +226,7 @@ Vertex lt_interpolateVertex(Triangle t, vec2 uv)
     v.n = (1.0 - uv.x - uv.y) * t.vertex[0].n
             + uv.x * t.vertex[2].n
             + uv.y * t.vertex[1].n;
+    v.n = normalize(v.n);
     v.uv = (1.0 - uv.x - uv.y) * t.vertex[0].uv
             + uv.x * t.vertex[2].uv
             + uv.y * t.vertex[1].uv;
@@ -269,6 +270,15 @@ void lt_getQuadMeshTriangle(uint meshPolygonID, uint rootID, out Triangle mesh_t
     }
 }
 
+
+void lt_getTargetTriangle(uint poly_type, uint meshPolygonID, uint rootID, out Triangle mesh_t)
+{
+    if (poly_type == TRIANGLES)
+        lt_getMeshTriangle(meshPolygonID, mesh_t);
+    else
+        lt_getQuadMeshTriangle(meshPolygonID, rootID, mesh_t);
+}
+
 // ------------------------ Mapping from Leaf to QT  ------------------------ //
 
 vec2 lt_Leaf_to_Tree_64(vec2 p, uvec2 nodeID, in bool parent)
@@ -284,13 +294,19 @@ vec2 lt_Leaf_to_Tree_64(vec2 p, uvec2 nodeID, in bool parent)
 vec4 lt_Tree_to_MeshPosition(vec2 p, uint poly_type, uint meshPolygonID, uint rootID)
 {
     Triangle mesh_t;
-    if (poly_type == TRIANGLES)
-        lt_getMeshTriangle(meshPolygonID, mesh_t);
-    else
-        lt_getQuadMeshTriangle(meshPolygonID, rootID, mesh_t);
+    lt_getTargetTriangle(poly_type, meshPolygonID, rootID, mesh_t);
     return lt_mapTo3DTriangle(mesh_t, p);
 }
 
+
+Vertex lt_Tree_to_MeshVertex(vec2 p, uint poly_type, uint meshPolygonID, uint rootID)
+{
+    Triangle mesh_t;
+    lt_getTargetTriangle(poly_type, meshPolygonID, rootID, mesh_t);
+    return lt_interpolateVertex(mesh_t, p);
+}
+
+// ------------------------- Mapping from Leaf to Mesh ------------------------ //
 
 vec4 lt_Leaf_to_MeshPosition(vec2 p, uvec4 key, in bool parent, int poly_type)
 {
@@ -301,19 +317,6 @@ vec4 lt_Leaf_to_MeshPosition(vec2 p, uvec4 key, in bool parent, int poly_type)
     tmp = lt_Leaf_to_Tree_64(tmp, nodeID, parent);
     return lt_Tree_to_MeshPosition(tmp, poly_type, meshPolygonID, rootID);
 }
-
-Vertex lt_Tree_to_MeshVertex(vec2 p, uint poly_type, uint meshPolygonID, uint rootID)
-{
-    Triangle mesh_t;
-    if (poly_type == TRIANGLES)
-        lt_getMeshTriangle(meshPolygonID, mesh_t);
-    else
-        lt_getQuadMeshTriangle(meshPolygonID, rootID, mesh_t);
-    return lt_interpolateVertex(mesh_t, p);
-}
-
-// ------------------------- Mapping from QT to Mesh ------------------------ //
-//                        for both node and its parent
 
 void lt_Leaf_n_Parent_to_MeshPosition(vec2 p, uvec4 key, out vec4 p_mesh, out vec4 pp_mesh,
                                        uint poly_type)

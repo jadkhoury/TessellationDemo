@@ -49,8 +49,8 @@ uniform int morph_debug;
 uniform float morph_k;
 
 
-uniform int ipl_on;
-uniform float ipl_alpha;
+uniform int itpl_type;
+uniform float itpl_alpha;
 
 
 // based on Filip Strugar's CDLOD paper (until intPart & signVec)
@@ -85,10 +85,10 @@ vec4 toScreenSpace(vec3 v)
 // ------------------------ Main ------------------------ //
 void main()
 {
-    // Recover information about the current vertex
+    // Reads VAO
     vec2 v_uv = tri_p.xy;
 
-    // Recover data about the current quadtree node
+    // Decode key
     uint instanceID = gl_InstanceID;
     uvec4 key = lt_getKey_64(instanceID);
     uvec2 nodeID = key.xy;
@@ -96,24 +96,30 @@ void main()
     uint rootID = key.w & 0x3;
     uint level = lt_level_64(key.xy);
 
+    // Fetch target mesh-space triangle
+    Triangle mesh_t;
+    lt_getTargetTriangle(poly_type, meshPolygonID, rootID, mesh_t);
 
+    // Compute Qt position
     vec4 p, n;
     vec2 tree_pos = lt_Leaf_to_Tree_64(v_uv, nodeID, false);
     if (morph > 0)
         tree_pos = morphVertexInUnit(key, v_uv, tree_pos);
 
-    if(ipl_on == 0)
-    {
-        // Compute mesh-space position after morphing
-        vertex = lt_Tree_to_MeshVertex(tree_pos, poly_type, key.z, key.w);
-        // Update normal and position for displacement mapping
-        if (heightmap > 0)
-            vertex.p.xyz =  displaceVertex(vertex.p.xyz, cam_pos);
+    // Interpolates
+    switch(itpl_type) {
+    case LINEAR:
+        vertex = lt_interpolateVertex(mesh_t, tree_pos);
+        break;
+    case PN:
+        PNInterpolation(mesh_t, tree_pos, poly_type, itpl_alpha, vertex);
+        break;
+    case PHONG:
+        break;
     }
-    else
-    {
-        PNInterpolation(key, tree_pos, poly_type, ipl_alpha, vertex);
-    }
+
+    if (heightmap > 0)
+        vertex.p.xyz =  displaceVertex(vertex.p.xyz, cam_pos);
 
     gl_Position = toScreenSpace(vertex.p.xyz);
 }

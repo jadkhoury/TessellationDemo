@@ -54,5 +54,4 @@ vec3 displaceVertex(vec3 v, vec3 eye) {
 vec4 displaceVertex(vec4 v, vec3 eye) {
     return vec4(displaceVertex(v.xyz, eye), v.w);
 }
-
 #endif

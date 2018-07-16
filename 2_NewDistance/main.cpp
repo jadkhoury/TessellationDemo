@@ -268,15 +268,14 @@ void RenderImgui()
         if (ImGui::SliderFloat("morphK", &settings_ref.morph_k, 0, 1.0)) {
             mesh.quadtree->UploadSettings();
         }
-        if (ImGui::Checkbox("Interpolate", &settings_ref.ipl_on)) {
+        if (ImGui::Combo("Interpolation type", &settings_ref.itpl_type,
+                         "Linear\0PN Triangles\0Phong\0\0\0")) {
             mesh.quadtree->UploadSettings();
         }
-        ImGui::SameLine();
-        if (ImGui::SliderFloat("alpha", &settings_ref.ipl_alpha, 0, 1.0)) {
+        if (ImGui::SliderFloat("alpha", &settings_ref.itpl_alpha, 0, 1.0)) {
             mesh.quadtree->UploadSettings();
 
         }
-
         ImGui::Text("\n------ Benchmarking ------");
         static int tmp = log2(settings_ref.wg_count);
         if (ImGui::SliderInt("wg count (pow2)", &tmp, 2, 11)) {
@@ -554,8 +553,8 @@ int main(int argc, char **argv)
 {
     HandleArguments(argc, argv);
 
-    gl.w_width = 1024;
-    gl.w_height = 1024;
+    gl.w_width = 1920;
+    gl.w_height = 1080;
     gl.gui_width = 512;
     gl.gui_height = gl.w_height;
 

@@ -93,7 +93,6 @@ void computePass(uvec4 key, uint invocation_idx, int active_nodes)
     uvec2 nodeID = key.xy;
     uint current_lvl = lt_level_64(nodeID);
 
-
     // Check if a merge or division is required
     bool should_divide, should_merge;
     if (uniform_subdiv > 0) {

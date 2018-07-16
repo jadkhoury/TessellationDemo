@@ -27,8 +27,8 @@ public:
         bool morph_debug; // Toggle morph debuging
         float morph_k;    // Control morph factor
 
-        bool ipl_on;
-        float ipl_alpha;
+        int itpl_type;
+        float itpl_alpha;
 
 
         uint wg_count; // Control morph factor
@@ -48,8 +48,8 @@ public:
             utility::SetUniformBool(pid, "morph_debug", morph_debug);
             utility::SetUniformFloat(pid, "morph_k", morph_k);
 
-            utility::SetUniformBool(pid, "ipl_on", ipl_on);
-            utility::SetUniformFloat(pid, "ipl_alpha", ipl_alpha);
+            utility::SetUniformInt(pid, "itpl_type", itpl_type);
+            utility::SetUniformFloat(pid, "itpl_alpha", itpl_alpha);
         }
     } settings;
     uint full_node_count_, drawn_node_count;
@@ -137,6 +137,8 @@ private:
         djgp_push_string(djp, "#define LOCAL_WG_SIZE_Y %u\n", local_WG_size_.y);
         djgp_push_string(djp, "#define LOCAL_WG_SIZE_Z %u\n", local_WG_size_.z);
         djgp_push_string(djp, "#define LOCAL_WG_COUNT %u\n", local_WG_count);
+
+
     }
 
     bool loadComputeProgram()
@@ -149,11 +151,8 @@ private:
         pushMacrosToProgram(djp);
         char buf[1024];
         djgp_push_file(djp, strcat2(buf, shader_dir, "gpu_noise_lib.glsl"));
-        djgp_push_file(djp, strcat2(buf, shader_dir, "noise.glsl"));
-
-
         djgp_push_file(djp, strcat2(buf, shader_dir, "ltree_jk.glsl"));
-
+        djgp_push_file(djp, strcat2(buf, shader_dir, "noise.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "LoD.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "quadtree_compute.glsl"));
         if (!djgp_to_gl(djp, 450, false, true, &compute_program_))
@@ -209,6 +208,10 @@ private:
         djgp_push_string(djp, "#define FRUSTUM %i\n", FRUSTUM);
         djgp_push_string(djp, "#define CULL %i\n", CULL);
         djgp_push_string(djp, "#define DEBUG %i\n", DEBUG);
+
+        djgp_push_string(djp, "#define LINEAR %i\n", LINEAR);
+        djgp_push_string(djp, "#define PN %i\n", PN);
+        djgp_push_string(djp, "#define PHONG %i\n", PHONG);
 
         char buf[1024];
 

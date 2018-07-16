@@ -135,16 +135,8 @@ void Interpolate_pn(Triangle target_T, vec3 uvw, float alpha, out Vertex vertex)
     vertex.p = vec4((1.0-alpha)*barPos + alpha*pnPos, 1.0);
 }
 
-void PNInterpolation(uvec4 key, vec2 uv, int poly_type, float alpha, out Vertex vertex)
+void PNInterpolation(Triangle mesh_t, vec2 uv, int poly_type, float alpha, out Vertex vertex)
 {
-    uint meshPolygonID = key.z;
-    uint rootID = key.w;
-    Triangle mesh_t;
-    if (poly_type == TRIANGLES)
-        lt_getMeshTriangle(meshPolygonID, mesh_t);
-    else
-        lt_getQuadMeshTriangle(meshPolygonID, rootID, mesh_t);
-
     float u = uv.x, v = uv.y, w = 1.0-u-v;
     vec3 uvw = vec3(v, u, w);
     uvw = uvw / (u+v+w);

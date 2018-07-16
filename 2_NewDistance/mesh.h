@@ -156,8 +156,8 @@ public:
             /*bool cull*/ true,
             /*bool morph_debug*/ false,
             /*float morph_k*/ 0.0,
-            /*bool ipl_on*/ false,
-            /*float ipl_alpha*/ 0.0,
+            /*bool itpl_on*/ false,
+            /*float itpl_alpha*/ 0.0,
             /*uint wg_count*/ 512
         };
 
