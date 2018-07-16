@@ -174,7 +174,6 @@ vec4 levelColor(uint lvl)
     return c;
 }
 
-
 void main()
 {
     mat3 normalMatrix = transpose(inverse(mat3(MV)));
@@ -190,14 +189,10 @@ void main()
         float d = displace(p.xy, 1.0/(0.5*dp), s);
         n = normalize(vec3(-s * height_factor,1));
     }
-
     vec3 l = normalize(light_pos - v_vertex.p.xyz);
-
     float nl =  max(dot(l,n),0.0);
-
     vec4 c = levelColor(v_lvl);
-
-    color = vec4(vec3(1)*nl, 1);
+    color = vec4(c.xyz*nl, 1);
 }
 #endif
 

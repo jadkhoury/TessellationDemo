@@ -29,7 +29,7 @@ struct CameraManager {
 
 struct OpenGLManager {
     bool pause;
-    int w_width, w_height;
+    int render_width, render_height;
     int gui_width, gui_height;
 
     bool lbutton_down, rbutton_down;
@@ -91,7 +91,7 @@ void InitTranforms()
     tb.cam_pos = cam.pos;
     tb.V = glm::lookAt(cam.pos, cam.look, cam.up);
     tb.fov = 45.0;
-    tb.P = glm::perspective(glm::radians(tb.fov), gl.w_width/(float)gl.w_height, 0.1f, 1024.0f);
+    tb.P = glm::perspective(glm::radians(tb.fov), gl.render_width/(float)gl.render_height, 0.1f, 1024.0f);
 
     mesh.UpdateTransforms();
 }
@@ -100,7 +100,14 @@ void UpdateForNewFOV()
 {
     TransformBlock& tb = mesh.tranforms_manager->block;
 
-    tb.P = glm::perspective(glm::radians(tb.fov), gl.w_width/(float)gl.w_height, 0.1f, 1024.0f);
+    tb.P = glm::perspective(glm::radians(tb.fov), gl.render_width/(float)gl.render_height, 0.1f, 1024.0f);
+    mesh.UpdateTransforms();
+}
+
+void UpdateForNewSize()
+{
+    TransformBlock& tb = mesh.tranforms_manager->block;
+    tb.P = glm::perspective(glm::radians(tb.fov), gl.render_width/(float)gl.render_height, 0.1f, 1024.0f);
     mesh.UpdateTransforms();
 }
 
@@ -429,8 +436,8 @@ void mouseMotionCallback(GLFWwindow* window, double x, double y)
         double dx, dy;
         dx = x - gl.x0;
         dy = y - gl.y0;
-        dx /= gl.w_width;
-        dy /= gl.w_height;
+        dx /= gl.render_width;
+        dy /= gl.render_height;
 
         mat4 h_rotation = glm::rotate(IDENTITY, float(dx), cam.up);
         mat4 v_rotation = glm::rotate(IDENTITY, float(dy), cam.right);
@@ -448,8 +455,8 @@ void mouseMotionCallback(GLFWwindow* window, double x, double y)
         double dx, dy;
         dx = x - gl.x0;
         dy = y - gl.y0;
-        dx /= gl.w_width;
-        dy /= gl.w_height;
+        dx /= gl.render_width;
+        dy /= gl.render_height;
 
         cam.pos += -cam.right * vec3(dx) + cam.up * vec3(dy);
         cam.look = cam.pos + cam.direction;
@@ -470,6 +477,15 @@ void mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
     cam.pos += forward;
     cam.look = cam.pos + cam.direction;
     UpdateForNewView();
+}
+
+void resizeCallback(GLFWwindow* window, int width, int height) {
+    int new_w, new_h;
+    glfwGetFramebufferSize(window, &new_w, &new_h);
+    gl.render_width  = new_w - gl.gui_width;
+    gl.render_height = new_h;
+    gl.gui_height = new_h;
+    UpdateForNewSize();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -506,9 +522,9 @@ void Draw()
 {
     bench.UpdateTime();
 
-    glViewport(gl.gui_width, 0, gl.w_width, gl.w_height);
+    glViewport(gl.gui_width, 0, gl.render_width, gl.render_height);
     mesh.Draw(bench.delta_T, gl.mode);
-    glViewport(0, 0, gl.w_width + gl.gui_width, gl.w_height);
+    glViewport(0, 0, gl.render_width + gl.gui_width, gl.render_height);
     bench.UpdateStats();
     RenderImgui();
 
@@ -556,10 +572,10 @@ int main(int argc, char **argv)
 {
     HandleArguments(argc, argv);
 
-    gl.w_width = 1920;
-    gl.w_height = 1080;
+    gl.render_width = 1024;
+    gl.render_height = 1024;
     gl.gui_width = 512;
-    gl.gui_height = gl.w_height;
+    gl.gui_height = gl.render_height;
 
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -571,7 +587,7 @@ int main(int argc, char **argv)
 
     // Create the Window
     LOG("Loading {Window-Main}\n");
-    GLFWwindow* window = glfwCreateWindow((gl.w_width + gl.gui_width), gl.w_height,
+    GLFWwindow* window = glfwCreateWindow((gl.render_width + gl.gui_width), gl.render_height,
                                           "Distance Based Tessellation", NULL, NULL);
     if (window == NULL) {
         LOG("=> Failure <=\n");
@@ -584,6 +600,7 @@ int main(int argc, char **argv)
     glfwSetCursorPosCallback(window, &mouseMotionCallback);
     glfwSetMouseButtonCallback(window, &mouseButtonCallback);
     glfwSetScrollCallback(window, &mouseScrollCallback);
+    glfwSetFramebufferSizeCallback(window, resizeCallback);
 
     // Load OpenGL functions
     LOG("Loading {OpenGL}\n");

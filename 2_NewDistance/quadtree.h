@@ -576,7 +576,6 @@ RENDER_PASS:
          */
         glEnable(GL_DEPTH_TEST);
         glFrontFace(GL_CCW);
-//        glEnable(GL_CULL_FACE);
 
         glClearDepth(1.0);
         glClearColor(1,1,1,1);
