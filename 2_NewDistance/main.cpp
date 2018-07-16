@@ -91,7 +91,9 @@ void InitTranforms()
     tb.cam_pos = cam.pos;
     tb.V = glm::lookAt(cam.pos, cam.look, cam.up);
     tb.fov = 45.0;
-    tb.P = glm::perspective(glm::radians(tb.fov), gl.render_width/(float)gl.render_height, 0.1f, 1024.0f);
+    tb.P = glm::perspective(glm::radians(tb.fov),
+                            gl.render_width/(float)gl.render_height,
+                            0.1f, 1024.0f);
 
     mesh.UpdateTransforms();
 }
@@ -100,14 +102,18 @@ void UpdateForNewFOV()
 {
     TransformBlock& tb = mesh.tranforms_manager->block;
 
-    tb.P = glm::perspective(glm::radians(tb.fov), gl.render_width/(float)gl.render_height, 0.1f, 1024.0f);
+    tb.P = glm::perspective(glm::radians(tb.fov),
+                            gl.render_width/(float)gl.render_height,
+                            0.1f, 1024.0f);
     mesh.UpdateTransforms();
 }
 
 void UpdateForNewSize()
 {
     TransformBlock& tb = mesh.tranforms_manager->block;
-    tb.P = glm::perspective(glm::radians(tb.fov), gl.render_width/(float)gl.render_height, 0.1f, 1024.0f);
+    tb.P = glm::perspective(glm::radians(tb.fov),
+                            gl.render_width/(float)gl.render_height,
+                            0.1f, 1024.0f);
     mesh.UpdateTransforms();
 }
 
@@ -479,12 +485,10 @@ void mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
     UpdateForNewView();
 }
 
-void resizeCallback(GLFWwindow* window, int width, int height) {
-    int new_w, new_h;
-    glfwGetFramebufferSize(window, &new_w, &new_h);
-    gl.render_width  = new_w - gl.gui_width;
-    gl.render_height = new_h;
-    gl.gui_height = new_h;
+void resizeCallback(GLFWwindow* window, int new_width, int new_height) {
+    gl.render_width  = new_width - gl.gui_width;
+    gl.render_height = new_height;
+    gl.gui_height = new_height;
     UpdateForNewSize();
 }
 
