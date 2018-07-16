@@ -28,7 +28,10 @@ uniform float cpu_lod;
 
 layout (location = 1) in vec2 tri_p;
 
-layout (location = 2) out Vertex vertex;
+layout (location = 0) out Vertex v_vertex;
+layout (location = 4) out flat uint v_lvl;
+layout (location = 5) out flat uint v_morphed;
+
 
 
 
@@ -48,9 +51,10 @@ uniform int num_vertices, num_indices;
 uniform int morph_debug;
 uniform float morph_k;
 
-
 uniform int itpl_type;
 uniform float itpl_alpha;
+
+vec3 eye;
 
 
 // based on Filip Strugar's CDLOD paper (until intPart & signVec)
@@ -59,11 +63,19 @@ vec2 morphVertexInUnit(uvec4 key, vec2 leaf_p, vec2 tree_p)
     mat3x2 xform;
     lt_getTriangleXform_64(key.xy, xform);
     vec4 mesh_p = M * lt_Leaf_to_MeshPosition(leaf_p, key, false, poly_type);
+#ifdef NEW
+    eye = displaceVertex(vec3(cam_pos.xy, 0), cam_pos);
+    float vertex_lvl = distanceToLod(mesh_p.xyz, eye);
+#else
     float vertex_lvl = distanceToLod(mesh_p.xyz);
-
+#endif
     float node_lvl = lt_level_64(key.xy);
     float tessLevel = clamp(node_lvl -  vertex_lvl, 0.0, 1.0);
     float morphK = (morph_debug > 0) ? morph_k : smoothstep(0.4, 0.5, tessLevel);
+
+    if(morphK > 0 && morphK < 1)
+        v_morphed = 1;
+
     // nb of intervals per side of node primitive
     float patchTessFactor = 0x1 << int(cpu_lod);
     vec2 fracPart = fract(leaf_p * patchTessFactor * 0.5) * 2.0 / patchTessFactor;
@@ -96,9 +108,13 @@ void main()
     uint rootID = key.w & 0x3;
     uint level = lt_level_64(key.xy);
 
+    v_morphed = 0;
+
     // Fetch target mesh-space triangle
     Triangle mesh_t;
     lt_getTargetTriangle(poly_type, meshPolygonID, rootID, mesh_t);
+
+    Vertex current_v;
 
     // Compute Qt position
     vec4 p, n;
@@ -109,20 +125,23 @@ void main()
     // Interpolates
     switch(itpl_type) {
     case LINEAR:
-        vertex = lt_interpolateVertex(mesh_t, tree_pos);
+        current_v = lt_interpolateVertex(mesh_t, tree_pos);
         break;
     case PN:
-        PNInterpolation(mesh_t, tree_pos, poly_type, itpl_alpha, vertex);
+        PNInterpolation(mesh_t, tree_pos, poly_type, itpl_alpha, current_v);
         break;
     case PHONG:
-        PhongInterpolation(mesh_t, tree_pos, poly_type, itpl_alpha, vertex);
+        PhongInterpolation(mesh_t, tree_pos, poly_type, itpl_alpha, current_v);
         break;
     }
 
     if (heightmap > 0)
-        vertex.p.xyz =  displaceVertex(vertex.p.xyz, cam_pos);
+        current_v.p.xyz =  displaceVertex(current_v.p.xyz, cam_pos);
 
-    gl_Position = toScreenSpace(vertex.p.xyz);
+    v_vertex = current_v;
+    v_lvl = level;
+
+    gl_Position = toScreenSpace(current_v.p.xyz);
 }
 #endif
 
@@ -132,8 +151,10 @@ void main()
 ///
 
 #ifdef FRAGMENT_SHADER
-layout (location = 0) in vec4 v_color;
-layout (location = 2) in Vertex vertex;
+
+layout (location = 0) in Vertex v_vertex;
+layout (location = 4) in flat uint v_lvl;
+layout (location = 5) in flat uint v_morphed;
 
 
 
@@ -142,10 +163,22 @@ layout(location = 0) out vec4 color;
 const bool flat_n = true;
 const vec3 light_pos = vec3(0, 50, 100);
 
+vec4 levelColor(uint lvl)
+{
+    vec4 c = vec4(0.0, 0.0, 0.9, 1);
+    c.r += (float(lvl) / 10.0);
+    if (lvl % 2 == 1) {
+        c.g += 0.5;
+    }
+    c = mix(c, RED, float(v_morphed)*0.5);
+    return c;
+}
+
+
 void main()
 {
     mat3 normalMatrix = transpose(inverse(mat3(MV)));
-    vec3 n, p = vertex.p.xyz;
+    vec3 n, p = v_vertex.p.xyz;
     float depth = (MVP * vec4(p, 1.0)).z;
     vec3 dx = dFdx(p.xyz);
     vec3 dy = dFdy(p.xyz);
@@ -158,11 +191,13 @@ void main()
         n = normalize(vec3(-s * height_factor,1));
     }
 
-    vec3 l = normalize(light_pos - vertex.p.xyz);
+    vec3 l = normalize(light_pos - v_vertex.p.xyz);
 
     float nl =  max(dot(l,n),0.0);
 
-    color = vec4(vertex.uv * nl, 0, 1);
+    vec4 c = levelColor(v_lvl);
+
+    color = vec4(vec3(1)*nl, 1);
 }
 #endif
 

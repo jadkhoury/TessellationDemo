@@ -146,6 +146,7 @@ public:
             /*bool map_primcount*/ true,
             /*bool rotateMesh*/ false,
             /*bool displace*/ true,
+            /*float height_factor*/ 0.3,
             /*int color_mode*/ LOD,
             /*bool render_projection*/ true,
 

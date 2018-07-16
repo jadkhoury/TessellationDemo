@@ -205,6 +205,11 @@ void RenderImgui()
         if (ImGui::Checkbox("Displace Mesh", &settings_ref.displace)) {
             mesh.quadtree->UploadSettings();
         }
+        if(settings_ref.displace){
+            if (ImGui::SliderFloat("Height Factor", &settings_ref.height_factor, 0, 2)) {
+                mesh.quadtree->UploadSettings();
+            }
+        }
         if (ImGui::Checkbox("Rotate Mesh", &settings_ref.rotateMesh)) {
             mesh.quadtree->UploadSettings();
         }
@@ -508,8 +513,6 @@ void Draw()
     RenderImgui();
 
     if (gl.auto_lod && !mesh.quadtree->settings.uniform_on) {
-        float ddT = 1.0/60.0 - bench.delta_T;
-
         static float upperFPS = 70, lowerFPS = 60;
         if (bench.delta_T < 1.0/upperFPS) {
             mesh.quadtree->settings.adaptive_factor *= 1.01;

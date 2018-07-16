@@ -1,6 +1,8 @@
 #ifndef NOISE_GLSL
 #define NOISE_GLSL
 
+uniform float height_factor;
+
 const float H = 0.96;
 const float lacunarity = 1.99;
 
@@ -43,7 +45,6 @@ float displace(vec2 p, float screen_resolution, out vec2 gradient)
 	return value.x;
 }
 
-const float height_factor = 0.3;
 
 vec3 displaceVertex(vec3 v, vec3 eye) {
     float f = 3e3 / distance(v, eye);

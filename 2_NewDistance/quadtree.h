@@ -16,6 +16,7 @@ public:
         bool map_primcount;     // Toggle the readback of the node counters
         bool rotateMesh;        // Toggle mesh rotation (for mesh)
         bool displace;          // Toggle displacement mapping (for terrain)
+        float height_factor;     // Factor for displacement mapping (for terrain)
         int color_mode;         // Switch color mode of the render
         bool projection_on; // Toggle the MVP matrix
 
@@ -39,6 +40,7 @@ public:
             utility::SetUniformInt(pid, "uniform_level", uniform_lvl);
             utility::SetUniformFloat(pid, "adaptive_factor", adaptive_factor);
             utility::SetUniformBool(pid, "heightmap", displace);
+            utility::SetUniformFloat(pid, "height_factor", height_factor);
             utility::SetUniformInt(pid, "color_mode", color_mode);
             utility::SetUniformBool(pid, "render_MVP", projection_on);
             utility::SetUniformBool(pid, "cull", cull_on);
