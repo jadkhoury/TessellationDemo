@@ -40,6 +40,7 @@ struct OpenGLManager {
     const string default_filepath = "bigguy.obj";
 
     bool auto_lod;
+    float light_pos[3] = {0,0,100};
 } gl = {};
 
 
@@ -93,7 +94,7 @@ void InitTranforms()
     tb.fov = 45.0;
     tb.P = glm::perspective(glm::radians(tb.fov),
                             gl.render_width/(float)gl.render_height,
-                            0.1f, 1024.0f);
+                            0.01f, 1024.0f);
 
     mesh.UpdateTransforms();
 }
@@ -104,7 +105,7 @@ void UpdateForNewFOV()
 
     tb.P = glm::perspective(glm::radians(tb.fov),
                             gl.render_width/(float)gl.render_height,
-                            0.1f, 1024.0f);
+                            0.01f, 1024.0f);
     mesh.UpdateTransforms();
 }
 
@@ -113,7 +114,7 @@ void UpdateForNewSize()
     TransformBlock& tb = mesh.tranforms_manager->block;
     tb.P = glm::perspective(glm::radians(tb.fov),
                             gl.render_width/(float)gl.render_height,
-                            0.1f, 1024.0f);
+                            0.01f, 1024.0f);
     mesh.UpdateTransforms();
 }
 
@@ -193,10 +194,11 @@ void RenderImgui()
     QuadTree::Settings& settings_ref = mesh.quadtree->settings;
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(ImVec2(gl.gui_width, gl.gui_height));
-    float max_lod = (gl.mode == TERRAIN) ? 100.0 : 10.0;
+    float max_lod = (gl.mode == TERRAIN) ? 200.0 : 10.0;
 
     ImGui::Begin("Parameters", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
     {
+
         if (ImGui::Combo("Mode", (int*)&gl.mode, "Terrain\0Mesh\0\0")) {
             if(gl.mode == TERRAIN)
                 mesh.Init("");
@@ -227,6 +229,9 @@ void RenderImgui()
             mesh.quadtree->UploadSettings();
         }
 
+        if(ImGui::DragFloat3("Light pos", gl.light_pos, 0.1)) {
+            mesh.quadtree->UpdateLightPos(vec3(gl.light_pos[0], gl.light_pos[1], gl.light_pos[2]));
+        }
         if (ImGui::Combo("Color mode", &settings_ref.color_mode,
                          "LoD & Morph\0White Wireframe\0Polygone Highlight\0Frustum\0Cull\0Debug\0\0")) {
             mesh.quadtree->UploadSettings();

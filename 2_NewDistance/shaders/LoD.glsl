@@ -29,7 +29,7 @@ const vec2 triangle_centroid = vec2(1.0/3.0, 1.0/3.0);
 const float SQRT_2 = sqrt(2);
 const float TAN_FOV = tan(radians(fov/2.0));
 
-#define NEW
+//#define NEW
 
 #ifdef NEW
 float distanceToLod(vec3 pos, vec3 eye)

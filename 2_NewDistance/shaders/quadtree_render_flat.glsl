@@ -19,6 +19,7 @@ uniform int render_MVP;
 
 uniform float cpu_lod;
 
+
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// VERTEX_SHADER
@@ -156,12 +157,12 @@ layout (location = 0) in Vertex v_vertex;
 layout (location = 4) in flat uint v_lvl;
 layout (location = 5) in flat uint v_morphed;
 
-
-
 layout(location = 0) out vec4 color;
 
+
+uniform vec3 light_pos = vec3(0, 110, 00);
+
 const bool flat_n = true;
-const vec3 light_pos = vec3(0, 50, 100);
 
 vec4 levelColor(uint lvl)
 {
@@ -176,11 +177,13 @@ vec4 levelColor(uint lvl)
 
 void main()
 {
-    mat3 normalMatrix = transpose(inverse(mat3(MV)));
-    vec3 n, p = v_vertex.p.xyz;
-    float depth = (MVP * vec4(p, 1.0)).z;
-    vec3 dx = dFdx(p.xyz);
-    vec3 dy = dFdy(p.xyz);
+    // Position
+    vec3 p = v_vertex.p.xyz;
+    vec4 p_mv = MV * v_vertex.p;
+    //Normal
+    vec3 n;
+    mat4 normalMatrix = transpose(inverse(MV));
+    vec3 dx = dFdx(p), dy = dFdy(p);
     if (flat_n){
         n = normalize(cross(dx,dy));
     } else {
@@ -189,10 +192,16 @@ void main()
         float d = displace(p.xy, 1.0/(0.5*dp), s);
         n = normalize(vec3(-s * height_factor,1));
     }
-    vec3 l = normalize(light_pos - v_vertex.p.xyz);
-    float nl =  max(dot(l,n),0.0);
+    vec4 n_mv = normalMatrix * vec4(n,0);
+
+    vec4 light_pos_mv =  V * vec4(light_pos, 1.0);
+    vec4 l_mv = normalize(light_pos_mv - p_mv);
+
+
+    float nl =  max(dot(l_mv,n_mv),0.1);
     vec4 c = levelColor(v_lvl);
     color = vec4(c.xyz*nl, 1);
+
 }
 #endif
 

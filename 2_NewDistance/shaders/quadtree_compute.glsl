@@ -104,8 +104,12 @@ void computePass(uvec4 key, uint invocation_idx, int active_nodes)
     } else {
         float parentTargetLevel, targetLevel;
 #ifdef NEW
-        eye = displaceVertex(vec3(cam_pos.xy, 0), cam_pos);
-        computeTessLvlWithParent(key, eye, targetLevel, parentTargetLevel);
+        if(heightmap > 0){
+            eye = displaceVertex(vec3(cam_pos.xy, 0), cam_pos);
+            computeTessLvlWithParent(key, eye, targetLevel, parentTargetLevel);
+        } else {
+            computeTessLvlWithParent(key, cam_pos, targetLevel, parentTargetLevel);
+        }
 #else
         computeTessLvlWithParent(key,targetLevel, parentTargetLevel);
 #endif

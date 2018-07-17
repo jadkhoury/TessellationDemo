@@ -454,6 +454,11 @@ public:
         Reinitialize();
     }
 
+    void UpdateLightPos(vec3 lp)
+    {
+        utility::SetUniformVec3(render_program_, "light_pos", lp);
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     ///
     /// The Program
