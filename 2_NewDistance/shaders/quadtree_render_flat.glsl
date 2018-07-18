@@ -81,8 +81,7 @@ vec2 morphVertexInUnit(uvec4 key, vec2 leaf_p, vec2 tree_p)
     float patchTessFactor = 0x1 << int(cpu_lod);
     vec2 fracPart = fract(leaf_p * patchTessFactor * 0.5) * 2.0 / patchTessFactor;
     vec2 intPart = floor(leaf_p * patchTessFactor * 0.5);
-    vec2 signVec = mod(intPart, 2.0) * vec2(-2.0) + vec2(1.0);
-
+    vec2 signVec = mod(intPart, 2.0) * vec2(2.0) - vec2(1.0);
     return tree_p - mat2(xform) * (signVec * fracPart) * morphK;
 }
 

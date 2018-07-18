@@ -37,7 +37,6 @@ include_directories(${SUBMOD_DIR}/stb)
 include_directories(${SUBMOD_DIR}/dj_opengl)
 include_directories(${SUBMOD_DIR}/tinyobjloader)
 
-
 # imgui implementation (compiled as a library)
 aux_source_directory(${SUBMOD_DIR}/imgui IMGUI_SRC_FILES)
 set(IMGUI_INCLUDE_DIR  common/imgui_impl ${SUBMOD_DIR}/imgui)

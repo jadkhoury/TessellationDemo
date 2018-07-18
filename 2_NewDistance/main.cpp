@@ -27,6 +27,8 @@ struct CameraManager {
     vec3 direction;
 } cam = {};
 
+
+
 struct OpenGLManager {
     bool pause;
     int render_width, render_height;
@@ -41,6 +43,7 @@ struct OpenGLManager {
 
     bool auto_lod;
     float light_pos[3] = {0,0,100};
+    float target_px_edge = 4.0;
 } gl = {};
 
 
@@ -69,6 +72,35 @@ Mesh mesh;
 /// Camera and Transforms
 ///
 
+float distanceToLoD()
+{
+    float d = cam.pos.z;
+    float theta = glm::radians(mesh.tranforms_manager->block.fov * 0.5);
+    float c =  mesh.qt->settings.adaptive_factor;
+    float s = gl.render_height;
+
+    float edge = (d * tan(theta)) / (sqrt(2) * c);
+    float edge_px = edge * s;
+    float area = edge * edge * 0.5;
+
+    float lod = glm::clamp(edge, 0.f, 1.f) ;
+    lod = -log2(lod);
+
+    cout << "Height: " << d
+         << " : LoD = " << lod
+         << ", edge_px = " << edge_px
+         << endl;
+    return -log2(lod);
+}
+
+void LoDForTargetSize(){
+    float d = cam.pos.z;
+    float theta = glm::radians(mesh.tranforms_manager->block.fov * 0.5);
+    float s = gl.render_height;
+
+    mesh.qt->settings.adaptive_factor =  (d * tan(theta) * s) / (gl.target_px_edge * sqrt(2));
+    mesh.qt->UploadSettings();
+}
 
 void PrintCamStuff()
 {
@@ -85,7 +117,7 @@ void InitTranforms()
     cam.pos = INIT_CAM_POS[gl.mode];
     cam.look = INIT_CAM_LOOK[gl.mode];
 
-    cam.up = vec3(0.0f, 0.0f, 1.0f);
+    cam.up = vec3(0.0f, 1.0f, 0.0f);
     cam.direction = glm::normalize(cam.look - cam.pos);
     cam.right = glm::normalize(glm::cross(cam.direction, cam.up));
 
@@ -102,11 +134,12 @@ void InitTranforms()
 void UpdateForNewFOV()
 {
     TransformBlock& tb = mesh.tranforms_manager->block;
-
     tb.P = glm::perspective(glm::radians(tb.fov),
                             gl.render_width/(float)gl.render_height,
                             0.01f, 1024.0f);
     mesh.UpdateTransforms();
+    distanceToLoD();
+
 }
 
 void UpdateForNewSize()
@@ -125,6 +158,7 @@ void UpdateForNewView()
     tb.V = glm::lookAt(cam.pos, cam.look, cam.up);
     tb.cam_pos = cam.pos;
     mesh.UpdateTransforms();
+    distanceToLoD();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -161,8 +195,8 @@ void BenchStats::UpdateStats()
     frame_count++;
     sec_timer += delta_T;
     if (sec_timer < 1.0) {
-        total_qt_gpu_compute += mesh.quadtree->ticks.gpu_compute;
-        total_qt_gpu_render += mesh.quadtree->ticks.gpu_render;
+        total_qt_gpu_compute += mesh.qt->ticks.gpu_compute;
+        total_qt_gpu_render += mesh.qt->ticks.gpu_render;
     } else {
         fps = frame_count - last_frame_count;
         last_frame_count = frame_count;
@@ -191,10 +225,10 @@ void ImGuiTime(string s, float tmp)
 void RenderImgui()
 {
 
-    QuadTree::Settings& settings_ref = mesh.quadtree->settings;
+    QuadTree::Settings& settings_ref = mesh.qt->settings;
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(ImVec2(gl.gui_width, gl.gui_height));
-    float max_lod = (gl.mode == TERRAIN) ? 200.0 : 10.0;
+    float max_lod = (gl.mode == TERRAIN) ? 10.0f : 10.0f;
 
     ImGui::Begin("Parameters", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
     {
@@ -207,7 +241,7 @@ void RenderImgui()
             InitTranforms();
         }
         if (ImGui::Checkbox("Render Projection", &settings_ref.projection_on)) {
-            mesh.quadtree->UploadSettings();
+            mesh.qt->UploadSettings();
         }
         ImGui::SameLine();
         if (ImGui::SliderFloat("FOV", &mesh.tranforms_manager->block.fov, 10, 75.0)) {
@@ -218,92 +252,98 @@ void RenderImgui()
         }
         ImGui::Text("\n------ Mesh settings ------");
         if (ImGui::Checkbox("Displace Mesh", &settings_ref.displace)) {
-            mesh.quadtree->UploadSettings();
+            mesh.qt->UploadSettings();
         }
         if(settings_ref.displace){
             if (ImGui::SliderFloat("Height Factor", &settings_ref.height_factor, 0, 2)) {
-                mesh.quadtree->UploadSettings();
+                mesh.qt->UploadSettings();
             }
         }
         if (ImGui::Checkbox("Rotate Mesh", &settings_ref.rotateMesh)) {
-            mesh.quadtree->UploadSettings();
+            mesh.qt->UploadSettings();
         }
 
         if(ImGui::DragFloat3("Light pos", gl.light_pos, 0.1)) {
-            mesh.quadtree->UpdateLightPos(vec3(gl.light_pos[0], gl.light_pos[1], gl.light_pos[2]));
+            mesh.qt->UpdateLightPos(vec3(gl.light_pos[0], gl.light_pos[1], gl.light_pos[2]));
         }
         if (ImGui::Combo("Color mode", &settings_ref.color_mode,
                          "LoD & Morph\0White Wireframe\0Polygone Highlight\0Frustum\0Cull\0Debug\0\0")) {
-            mesh.quadtree->UploadSettings();
+            mesh.qt->UploadSettings();
         }
         if (ImGui::Checkbox("Uniform", &settings_ref.uniform_on)) {
-            mesh.quadtree->UploadSettings();
+            mesh.qt->UploadSettings();
         }
         ImGui::SameLine();
         if (ImGui::SliderInt("", &settings_ref.uniform_lvl, 0, 20)) {
-            mesh.quadtree->UploadSettings();
+            mesh.qt->UploadSettings();
+        }
+        if (ImGui::SliderFloat("Target triangle area (px)", &gl.target_px_edge, 4.0, 128)) {
+            LoDForTargetSize();
+            distanceToLoD();
         }
         ImGui::Checkbox("Auto LoD", &gl.auto_lod);
         ImGui::SameLine();
         if (ImGui::SliderFloat("LoD Factor", &settings_ref.adaptive_factor, 1, max_lod)) {
-            mesh.quadtree->UploadSettings();
+            mesh.qt->UploadSettings();
+            distanceToLoD();
         }
         if (ImGui::Checkbox("Readback instance count", &settings_ref.map_primcount)) {
-            mesh.quadtree->UploadSettings();
+            mesh.qt->UploadSettings();
         }
         if (settings_ref.map_primcount) {
+            int tri_per_leaf = 1 << (mesh.qt->settings.cpu_lod * 2);
             ImGui::Text("Total    : "); ImGui::SameLine();
-            ImGui::Text(utility::LongToString(mesh.quadtree->full_node_count_).c_str());
+            ImGui::Text(utility::LongToString(mesh.qt->full_node_count_).c_str());
             ImGui::Text("Drawn    : "); ImGui::SameLine();
-            ImGui::Text(utility::LongToString(mesh.quadtree->drawn_node_count).c_str());
+            ImGui::Text(utility::LongToString(mesh.qt->drawn_node_count).c_str());
             ImGui::Text("Triangles: "); ImGui::SameLine();
-            ImGui::Text(utility::LongToString(mesh.quadtree->drawn_node_count*16).c_str());
+            ImGui::Text(utility::LongToString(mesh.qt->drawn_node_count*tri_per_leaf).c_str());
         }
         ImGui::Text("\n------ QuadTree settings ------");
         if (ImGui::Combo("Polygon type", &settings_ref.poly_type, "Triangle\0Quad\0\0")) {
             mesh.LoadMeshBuffers();
-            mesh.quadtree->Reinitialize();
+            mesh.qt->Reinitialize();
         }
         if (ImGui::SliderInt("CPU LoD", &settings_ref.cpu_lod, 0, 8)) {
             if(settings_ref.cpu_lod < 2)
                 settings_ref.morph_on = false;
-            mesh.quadtree->ReloadLeafPrimitive();
-            mesh.quadtree->UploadSettings();
+            mesh.qt->ReloadLeafPrimitive();
+            mesh.qt->UploadSettings();
         }
         if (ImGui::Checkbox("Morph  ", &settings_ref.morph_on)) {
-            mesh.quadtree->UploadSettings();
+            mesh.qt->UploadSettings();
         }
 
         if (ImGui::Checkbox("Cull", &settings_ref.cull_on)) {
-            mesh.quadtree->UploadSettings();
+            mesh.qt->UploadSettings();
         }
         ImGui::SameLine();
         if (ImGui::Checkbox("Freeze", &settings_ref.freeze)) {
-            mesh.quadtree->ReconfigureShaders();
+            mesh.qt->ReconfigureShaders();
         }
         ImGui::SameLine();
         if (ImGui::Button("Reinitialize QuadTree")) {
-            mesh.quadtree->Reinitialize();
+            mesh.qt->Reinitialize();
         }
         if (ImGui::Checkbox("Debug morph", &settings_ref.morph_debug)) {
-            mesh.quadtree->UploadSettings();
+            mesh.qt->UploadSettings();
         }
         if (ImGui::SliderFloat("morphK", &settings_ref.morph_k, 0, 1.0)) {
-            mesh.quadtree->UploadSettings();
+            mesh.qt->UploadSettings();
         }
         if (ImGui::Combo("Interpolation type", &settings_ref.itpl_type,
                          "Linear\0PN Triangles\0Phong\0\0\0")) {
-            mesh.quadtree->UploadSettings();
+            mesh.qt->UploadSettings();
         }
         if (ImGui::SliderFloat("alpha", &settings_ref.itpl_alpha, 0, 1.0)) {
-            mesh.quadtree->UploadSettings();
+            mesh.qt->UploadSettings();
 
         }
         ImGui::Text("\n------ Benchmarking ------");
         static int tmp = log2(settings_ref.wg_count);
         if (ImGui::SliderInt("wg count (pow2)", &tmp, 2, 11)) {
             settings_ref.wg_count = 1 << tmp;
-            mesh.quadtree->UpdateWGCount();
+            mesh.qt->UpdateWGCount();
         }
         ImGui::SameLine();
         ImGui::Text(std::to_string(settings_ref.wg_count).c_str());
@@ -333,11 +373,11 @@ void RenderImgui()
 
         while (refresh_time < ImGui::GetTime())
         {
-            values_qt_gpu_compute[offset] = mesh.quadtree->ticks.gpu_compute * 1000.0;
-            values_qt_gpu_render[offset]  = mesh.quadtree->ticks.gpu_render  * 1000.0;
+            values_qt_gpu_compute[offset] = mesh.qt->ticks.gpu_compute * 1000.0;
+            values_qt_gpu_render[offset]  = mesh.qt->ticks.gpu_render  * 1000.0;
 
             values_fps[offset] = ImGui::GetIO().Framerate;
-            values_primcount[offset] = mesh.quadtree->full_node_count_;
+            values_primcount[offset] = mesh.qt->full_node_count_;
 
             offset = (offset+1) % IM_ARRAYSIZE(values_qt_gpu_compute);
             refresh_time += 1.0f/30.0f;
@@ -348,12 +388,12 @@ void RenderImgui()
         tmp_max = *std::max_element(values_qt_gpu_compute, values_qt_gpu_compute+80);
         if (tmp_max > max_gpu_compute || tmp_max < 0.2 * max_gpu_compute)
             max_gpu_compute = tmp_max;
-        tmp_val = mesh.quadtree->ticks.gpu_compute * 1000.0;
+        tmp_val = (float)mesh.qt->ticks.gpu_compute * 1000.0;
         ImGui::PlotLines("GPU compute dT", values_qt_gpu_compute, IM_ARRAYSIZE(values_qt_gpu_compute), offset,
                          std::to_string(tmp_val).c_str(), 0.0f, max_gpu_compute, ImVec2(0,80));
 
         //QUADTREE RENDER DT
-        tmp_val = mesh.quadtree->ticks.gpu_render * 1000.0;
+        tmp_val = mesh.qt->ticks.gpu_render * 1000.0;
         tmp_max = *std::max_element(values_qt_gpu_render, values_qt_gpu_render+80);
         if (tmp_max > max_gpu_render || tmp_max < 0.2 * max_gpu_render)
             max_gpu_render = tmp_max;
@@ -384,6 +424,27 @@ void RenderImgui()
 /// Input Callbacks
 ///
 
+
+void mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.WantCaptureMouse)
+        return;
+
+    vec3 forward = vec3((float)yoffset * 0.05) * cam.direction ;
+    cam.pos += forward;
+    cam.look = cam.pos + cam.direction;
+    UpdateForNewView();
+}
+
+void resizeCallback(GLFWwindow* window, int new_width, int new_height) {
+    gl.render_width  = new_width - gl.gui_width;
+    gl.render_height = new_height;
+    gl.gui_height = new_height;
+    UpdateForNewSize();
+}
+
+
 void keyboardCallback(GLFWwindow* window, int key, int scancode, int action,
                       int modsls)
 {
@@ -397,10 +458,10 @@ void keyboardCallback(GLFWwindow* window, int key, int scancode, int action,
             glfwSetWindowShouldClose(window, GL_TRUE);
             break;
         case GLFW_KEY_R:
-            mesh.quadtree->ReloadShaders();
+            mesh.qt->ReloadShaders();
             break;
         case GLFW_KEY_U:
-            mesh.quadtree->ReconfigureShaders();
+            mesh.qt->ReconfigureShaders();
             break;
         case GLFW_KEY_P:
             PrintCamStuff();
@@ -478,24 +539,8 @@ void mouseMotionCallback(GLFWwindow* window, double x, double y)
     }
 }
 
-void mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
-{
-    ImGuiIO& io = ImGui::GetIO();
-    if (io.WantCaptureMouse)
-        return;
 
-    vec3 forward = vec3(yoffset * 0.05) * cam.direction ;
-    cam.pos += forward;
-    cam.look = cam.pos + cam.direction;
-    UpdateForNewView();
-}
 
-void resizeCallback(GLFWwindow* window, int new_width, int new_height) {
-    gl.render_width  = new_width - gl.gui_width;
-    gl.render_height = new_height;
-    gl.gui_height = new_height;
-    UpdateForNewSize();
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -510,8 +555,8 @@ void Init()
     gl.pause = false;
     gl.auto_lod = false;
 
-    INIT_CAM_POS[TERRAIN]  = vec3(3.9, 3.6, 0.6);
-    INIT_CAM_LOOK[TERRAIN] = vec3(3.3, 2.9, 0.33);
+    INIT_CAM_POS[TERRAIN]  = vec3(0, 0, 12.1);
+    INIT_CAM_LOOK[TERRAIN] = vec3(0);
     INIT_CAM_POS[MESH]  = vec3(3.4, 3.4, 2.4);
     INIT_CAM_LOOK[MESH] =  vec3(2.8, 2.8, 2.0);
 
@@ -537,20 +582,20 @@ void Draw()
     bench.UpdateStats();
     RenderImgui();
 
-    if (gl.auto_lod && !mesh.quadtree->settings.uniform_on) {
+    if (gl.auto_lod && !mesh.qt->settings.uniform_on) {
         static float upperFPS = 70, lowerFPS = 60;
         if (bench.delta_T < 1.0/upperFPS) {
-            mesh.quadtree->settings.adaptive_factor *= 1.01;
-            mesh.quadtree->UploadSettings();
+            mesh.qt->settings.adaptive_factor *= 1.01;
+            mesh.qt->UploadSettings();
         } else if (bench.delta_T > 1.0/lowerFPS){
-            mesh.quadtree->settings.adaptive_factor *= 0.99;
-            mesh.quadtree->UploadSettings();
+            mesh.qt->settings.adaptive_factor *= 0.99;
+            mesh.qt->UploadSettings();
         }
     }
 }
 
 void Cleanup() {
-    mesh.quadtree->CleanUp();
+    mesh.qt->CleanUp();
     delete[] mesh.mesh_data.v_array;
     delete[] mesh.mesh_data.q_idx_array;
     delete[] mesh.mesh_data.t_idx_array;

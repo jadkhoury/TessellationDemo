@@ -115,6 +115,7 @@ private:
     {
         utility::SetUniformInt(render_program_, "num_vertices", leaf_geometry.v.count);
         utility::SetUniformInt(render_program_, "num_indices", leaf_geometry.idx.count);
+
         settings.Upload(render_program_);
     }
 
@@ -262,12 +263,12 @@ private:
         uvec4* nodes_array =  new uvec4[max_node_count_];
         if (settings.poly_type == TRIANGLES) {
             init_node_count_ = mesh_data_->triangle_count;
-            for (int ctr = 0; ctr < init_node_count_; ++ctr) {
+            for (int ctr = 0; ctr < (int)init_node_count_; ++ctr) {
                 nodes_array[ctr] = uvec4(0, 0x1, uint(ctr*3), 0);
             }
         } else if (settings.poly_type == QUADS) {
             init_node_count_ = 2 * mesh_data_->quad_count;
-            for (int ctr = 0; ctr < init_node_count_; ++ctr) {
+            for (int ctr = 0; ctr < (int)init_node_count_; ++ctr) {
                 nodes_array[2*ctr+0] = uvec4(0, 0x1, uint(ctr*4), 0);
                 nodes_array[2*ctr+1] = uvec4(0, 0x1, uint(ctr*4), 1);
             }
@@ -581,6 +582,7 @@ RENDER_PASS:
          */
         glEnable(GL_DEPTH_TEST);
         glFrontFace(GL_CCW);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
         glClearDepth(1.0);
         glClearColor(1,1,1,1);

@@ -35,7 +35,7 @@ const float TAN_FOV = tan(radians(fov/2.0));
 float distanceToLod(vec3 pos, vec3 eye)
 {
     float x = distance(pos, eye);
-    float tmp = (x * TAN_FOV)/ (SQRT_2 * 2 * adaptive_factor);
+    float tmp = (x * TAN_FOV)/ (SQRT_2 * adaptive_factor);
     tmp = clamp(tmp, 0.0, 1.0) ;
     return -log2(tmp);
 }

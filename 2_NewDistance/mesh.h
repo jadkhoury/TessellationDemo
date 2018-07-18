@@ -7,7 +7,7 @@
 class Mesh
 {
 public:
-    QuadTree* quadtree;
+    QuadTree* qt;
     TransformsManager* tranforms_manager;
     QuadTree::Settings init_settings;
 
@@ -133,27 +133,27 @@ public:
 
     void Init(string filepath)
     {
-        quadtree = new QuadTree();
+        qt = new QuadTree();
         tranforms_manager = new TransformsManager();
         mesh_data = {};
-        grid_quads_count = 5;
+        grid_quads_count = 1;
         grid_quads_count = roundUpToSq(grid_quads_count);
 
         init_settings = {
             /*int uni_lvl*/ 0,
             /*float adaptive_factor*/ 1,
-            /*bool uniform*/ true,
+            /*bool uniform*/ false,
             /*bool map_primcount*/ true,
             /*bool rotateMesh*/ false,
-            /*bool displace*/ true,
+            /*bool displace*/ false,
             /*float height_factor*/ 0.3,
             /*int color_mode*/ LOD,
             /*bool render_projection*/ true,
 
             /*int poly_type*/ TRIANGLES,
-            /*bool morph*/ true,
+            /*bool morph*/ false,
             /*bool freeze*/ false,
-            /*int cpu_lod*/ 2,
+            /*int cpu_lod*/ 0,
             /*bool cull*/ true,
             /*bool morph_debug*/ false,
             /*float morph_k*/ 0.0,
@@ -163,17 +163,17 @@ public:
         };
 
         this->LoadMeshData(filepath);
-        quadtree->Init(&(this->mesh_data), this->tranforms_manager, init_settings);
+        qt->Init(&(this->mesh_data), this->tranforms_manager, init_settings);
     }
 
     void Draw(float deltaT, uint mode)
     {
-        if (!quadtree->settings.freeze /*&& (mode == MESH)*/ &&  quadtree->settings.rotateMesh) {
+        if (!qt->settings.freeze /*&& (mode == MESH)*/ &&  qt->settings.rotateMesh) {
             tranforms_manager->block.M = glm::rotate(tranforms_manager->block.M, 2.0f*deltaT , vec3(0.0f, 0.0f, 1.0f));
             UpdateTransforms();
         }
         tranforms_manager->UploadTransforms();
-        quadtree->Draw(deltaT);
+        qt->Draw(deltaT);
     }
 
 };
