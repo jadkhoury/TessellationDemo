@@ -80,6 +80,7 @@ float distanceToLoD()
     float s = gl.render_height;
 
     float edge = (d * tan(theta)) / (sqrt(2) * c);
+    edge /= float(1 << mesh.qt->settings.cpu_lod);
     float edge_px = edge * s;
     float area = edge * edge * 0.5;
 
@@ -95,10 +96,11 @@ float distanceToLoD()
 
 void LoDForTargetSize(){
     float d = cam.pos.z;
-    float theta = glm::radians(mesh.tranforms_manager->block.fov * 0.5);
+    float theta = (mesh.tranforms_manager->block.fov * 0.5) * (M_PI / 180.0);
     float s = gl.render_height;
+    float leaf_subdiv = float(1<<mesh.qt->settings.cpu_lod);
 
-    mesh.qt->settings.adaptive_factor =  (d * tan(theta) * s) / (gl.target_px_edge * sqrt(2));
+    mesh.qt->settings.adaptive_factor =  (d * tan(theta) * s) / (gl.target_px_edge * sqrt(2) * leaf_subdiv);
     mesh.qt->UploadSettings();
 }
 
@@ -277,7 +279,7 @@ void RenderImgui()
         if (ImGui::SliderInt("", &settings_ref.uniform_lvl, 0, 20)) {
             mesh.qt->UploadSettings();
         }
-        if (ImGui::SliderFloat("Target triangle area (px)", &gl.target_px_edge, 4.0, 128)) {
+        if (ImGui::SliderFloat("Target triangle size (px)", &gl.target_px_edge, 4.0, 128)) {
             LoDForTargetSize();
             distanceToLoD();
         }
@@ -309,6 +311,8 @@ void RenderImgui()
                 settings_ref.morph_on = false;
             mesh.qt->ReloadLeafPrimitive();
             mesh.qt->UploadSettings();
+
+            LoDForTargetSize();
         }
         if (ImGui::Checkbox("Morph  ", &settings_ref.morph_on)) {
             mesh.qt->UploadSettings();
