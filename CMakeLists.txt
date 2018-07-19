@@ -2,7 +2,6 @@ cmake_minimum_required (VERSION 3.1)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-unused-function -Wno-unused-parameter" CACHE STRING "COMPILER OPTIONS" FORCE)
 message(STATUS ${CMAKE_CXX_FLAGS})
 
 
@@ -20,6 +19,9 @@ message(STATUS "**** Tessellation Demo, Loading Configuration ****")
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+    set(CMAKE_CXX_FLAGS "-w" CACHE STRING "COMPILER OPTIONS" FORCE)
+else()
+    set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-unused-function -Wno-unused-parameter" CACHE STRING "COMPILER OPTIONS" FORCE)
 endif()
 
 # disable GLFW docs, examples and tests
