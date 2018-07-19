@@ -139,28 +139,28 @@ public:
         grid_quads_count = 5;
         grid_quads_count = roundUpToSq(grid_quads_count);
 
-        init_settings = {
-            /*int uni_lvl*/ 0,
-            /*float adaptive_factor*/ 1,
-            /*bool uniform*/ true,
-            /*bool map_primcount*/ true,
-            /*bool rotateMesh*/ false,
-            /*bool displace*/ true,
-            /*float height_factor*/ 0.3,
-            /*int color_mode*/ LOD,
-            /*bool render_projection*/ true,
 
-            /*int poly_type*/ TRIANGLES,
-            /*bool morph*/ true,
-            /*bool freeze*/ false,
-            /*int cpu_lod*/ 2,
-            /*bool cull*/ true,
-            /*bool morph_debug*/ false,
-            /*float morph_k*/ 0.0,
-            /*bool itpl_on*/ false,
-            /*float itpl_alpha*/ 0.0,
-            /*uint wg_count*/ 512
-        };
+        init_settings.uniform_on = true;
+        init_settings.uniform_lvl = 1;
+        init_settings.adaptive_factor = 1;  // Factor scaling the adaptive subdivision
+        init_settings.map_primcount = true;     // Toggle the readback of the node counters
+        init_settings.rotateMesh = false;        // Toggle mesh rotation (for mesh)
+        init_settings.displace = false;          // Toggle displacement mapping (for terrain)
+        init_settings.height_factor = 0.3f;     // Factor for displacement mapping (for terrain)
+        init_settings.color_mode = LOD;         // Switch color mode of the render
+        init_settings.projection_on = true; // Toggle the MVP matrix
+
+        init_settings.poly_type = TRIANGLES;    // Type of polygon of the mesh (changes number of root triangle)
+        init_settings.morph_on = false;    // Toggle T-Junction Removal
+        init_settings.freeze = false;      // Toggle freeze i.e. stop updating the quadtree, but keep rendering
+        init_settings.cpu_lod = 0;      // Control CPU LoD, i.e. subdivision level of the instantiated triangle grid
+        init_settings.cull_on = true;     // Toggle Cull
+        init_settings.morph_debug = false; // Toggle morph debuging
+        init_settings.morph_k = 0;    // Control morph factor
+
+        init_settings.itpl_type = LINEAR;
+        init_settings.itpl_alpha = 0;
+        init_settings.wg_count = 512 ; // Control morph factor
 
         this->LoadMeshData(filepath);
         quadtree->Init(&(this->mesh_data), this->tranforms_manager, init_settings);

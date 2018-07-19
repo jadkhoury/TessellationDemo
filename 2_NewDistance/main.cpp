@@ -624,7 +624,7 @@ int main(int argc, char **argv)
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
     glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE);
-    glDebugMessageCallback(debug_output_logger, NULL);
+    glDebugMessageCallback((GLDEBUGPROC)debug_output_logger, NULL);
 
     glClearColor(0, 0, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

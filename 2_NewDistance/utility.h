@@ -108,7 +108,7 @@ static void debug_output_logger( GLenum source,
                                  GLenum severity,
                                  GLsizei length,
                                  const GLchar* message,
-                                 const GLvoid* userParam
+                                 const void* userParam
                                  )
 {
     char srcstr[32], typestr[32];
@@ -151,6 +151,6 @@ static void debug_output_logger( GLenum source,
 void log_debug_output(void)
 {
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-    glDebugMessageCallback(&debug_output_logger, NULL);
+    glDebugMessageCallback((GLDEBUGPROC)&debug_output_logger, NULL);
 }
 #endif
