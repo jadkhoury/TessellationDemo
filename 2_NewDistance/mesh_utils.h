@@ -163,7 +163,7 @@ void ParseObj(string name, int axis, Mesh_Data* mesh_data)
     }
 
     float m = glm::compMax(max);
-    for (int i = 0; i < verts.size(); ++i) {
+    for (int i = 0; i < (int)verts.size(); ++i) {
         verts[i] /= vec4(m,m,m,1);
     }
 
