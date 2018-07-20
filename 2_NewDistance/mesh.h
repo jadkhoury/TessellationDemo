@@ -147,9 +147,9 @@ public:
         init_settings.projection_on = true;
 
         init_settings.poly_type = TRIANGLES;
-        init_settings.morph_on = false;
+        init_settings.morph_on = true;
         init_settings.freeze = false;
-        init_settings.cpu_lod = 0;
+        init_settings.cpu_lod = 2;
         init_settings.cull_on = true;
         init_settings.morph_debug = false;
         init_settings.morph_k = 0;

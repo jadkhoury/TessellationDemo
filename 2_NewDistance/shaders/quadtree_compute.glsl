@@ -31,6 +31,8 @@ uniform int copy_pass;
 
 #ifndef LOD_GLSL
 uniform int poly_type;
+uniform int screen_res;
+uniform int mode;
 #endif
 
 uniform int heightmap;
@@ -105,7 +107,12 @@ void computePass(uvec4 key, uint invocation_idx, int active_nodes)
         should_merge = current_lvl > uniform_level;
     } else {
         float parentTargetLevel, targetLevel;
-        computeTessLvlWithParent(key,targetLevel, parentTargetLevel);
+        if(mode == TERRAIN && heightmap > 0) {
+            float cam_height = getHeight(cam_pos.xy, screen_res);
+            computeTessLvlWithParent(key, cam_height, targetLevel, parentTargetLevel);
+        } else {
+            computeTessLvlWithParent(key,targetLevel, parentTargetLevel);
+        }
         should_divide = float(current_lvl) < targetLevel;
         should_merge  = float(current_lvl) >= parentTargetLevel + 1.0;
     }

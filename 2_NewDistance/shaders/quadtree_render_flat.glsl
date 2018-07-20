@@ -72,6 +72,9 @@ vec2 morphVertexInUnit(uvec4 key, vec2 leaf_p, vec2 tree_p)
     mat3x2 xform;
     lt_getTriangleXform_64(key.xy, xform);
     vec4 mesh_p = M * lt_Leaf_to_MeshPosition(leaf_p, key, false, poly_type);
+    if(mode == TERRAIN && heightmap > 0) {
+        mesh_p.z = getHeight(cam_pos.xy, screen_res);
+    }
     float vertex_lvl = distanceToLod(mesh_p.xyz);
     float node_lvl = lt_level_64(key.xy);
     float tessLevel = clamp(node_lvl -  vertex_lvl, 0.0, 1.0);
