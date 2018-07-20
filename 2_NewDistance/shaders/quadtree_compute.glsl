@@ -30,7 +30,7 @@ uniform int cull;
 uniform int copy_pass;
 
 #ifndef LOD_GLSL
-uniform float cpu_lod;
+uniform int poly_type;
 #endif
 
 uniform int heightmap;
@@ -63,7 +63,7 @@ const vec2 unit_U = vec2(0,1);
 
 /**
  * Copy the new nodeID and old primitive index in the new key
- * Extract the root ID from the w component (i.e. don't copy the morph / destroy bit)
+ * Extract the root ID from the w component
  * The z coordinate corresponding to the mesh primitive is left unmodified since
  * all parents and children of a leaf always lie on the same mesh primitive
  * Store the resulting key in the SBBO for the next compute pass

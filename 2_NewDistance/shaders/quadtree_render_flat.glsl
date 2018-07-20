@@ -46,6 +46,10 @@ uniform float cpu_lod;
 uniform int poly_type;
 #endif
 
+#ifndef NOISE_GLSL
+uniform float height_factor;
+#endif
+
 uniform int heightmap;
 uniform int num_vertices, num_indices;
 
