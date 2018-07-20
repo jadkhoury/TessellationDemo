@@ -68,7 +68,14 @@ Mesh mesh;
 ///
 /// Camera and Transforms
 ///
+///
 
+void updateRenderParams()
+{
+    mesh.quadtree->UpdateLightPos(vec3(gl.light_pos[0], gl.light_pos[1], gl.light_pos[2]));
+    mesh.quadtree->UpdateMode(gl.mode);
+    mesh.quadtree->UpdateScreenRes(std::max(gl.render_height, gl.render_width));
+}
 
 void PrintCamStuff()
 {
@@ -84,14 +91,13 @@ void InitTranforms()
 
     cam.pos = INIT_CAM_POS[gl.mode];
     cam.look = INIT_CAM_LOOK[gl.mode];
-
     cam.up = vec3(0.0f, 0.0f, 1.0f);
     cam.direction = glm::normalize(cam.look - cam.pos);
     cam.right = glm::normalize(glm::cross(cam.direction, cam.up));
 
     tb.cam_pos = cam.pos;
     tb.V = glm::lookAt(cam.pos, cam.look, cam.up);
-    tb.fov = 45.0f;
+    tb.fov = 90.0f;
     tb.P = glm::perspective(glm::radians(tb.fov),
                             gl.render_width/(float)gl.render_height,
                             0.01f, 1024.0f);
@@ -205,12 +211,13 @@ void RenderImgui()
             else
                 mesh.Init(gl.filepath);
             InitTranforms();
+            mesh.quadtree->UpdateMode(gl.mode);
         }
         if (ImGui::Checkbox("Render Projection", &settings_ref.projection_on)) {
             mesh.quadtree->UploadSettings();
         }
         ImGui::SameLine();
-        if (ImGui::SliderFloat("FOV", &mesh.tranforms_manager->block.fov, 10, 75)) {
+        if (ImGui::SliderFloat("FOV", &mesh.tranforms_manager->block.fov, 10, 90)) {
             UpdateForNewFOV();
         }
         if (ImGui::Button("Reinit Cam")) {
@@ -245,19 +252,26 @@ void RenderImgui()
         }
         ImGui::Checkbox("Auto LoD", &gl.auto_lod);
         ImGui::SameLine();
-        if (ImGui::SliderFloat("LoD Factor", &settings_ref.adaptive_factor, 1, max_lod)) {
-            mesh.quadtree->UploadSettings();
+        if(gl.mode == TERRAIN) {
+            if (ImGui::SliderFloat("Target Edge Length", &settings_ref.target_edge_length, 2, 256)) {
+                mesh.quadtree->UploadSettings();
+            }
+        } else {
+            if (ImGui::SliderFloat("LoD Factor", &settings_ref.adaptive_factor, 1, max_lod)) {
+                mesh.quadtree->UploadSettings();
+            }
         }
         if (ImGui::Checkbox("Readback instance count", &settings_ref.map_primcount)) {
             mesh.quadtree->UploadSettings();
         }
         if (settings_ref.map_primcount) {
+            int leaf_tri = (1<<settings_ref.cpu_lod);
             ImGui::Text("Total    : "); ImGui::SameLine();
             ImGui::Text("%s", utility::LongToString(mesh.quadtree->full_node_count_).c_str());
             ImGui::Text("Drawn    : "); ImGui::SameLine();
             ImGui::Text("%s", utility::LongToString(mesh.quadtree->drawn_node_count).c_str());
             ImGui::Text("Triangles: "); ImGui::SameLine();
-            ImGui::Text("%s", utility::LongToString(mesh.quadtree->drawn_node_count*16).c_str());
+            ImGui::Text("%s", utility::LongToString(mesh.quadtree->drawn_node_count*leaf_tri).c_str());
         }
         ImGui::Text("\n------ QuadTree settings ------");
         if (ImGui::Combo("Polygon type", &settings_ref.poly_type, "Triangle\0Quad\0\0")) {
@@ -398,6 +412,7 @@ void keyboardCallback(GLFWwindow* window, int key, int scancode, int action,
             break;
         case GLFW_KEY_R:
             mesh.quadtree->ReloadShaders();
+            updateRenderParams();
             break;
         case GLFW_KEY_U:
             mesh.quadtree->ReconfigureShaders();
@@ -488,13 +503,16 @@ void mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
     cam.pos += forward;
     cam.look = cam.pos + cam.direction;
     UpdateForNewView();
+    cout << cam.pos.z << endl;
 }
 
 void resizeCallback(GLFWwindow* window, int new_width, int new_height) {
     gl.render_width  = new_width - gl.gui_width;
     gl.render_height = new_height;
     gl.gui_height = new_height;
+    mesh.quadtree->UpdateScreenRes(std::max(gl.render_height, gl.render_width));
     UpdateForNewSize();
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -511,7 +529,7 @@ void Init()
     gl.auto_lod = false;
 
     INIT_CAM_POS[TERRAIN]  = vec3(3.9, 3.6, 0.6);
-    INIT_CAM_LOOK[TERRAIN] = vec3(3.3, 2.9, 0.33);
+    INIT_CAM_LOOK[TERRAIN]  = vec3(3.3, 2.9, 0.33);
     INIT_CAM_POS[MESH]  = vec3(3.4, 3.4, 2.4);
     INIT_CAM_LOOK[MESH] =  vec3(2.8, 2.8, 2.0);
 
@@ -521,6 +539,7 @@ void Init()
     mesh.Init((gl.mode == MESH) ? gl.filepath : "");
     bench.Init();
     InitTranforms();
+    updateRenderParams();
 
     cout << "END OF INITIALIZATION" << endl;
     cout << "******************************************************" << endl << endl;

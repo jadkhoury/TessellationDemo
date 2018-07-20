@@ -29,7 +29,9 @@ uniform int cull;
 
 uniform int copy_pass;
 
+#ifndef LOD_GLSL
 uniform float cpu_lod;
+#endif
 
 uniform int heightmap;
 
@@ -103,16 +105,7 @@ void computePass(uvec4 key, uint invocation_idx, int active_nodes)
         should_merge = current_lvl > uniform_level;
     } else {
         float parentTargetLevel, targetLevel;
-#ifdef NEW
-        if(heightmap > 0){
-            eye = displaceVertex(vec3(cam_pos.xy, 0), cam_pos);
-            computeTessLvlWithParent(key, eye, targetLevel, parentTargetLevel);
-        } else {
-            computeTessLvlWithParent(key, cam_pos, targetLevel, parentTargetLevel);
-        }
-#else
         computeTessLvlWithParent(key,targetLevel, parentTargetLevel);
-#endif
         should_divide = float(current_lvl) < targetLevel;
         should_merge  = float(current_lvl) >= parentTargetLevel + 1.0;
     }

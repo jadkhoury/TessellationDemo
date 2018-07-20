@@ -28,7 +28,7 @@ void LoadGrid(Mesh_Data* mesh_data, int grid_quads_count)
 
     const uint16_t* indices;
     int num_div = int(sqrt(grid_quads_count)) - 1;
-
+    num_div = int(factor)- 1;
     djg_mesh* mesh = djgm_load_plane(num_div, num_div);
 
     int count;
@@ -41,6 +41,7 @@ void LoadGrid(Mesh_Data* mesh_data, int grid_quads_count)
                                 factor * (vertices[i].p.y - 0.5),
                                 0.0,
                                 1.0);
+        cout << glm::to_string(v_array_tmp[i].p) << endl;
         v_array_tmp[i].n = sky;
         v_array_tmp[i].uv = vec2(vertices[i].st.s, vertices[i].st.t);
     }

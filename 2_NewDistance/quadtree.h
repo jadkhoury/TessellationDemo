@@ -9,10 +9,11 @@ class QuadTree
 
 public:
     struct Settings
-    {
+    {        
         bool uniform_on;           // Toggle uniform subdivision
         int uniform_lvl;            // Level of uniform subdivision
         float adaptive_factor;  // Factor scaling the adaptive subdivision
+        float target_edge_length;
         bool map_primcount;     // Toggle the readback of the node counters
         bool rotateMesh;        // Toggle mesh rotation (for mesh)
         bool displace;          // Toggle displacement mapping (for terrain)
@@ -39,6 +40,7 @@ public:
             utility::SetUniformBool(pid, "uniform_subdiv", uniform_on);
             utility::SetUniformInt(pid, "uniform_level", uniform_lvl);
             utility::SetUniformFloat(pid, "adaptive_factor", adaptive_factor);
+            utility::SetUniformFloat(pid, "target_edge_length", target_edge_length);
             utility::SetUniformBool(pid, "heightmap", displace);
             utility::SetUniformFloat(pid, "height_factor", height_factor);
             utility::SetUniformInt(pid, "color_mode", color_mode);
@@ -122,6 +124,10 @@ private:
     {
         djgp_push_string(djp, "#define TRIANGLES %i\n", TRIANGLES);
         djgp_push_string(djp, "#define QUADS %i\n", QUADS);
+
+        djgp_push_string(djp, "#define TERRAIN %i\n", TERRAIN);
+        djgp_push_string(djp, "#define MESH %i\n", MESH);
+
         djgp_push_string(djp, "#define NODES_IN_B %i\n", NODES_IN_B);
         djgp_push_string(djp, "#define NODES_OUT_FULL_B %i\n", NODES_OUT_FULL_B);
         djgp_push_string(djp, "#define NODES_OUT_CULLED_B %i\n", NODES_OUT_CULLED_B);
@@ -139,7 +145,6 @@ private:
         djgp_push_string(djp, "#define LOCAL_WG_SIZE_Y %u\n", local_WG_size_.y);
         djgp_push_string(djp, "#define LOCAL_WG_SIZE_Z %u\n", local_WG_size_.z);
         djgp_push_string(djp, "#define LOCAL_WG_COUNT %u\n", local_WG_count);
-
 
     }
 
@@ -457,6 +462,18 @@ public:
     void UpdateLightPos(vec3 lp)
     {
         utility::SetUniformVec3(render_program_, "light_pos", lp);
+    }
+
+    void UpdateMode(uint mode)
+    {
+        utility::SetUniformInt(compute_program_, "mode", mode);
+        utility::SetUniformInt(render_program_, "mode", mode);
+    }
+
+    void UpdateScreenRes(int s)
+    {
+        utility::SetUniformInt(compute_program_, "screen_res", s);
+        utility::SetUniformInt(render_program_, "screen_res", s);
     }
 
     ////////////////////////////////////////////////////////////////////////////

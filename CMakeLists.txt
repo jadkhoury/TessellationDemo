@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.1)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-unused-function -Wno-unused-parameter" CACHE STRING "COMPILER OPTIONS" FORCE)
+set(CMAKE_CXX_FLAGS "-Wall -Wpedantic -Wno-unused-variable -Wno-unused-function -Wno-unused-parameter" CACHE STRING "COMPILER OPTIONS" FORCE)
 message(STATUS ${CMAKE_CXX_FLAGS})
 
 

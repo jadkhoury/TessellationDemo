@@ -14,11 +14,6 @@ const vec4 MAGENTA = vec4(1,0,0.5,1);
 const vec4 YELLOW  = vec4(1,1,0,1);
 const vec4 BLACK   = vec4(0,0,0,1);
 
-uniform int color_mode;
-uniform int render_MVP;
-
-uniform float cpu_lod;
-
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -45,7 +40,12 @@ layout (binding = LEAF_IDX_B) uniform idx_block {
 };
 
 
+#ifndef LOD_GLSL
 uniform int morph;
+uniform float cpu_lod;
+uniform int poly_type;
+#endif
+
 uniform int heightmap;
 uniform int num_vertices, num_indices;
 
@@ -54,6 +54,10 @@ uniform float morph_k;
 
 uniform int itpl_type;
 uniform float itpl_alpha;
+
+uniform int color_mode;
+uniform int render_MVP;
+
 
 vec3 eye;
 
@@ -64,12 +68,7 @@ vec2 morphVertexInUnit(uvec4 key, vec2 leaf_p, vec2 tree_p)
     mat3x2 xform;
     lt_getTriangleXform_64(key.xy, xform);
     vec4 mesh_p = M * lt_Leaf_to_MeshPosition(leaf_p, key, false, poly_type);
-#ifdef NEW
-    eye = displaceVertex(vec3(cam_pos.xy, 0), cam_pos);
-    float vertex_lvl = distanceToLod(mesh_p.xyz, eye);
-#else
     float vertex_lvl = distanceToLod(mesh_p.xyz);
-#endif
     float node_lvl = lt_level_64(key.xy);
     float tessLevel = clamp(node_lvl -  vertex_lvl, 0.0, 1.0);
     float morphK = (morph_debug > 0) ? morph_k : smoothstep(0.4, 0.5, tessLevel);

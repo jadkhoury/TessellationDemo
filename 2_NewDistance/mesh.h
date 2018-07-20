@@ -64,9 +64,6 @@ public:
         if (filepath == "") {
             meshutils::LoadGrid(&mesh_data,  grid_quads_count);
             LoadMeshBuffers();
-            init_settings.displace = true;
-            init_settings.adaptive_factor = 50.0;
-
         } else {
             meshutils::ParseObj(filepath, 0, &mesh_data);
             if (mesh_data.quad_count > 0 && mesh_data.triangle_count == 0) {
@@ -76,9 +73,7 @@ public:
             } else {
                 cout << "ERROR when parsing obj" << endl;
             }
-            init_settings.adaptive_factor = 1.0;
             LoadMeshBuffers();
-            init_settings.displace = false;
         }
     }
 
@@ -136,15 +131,17 @@ public:
         quadtree = new QuadTree();
         tranforms_manager = new TransformsManager();
         mesh_data = {};
-        grid_quads_count = 5;
+        grid_quads_count = 1;
         grid_quads_count = roundUpToSq(grid_quads_count);
 
         init_settings.uniform_on = false;
         init_settings.uniform_lvl = 1;
         init_settings.adaptive_factor = 1;
+        init_settings.target_edge_length = 16;
         init_settings.map_primcount = true;
         init_settings.rotateMesh = false;
-        init_settings.displace = false;
+        // No filepath => Terrain => displace
+        init_settings.displace = (filepath == "");
         init_settings.height_factor = 0.3f;
         init_settings.color_mode = LOD;
         init_settings.projection_on = true;
@@ -168,7 +165,9 @@ public:
     void Draw(float deltaT, uint mode)
     {
         if (!quadtree->settings.freeze &&  quadtree->settings.rotateMesh) {
-            tranforms_manager->block.M = glm::rotate(tranforms_manager->block.M, 2.0f*deltaT , vec3(0.0f, 0.0f, 1.0f));
+            tranforms_manager->block.M = glm::rotate(tranforms_manager->block.M,
+                                                     2.0f * deltaT ,
+                                                     vec3(0.0f, 0.0f, 1.0f));
             UpdateTransforms();
         }
         tranforms_manager->UploadTransforms();

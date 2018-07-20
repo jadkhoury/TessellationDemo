@@ -5,6 +5,11 @@
 
 uniform int poly_type;
 uniform float adaptive_factor;
+uniform int mode;
+uniform float target_edge_length;
+uniform int screen_res;
+uniform float cpu_lod;
+uniform int morph;
 
 //uniform mat4 M, V, P, MV, MVP, invMV;
 //uniform vec3 cam_pos;
@@ -29,37 +34,21 @@ const vec2 triangle_centroid = vec2(1.0/3.0, 1.0/3.0);
 const float SQRT_2 = sqrt(2);
 const float TAN_FOV = tan(radians(fov/2.0));
 
-//#define NEW
-
-#ifdef NEW
-float distanceToLod(vec3 pos, vec3 eye)
-{
-    float x = distance(pos, eye);
-    float tmp = (x * TAN_FOV)/ (SQRT_2 * 2 * adaptive_factor);
-    tmp = clamp(tmp, 0.0, 1.0) ;
-    return -log2(tmp);
-}
-
-void computeTessLvlWithParent(uvec4 key, vec3 eye, out float lvl, out float parent_lvl) {
-    vec4 p_mesh, pp_mesh;
-    lt_Leaf_n_Parent_to_MeshPosition(triangle_centroid, key, p_mesh, pp_mesh, poly_type);
-    p_mesh  = M * p_mesh;
-    pp_mesh = M * pp_mesh;
-
-    lvl        = distanceToLod(p_mesh.xyz, eye);
-    parent_lvl = distanceToLod(pp_mesh.xyz, eye);
-}
-
-#else
-
 float distanceToLod(vec3 pos)
 {
-    float x = distance(pos, cam_pos);
-    float tmp = (x * TAN_FOV)/ (SQRT_2 * adaptive_factor);
+
+    float d = distance(pos, cam_pos);
+    float leaf_subdiv = float(1 << int(cpu_lod+1-morph));
+    float c;
+    if (mode == TERRAIN) {
+        c = screen_res/(SQRT_2 * float(target_edge_length) * leaf_subdiv);
+    } else {
+        c = adaptive_factor;
+    }
+    float tmp = (d * TAN_FOV)/ (SQRT_2 * c);
     tmp = clamp(tmp, 0.0, 1.0) ;
     return -log2(tmp);
 }
-
 
 void computeTessLvlWithParent(uvec4 key, out float lvl, out float parent_lvl) {
     vec4 p_mesh, pp_mesh;
@@ -70,8 +59,6 @@ void computeTessLvlWithParent(uvec4 key, out float lvl, out float parent_lvl) {
     lvl        = distanceToLod(p_mesh.xyz);
     parent_lvl = distanceToLod(pp_mesh.xyz);
 }
-
-#endif
 
 bool culltest(mat4 mvp, vec3 bmin, vec3 bmax)
 {
