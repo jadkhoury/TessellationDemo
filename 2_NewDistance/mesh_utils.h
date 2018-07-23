@@ -3,7 +3,6 @@
 
 #include "common.h"
 
-
 #include <cassert>
 #include <cstdio>
 #include <cstring>

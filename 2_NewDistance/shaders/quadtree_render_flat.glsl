@@ -141,7 +141,6 @@ void main()
     float nl =  max(dot(l_mv,n_mv),0.1);
     vec4 c = levelColor(v_lvl, v_morphed);
     color = vec4(c.xyz*nl, 1);
-
 }
 #endif
 

@@ -3,6 +3,7 @@
 
 #include "quadtree.h"
 #include "common.h"
+#include "transform.h"
 
 class Mesh
 {
@@ -121,12 +122,25 @@ public:
         return (glGetError() == GL_NO_ERROR);
     }
 
-    void UpdateTransforms()
-    {
-        tranforms_manager->UpdateMV();
+
+    // ----- Transform call passthrough ---- //
+    void UpdateForFOV(CameraManager& cam) {
+        tranforms_manager->UpdateForNewFOV(cam);
     }
 
-    void Init(string filepath)
+    void UpdateForSize(CameraManager& cam) {
+        tranforms_manager->UpdateForNewSize(cam);
+    }
+
+    void UpdateForView(CameraManager& cam) {
+        tranforms_manager->UpdateForNewView(cam);
+    }
+
+    void InitTransforms(CameraManager& cam) {
+        tranforms_manager->Init(cam);
+    }
+
+    void Init(string filepath, CameraManager& cam)
     {
         quadtree = new QuadTree();
         tranforms_manager = new TransformsManager();
@@ -161,18 +175,16 @@ public:
         init_settings.wg_count = 512 ;
 
         this->LoadMeshData(filepath);
-        quadtree->Init(&(this->mesh_data), this->tranforms_manager, init_settings);
+        this->tranforms_manager->Init(cam);
+        quadtree->Init(&(this->mesh_data), this->tranforms_manager->GetBo(), init_settings);
     }
 
     void Draw(float deltaT, uint mode)
     {
         if (!quadtree->settings.freeze &&  quadtree->settings.rotateMesh) {
-            tranforms_manager->block.M = glm::rotate(tranforms_manager->block.M,
-                                                     2.0f * deltaT ,
-                                                     vec3(0.0f, 0.0f, 1.0f));
-            UpdateTransforms();
+            tranforms_manager->Rotate(2.0f * deltaT, vec3(0.0f, 0.0f, 1.0f));
         }
-        tranforms_manager->UploadTransforms();
+        tranforms_manager->Upload();
         quadtree->Draw(deltaT);
     }
 

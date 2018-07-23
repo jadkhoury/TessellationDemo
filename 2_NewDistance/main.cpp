@@ -16,20 +16,9 @@ static const GLfloat black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 static const GLfloat grey[] = { 0.05f, 0.05f, 0.1f, 1.0f };
 static const GLfloat one = 1.0;
 static const mat4 IDENTITY = mat4(1.0f);
-static vec3 INIT_CAM_POS[2];
-static vec3 INIT_CAM_LOOK[2];
-
-struct CameraManager {
-    vec3 pos;
-    vec3 look;
-    vec3 up;
-    vec3 right;
-    vec3 direction;
-} cam = {};
 
 struct OpenGLManager {
     bool pause;
-    int render_width, render_height;
     int gui_width, gui_height;
 
     bool lbutton_down, rbutton_down;
@@ -63,10 +52,11 @@ struct BenchStats {
 } bench = {};
 
 Mesh mesh;
+CameraManager cam;
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
-/// Camera and Transforms
+/// Update render paramenters
 ///
 ///
 
@@ -74,63 +64,7 @@ void updateRenderParams()
 {
     mesh.quadtree->UpdateLightPos(vec3(gl.light_pos[0], gl.light_pos[1], gl.light_pos[2]));
     mesh.quadtree->UpdateMode(gl.mode);
-    mesh.quadtree->UpdateScreenRes(std::max(gl.render_height, gl.render_width));
-}
-
-void PrintCamStuff()
-{
-    cout << "Position: " << glm::to_string(cam.pos) << endl;
-    cout << "Look: " << glm::to_string(cam.look) << endl;
-    cout << "Up: " << glm::to_string(cam.up) << endl;
-    cout << "Right: " << glm::to_string(cam.right) << endl << endl;
-}
-
-void InitTranforms()
-{
-    TransformBlock& tb = mesh.tranforms_manager->block;
-
-    cam.pos = INIT_CAM_POS[gl.mode];
-    cam.look = INIT_CAM_LOOK[gl.mode];
-    cam.up = vec3(0.0f, 0.0f, 1.0f);
-    cam.direction = glm::normalize(cam.look - cam.pos);
-    cam.right = glm::normalize(glm::cross(cam.direction, cam.up));
-
-    tb.cam_pos = cam.pos;
-    tb.V = glm::lookAt(cam.pos, cam.look, cam.up);
-    tb.fov = 90.0f;
-    tb.P = glm::perspective(glm::radians(tb.fov),
-                            gl.render_width/(float)gl.render_height,
-                            0.01f, 1024.0f);
-
-    mesh.UpdateTransforms();
-}
-
-void UpdateForNewFOV()
-{
-    TransformBlock& tb = mesh.tranforms_manager->block;
-
-    tb.P = glm::perspective(glm::radians(tb.fov),
-                            gl.render_width/(float)gl.render_height,
-                            0.01f, 1024.0f);
-    mesh.UpdateTransforms();
-}
-
-void UpdateForNewSize()
-{
-    TransformBlock& tb = mesh.tranforms_manager->block;
-    tb.P = glm::perspective(glm::radians(tb.fov),
-                            gl.render_width/(float)gl.render_height,
-                            0.01f, 1024.0f);
-    mesh.UpdateTransforms();
-}
-
-void UpdateForNewView()
-{
-    TransformBlock& tb = mesh.tranforms_manager->block;
-
-    tb.V = glm::lookAt(cam.pos, cam.look, cam.up);
-    tb.cam_pos = cam.pos;
-    mesh.UpdateTransforms();
+    mesh.quadtree->UpdateScreenRes(std::max(cam.render_height, cam.render_width));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -206,29 +140,27 @@ void RenderImgui()
     {
 
         if (ImGui::Combo("Mode", (int*)&gl.mode, "Terrain\0Mesh\0\0")) {
-            if(gl.mode == TERRAIN)
-                mesh.Init("");
-            else
-                mesh.Init(gl.filepath);
-            InitTranforms();
-            mesh.quadtree->UpdateMode(gl.mode);
+            cam.Init(gl.mode);
+            mesh.Init((gl.mode == MESH) ? gl.filepath : "", cam);
+            updateRenderParams();
+
         }
         if (ImGui::Checkbox("Render Projection", &settings_ref.projection_on)) {
             mesh.quadtree->UploadSettings();
         }
         ImGui::SameLine();
-        if (ImGui::SliderFloat("FOV", &mesh.tranforms_manager->block.fov, 10, 90)) {
-            UpdateForNewFOV();
+        if (ImGui::SliderFloat("FOV", &cam.fov, 10, 90)) {
+            mesh.UpdateForFOV(cam);
         }
         if (ImGui::Button("Reinit Cam")) {
-            InitTranforms();
+             cam.Init(gl.mode);
+            mesh.InitTransforms(cam);
         }
         ImGui::Text("\n------ Mesh settings ------");
 
         if (ImGui::Checkbox("Wireframe", &settings_ref.wireframe_on)) {
 
             mesh.quadtree->ReloadRenderProgram();
-            mesh.UpdateTransforms();
             updateRenderParams();
         }
         if (ImGui::Checkbox("Displace Mesh", &settings_ref.displace)) {
@@ -274,7 +206,7 @@ void RenderImgui()
         if (settings_ref.map_primcount) {
             int leaf_tri = (1<<settings_ref.cpu_lod);
             ImGui::Text("Total    : "); ImGui::SameLine();
-            ImGui::Text("%s", utility::LongToString(mesh.quadtree->full_node_count_).c_str());
+            ImGui::Text("%s", utility::LongToString(mesh.quadtree->full_node_count).c_str());
             ImGui::Text("Drawn    : "); ImGui::SameLine();
             ImGui::Text("%s", utility::LongToString(mesh.quadtree->drawn_node_count).c_str());
             ImGui::Text("Triangles: "); ImGui::SameLine();
@@ -358,7 +290,7 @@ void RenderImgui()
             values_qt_gpu_render[offset]  = mesh.quadtree->ticks.gpu_render  * 1000.0f;
 
             values_fps[offset] = ImGui::GetIO().Framerate;
-            values_primcount[offset] = mesh.quadtree->full_node_count_;
+            values_primcount[offset] = mesh.quadtree->full_node_count;
 
             offset = (offset+1) % IM_ARRAYSIZE(values_qt_gpu_compute);
             refresh_time += 1.0f/30.0f;
@@ -425,7 +357,7 @@ void keyboardCallback(GLFWwindow* window, int key, int scancode, int action,
             mesh.quadtree->ReconfigureShaders();
             break;
         case GLFW_KEY_P:
-            PrintCamStuff();
+            cam.PrintStatus();
             break;
         case GLFW_KEY_SPACE:
             gl.pause = !gl.pause;
@@ -469,15 +401,15 @@ void mouseMotionCallback(GLFWwindow* window, double x, double y)
         double dx, dy;
         dx = x - gl.x0;
         dy = y - gl.y0;
-        dx /= gl.render_width;
-        dy /= gl.render_height;
+        dx /= cam.render_width;
+        dy /= cam.render_height;
 
         mat4 h_rotation = glm::rotate(IDENTITY, float(dx), cam.up);
         mat4 v_rotation = glm::rotate(IDENTITY, float(dy), cam.right);
         cam.direction = glm::normalize(mat3(h_rotation) * mat3(v_rotation) * cam.direction);
         cam.right     = glm::normalize(mat3(h_rotation) * mat3(v_rotation) * cam.right);
         cam.look = cam.pos + cam.direction;
-        UpdateForNewView();
+        mesh.UpdateForView(cam);
 
         gl.x0 = x;
         gl.y0 = y;
@@ -488,12 +420,12 @@ void mouseMotionCallback(GLFWwindow* window, double x, double y)
         double dx, dy;
         dx = x - gl.x0;
         dy = y - gl.y0;
-        dx /= gl.render_width;
-        dy /= gl.render_height;
+        dx /= cam.render_width;
+        dy /= cam.render_height;
 
         cam.pos += -cam.right * vec3(dx) + cam.up * vec3(dy);
         cam.look = cam.pos + cam.direction;
-        UpdateForNewView();
+        mesh.UpdateForView(cam);
 
         gl.x0 = x;
         gl.y0 = y;
@@ -509,17 +441,16 @@ void mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
     vec3 forward = vec3((float)yoffset * 0.05f) * cam.direction ;
     cam.pos += forward;
     cam.look = cam.pos + cam.direction;
-    UpdateForNewView();
+    mesh.UpdateForView(cam);
     cout << cam.pos.z << endl;
 }
 
 void resizeCallback(GLFWwindow* window, int new_width, int new_height) {
-    gl.render_width  = new_width - gl.gui_width;
-    gl.render_height = new_height;
+    cam.render_width  = new_width - gl.gui_width;
+    cam.render_height = new_height;
     gl.gui_height = new_height;
-    mesh.quadtree->UpdateScreenRes(std::max(gl.render_height, gl.render_width));
-    UpdateForNewSize();
-
+    mesh.quadtree->UpdateScreenRes(std::max(cam.render_height, cam.render_width));
+    mesh.UpdateForSize(cam);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -535,17 +466,13 @@ void Init()
     gl.pause = false;
     gl.auto_lod = false;
 
-    INIT_CAM_POS[TERRAIN]  = vec3(3.9, 3.6, 0.6);
-    INIT_CAM_LOOK[TERRAIN]  = vec3(3.3, 2.9, 0.33);
-    INIT_CAM_POS[MESH]  = vec3(3.4, 3.4, 2.4);
-    INIT_CAM_LOOK[MESH] =  vec3(2.8, 2.8, 2.0);
-
     gl.mode = TERRAIN;
     if(gl.filepath != gl.default_filepath)
         gl.mode = MESH;
-    mesh.Init((gl.mode == MESH) ? gl.filepath : "");
+
+     cam.Init(gl.mode);
+    mesh.Init((gl.mode == MESH) ? gl.filepath : "", cam);
     bench.Init();
-    InitTranforms();
     updateRenderParams();
 
     cout << "END OF INITIALIZATION" << endl;
@@ -557,9 +484,9 @@ void Draw()
 {
     bench.UpdateTime();
 
-    glViewport(gl.gui_width, 0, gl.render_width, gl.render_height);
+    glViewport(gl.gui_width, 0, cam.render_width, cam.render_height);
     mesh.Draw(bench.delta_T, gl.mode);
-    glViewport(0, 0, gl.render_width + gl.gui_width, gl.render_height);
+    glViewport(0, 0, cam.render_width + gl.gui_width, cam.render_height);
     bench.UpdateStats();
     RenderImgui();
 
@@ -607,10 +534,10 @@ int main(int argc, char **argv)
 {
     HandleArguments(argc, argv);
 
-    gl.render_width = 1024;
-    gl.render_height = 1024;
+    cam.render_width = 1024;
+    cam.render_height = 1024;
     gl.gui_width = 512;
-    gl.gui_height = gl.render_height;
+    gl.gui_height = cam.render_height;
 
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -622,7 +549,7 @@ int main(int argc, char **argv)
 
     // Create the Window
     LOG("Loading {Window-Main}\n");
-    GLFWwindow* window = glfwCreateWindow((gl.render_width + gl.gui_width), gl.render_height,
+    GLFWwindow* window = glfwCreateWindow((cam.render_width + gl.gui_width), cam.render_height,
                                           "Distance Based Tessellation", NULL, NULL);
     if (window == NULL) {
         LOG("=> Failure <=\n");
@@ -662,7 +589,7 @@ int main(int argc, char **argv)
         ImGui::StyleColorsDark();
 
         // delta_T condition to avoid crashing my system
-        while (!glfwWindowShouldClose(window)  && bench.delta_T < 5.0)
+        while (!glfwWindowShouldClose(window)  && bench.delta_T < 1.0)
         {
             glfwPollEvents();
             if (!gl.pause)

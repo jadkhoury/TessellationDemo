@@ -116,7 +116,7 @@ layout (location = 5) out flat uint g_morphed;
 layout (location = 6) out vec2 g_leaf_pos;
 layout (location = 7) out vec2 g_tri_pos;
 
-void main ()
+void main()
 {
     for (int i = 0; i < gl_in.length(); i++) {
         //Passthrough
@@ -187,7 +187,7 @@ void main()
     float nl =  max(dot(l_mv,n_mv),0.1);
     vec4 c = levelColor(g_lvl, g_morphed);
 
-    float wireframe_factor = 1- gridFactor(g_tri_pos, 1.0);
+    float wireframe_factor = gridFactor(g_tri_pos, 1.0);
 
     color = vec4(c.xyz*wireframe_factor, 1);
 

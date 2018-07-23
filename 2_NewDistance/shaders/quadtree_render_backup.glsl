@@ -248,7 +248,7 @@ vec4 toScreenSpace(vec3 v)
         return vec4(v.xyz * 0.2, 1) ;
 }
 
-void main ()
+void main()
 {
     for (int i = 0; i < gl_in.length(); i++) {
         g_color = v_color[i];
