@@ -21,6 +21,8 @@ public:
         int color_mode;         // Switch color mode of the render
         bool projection_on; // Toggle the MVP matrix
 
+        bool wireframe_on; // Toggle wireframe visualisation
+
         int poly_type;    // Type of polygon of the mesh (changes number of root triangle)
         bool morph_on;    // Toggle T-Junction Removal
         bool freeze;      // Toggle freeze i.e. stop updating the quadtree, but keep rendering
@@ -29,9 +31,8 @@ public:
         bool morph_debug; // Toggle morph debuging
         float morph_k;    // Control morph factor
 
-        int itpl_type;
-        float itpl_alpha;
-
+        int itpl_type; // Switch interpolation type
+        float itpl_alpha; // Control interpolation factor
 
         uint wg_count; // Control morph factor
 
@@ -229,7 +230,14 @@ private:
         djgp_push_file(djp, strcat2(buf, shader_dir, "PN_interpolation.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "phong_interpolation.glsl"));
 
-        djgp_push_file(djp, strcat2(buf, shader_dir, "quadtree_render_flat.glsl"));
+
+        djgp_push_file(djp, strcat2(buf, shader_dir, "quadtree_render_common.glsl"));
+
+        if (settings.wireframe_on)
+            djgp_push_file(djp, strcat2(buf, shader_dir, "quadtree_render_wireframe.glsl"));
+        else
+            djgp_push_file(djp, strcat2(buf, shader_dir, "quadtree_render_flat.glsl"));
+
         if (!djgp_to_gl(djp, 450, false, true, &render_program_))
         {
             cout << "X" << endl;
@@ -419,6 +427,13 @@ public:
         bool v = loadPrograms();
     }
 
+    void ReloadRenderProgram()
+    {
+        loadRenderProgram();
+        configureRenderProgram();
+        UploadSettings();
+    }
+
     void ReconfigureShaders()
     {
         configureComputeProgram();
@@ -433,6 +448,7 @@ public:
         loadPrograms();
         commands_->Init(leaf_geometry.idx.count, init_wg_count_, init_node_count_);
     }
+
 
     void ReloadLeafPrimitive()
     {
@@ -475,6 +491,8 @@ public:
         utility::SetUniformInt(compute_program_, "screen_res", s);
         utility::SetUniformInt(render_program_, "screen_res", s);
     }
+
+
 
     ////////////////////////////////////////////////////////////////////////////
     ///

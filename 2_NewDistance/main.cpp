@@ -224,6 +224,13 @@ void RenderImgui()
             InitTranforms();
         }
         ImGui::Text("\n------ Mesh settings ------");
+
+        if (ImGui::Checkbox("Wireframe", &settings_ref.wireframe_on)) {
+
+            mesh.quadtree->ReloadRenderProgram();
+            mesh.UpdateTransforms();
+            updateRenderParams();
+        }
         if (ImGui::Checkbox("Displace Mesh", &settings_ref.displace)) {
             mesh.quadtree->UploadSettings();
         }

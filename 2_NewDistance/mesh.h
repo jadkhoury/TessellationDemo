@@ -146,6 +146,8 @@ public:
         init_settings.color_mode = LOD;
         init_settings.projection_on = true;
 
+        init_settings.wireframe_on = false;
+
         init_settings.poly_type = TRIANGLES;
         init_settings.morph_on = true;
         init_settings.freeze = false;

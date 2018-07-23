@@ -118,7 +118,7 @@ vec4 diffuseColor(vec3 p_mv, vec3 n_mv, vec3 light_dir)
 // ------------------- Geometry Functions ------------------- //
 
 // based on Filip Strugar's CDLOD paper (until intPart & signVec)
-vec2 morphVertexInUnit(uvec4 key, vec2 leaf_p, vec2 tree_p)
+vec2 morphVertex(uvec4 key, vec2 leaf_p, vec2 tree_p)
 {
     mat3 t;
     lt_getTriangleXform_64(key.xy, t);
@@ -167,7 +167,7 @@ void main()
         v_pos = lt_Leaf_to_MeshPrimitive(v_uv, key, false, poly_type).xyz;
         vec2 tree_pos = lt_Leaf_to_Tree_64(v_uv, nodeID, false);
         if (morph > 0)
-            tree_pos = morphVertexInUnit(key, v_uv, tree_pos);
+            tree_pos = morphVertex(key, v_uv, tree_pos);
         v_pos = lt_Tree_to_MeshTriangle(tree_pos, poly_type, key.z, key.w).xyz;
 
         // Update normal and position for displacement mapping
@@ -182,7 +182,7 @@ void main()
         p = vec4(0.0);
         n = vec4(0.0);
         if (morph > 0)
-            tree_pos = morphVertexInUnit(key, v_uv, tree_pos);
+            tree_pos = morphVertex(key, v_uv, tree_pos);
         PNInterpolation(key, tree_pos, poly_type, ipl_alpha, p, n);
         v_pos = p.xyz;
     }
