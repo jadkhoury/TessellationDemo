@@ -23,7 +23,7 @@ layout (binding = LEAF_IDX_B) uniform idx_block {
 
 #ifndef LOD_GLSL
 uniform int morph;
-uniform float cpu_lod;
+uniform int cpu_lod;
 uniform int poly_type;
 #endif
 
@@ -118,7 +118,7 @@ const bool flat_n = true;
 
 void main()
 {
-#if 0
+#if 1
     // Position
     vec3 p = v_vertex.p.xyz;
     vec4 p_mv = MV * v_vertex.p;

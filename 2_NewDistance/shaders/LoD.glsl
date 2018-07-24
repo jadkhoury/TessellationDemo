@@ -8,7 +8,7 @@ uniform float adaptive_factor;
 uniform int mode;
 uniform float target_edge_length;
 uniform int screen_res;
-uniform float cpu_lod;
+uniform int cpu_lod;
 uniform int morph;
 
 //uniform mat4 M, V, P, MV, MVP, invMV;
@@ -35,18 +35,18 @@ float TAN_FOV = tan(radians(fov/2.0));
 
 float distanceToLod(vec3 pos)
 {
-
     float d = distance(pos, cam_pos);
-    float leaf_subdiv = float(1 << uint(cpu_lod+1-morph));
-    float c;
+    float f;
+
     if (mode == TERRAIN) {
-        c = screen_res/(SQRT_2 * float(target_edge_length) * leaf_subdiv);
+        float leaf_subdiv = float(1 << uint(cpu_lod+1-morph));
+        f = screen_res/(SQRT_2 * target_edge_length * leaf_subdiv);
     } else {
-        c = adaptive_factor;
+        f = adaptive_factor;
     }
-    float tmp = (d * TAN_FOV)/ (SQRT_2 * c);
-    tmp = clamp(tmp, 0.0, 1.0) ;
-    return -log2(tmp);
+    float lod = (d * TAN_FOV)/ (SQRT_2 * f);
+    lod = clamp(lod, 0.0, 1.0) ;
+    return -log2(lod);
 }
 
 void computeTessLvlWithParent(uvec4 key, float height, out float lvl, out float parent_lvl) {

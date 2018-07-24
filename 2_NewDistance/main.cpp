@@ -205,7 +205,7 @@ void RenderImgui()
             mesh.quadtree->UploadSettings();
         }
         if (settings_ref.map_primcount) {
-            int leaf_tri = (1<<settings_ref.cpu_lod);
+            int leaf_tri = (1<<(settings_ref.cpu_lod*2));
             ImGui::Text("Total    : "); ImGui::SameLine();
             ImGui::Text("%s", utility::LongToString(mesh.quadtree->full_node_count).c_str());
             ImGui::Text("Drawn    : "); ImGui::SameLine();

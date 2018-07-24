@@ -47,7 +47,7 @@ public:
             utility::SetUniformInt(pid, "color_mode", color_mode);
             utility::SetUniformBool(pid, "render_MVP", projection_on);
             utility::SetUniformBool(pid, "cull", cull_on);
-            utility::SetUniformFloat(pid, "cpu_lod", float(cpu_lod));
+            utility::SetUniformInt(pid, "cpu_lod", float(cpu_lod));
             utility::SetUniformInt(pid, "poly_type", poly_type);
             utility::SetUniformBool(pid, "morph", morph_on);
             utility::SetUniformBool(pid, "morph_debug", morph_debug);
