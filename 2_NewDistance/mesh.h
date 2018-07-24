@@ -182,7 +182,7 @@ public:
     void Draw(float deltaT, uint mode)
     {
         if (!quadtree->settings.freeze &&  quadtree->settings.rotateMesh) {
-            tranforms_manager->Rotate(2.0f * deltaT, vec3(0.0f, 0.0f, 1.0f));
+            tranforms_manager->RotateModel(2.0f * deltaT, vec3(0.0f, 0.0f, 1.0f));
         }
         tranforms_manager->Upload();
         quadtree->Draw(deltaT);

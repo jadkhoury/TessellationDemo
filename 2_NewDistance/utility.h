@@ -60,12 +60,17 @@ static void SetUniformMat4(GLuint pid, string name, const glm::mat4& value)
     glProgramUniformMatrix4fv(pid, location, 1, GL_FALSE, glm::value_ptr(value));
 }
 
-
 void EmptyBuffer(GLuint* bo)
 {
     if(glIsBuffer(*bo))
         glDeleteBuffers(1, bo);
     *bo = 0;
+}
+
+float clamp(float f, float min, float max) {
+    if (f < min) f = min;
+    if (f > max) f = max;
+    return f;
 }
 
 string LongToString(long l)

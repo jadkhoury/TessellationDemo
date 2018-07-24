@@ -29,15 +29,13 @@ struct OpenGLManager {
     const string default_filepath = "bigguy.obj";
 
     bool auto_lod;
-    float light_pos[3] = {0,0,100};
+    float light_pos[3] = {50,-50,100};
 } gl = {};
 
-
-
 struct BenchStats {
-    float last_t;
-    float current_t;
-    float delta_T;
+    double last_t;
+    double current_t;
+    double delta_T;
 
     double avg_qt_gpu_compute, avg_qt_gpu_render;
     double avg_tess_render;
@@ -149,11 +147,11 @@ void RenderImgui()
             mesh.quadtree->UploadSettings();
         }
         ImGui::SameLine();
-        if (ImGui::SliderFloat("FOV", &cam.fov, 10, 90)) {
+        if (ImGui::SliderFloat("FOV", &cam.fov, 5, 90)) {
             mesh.UpdateForFOV(cam);
         }
         if (ImGui::Button("Reinit Cam")) {
-             cam.Init(gl.mode);
+            cam.Init(gl.mode);
             mesh.InitTransforms(cam);
         }
         ImGui::Text("\n------ Mesh settings ------");
@@ -343,7 +341,6 @@ void keyboardCallback(GLFWwindow* window, int key, int scancode, int action,
     ImGuiIO& io = ImGui::GetIO();
     if (io.WantCaptureKeyboard)
         return;
-
     if (action == GLFW_PRESS) {
         switch (key) {
         case GLFW_KEY_ESCAPE:
@@ -374,9 +371,7 @@ void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
     if (io.WantCaptureMouse)
         return;
 
-
     if (GLFW_PRESS == action) {
-
         gl.lbutton_down = (button == GLFW_MOUSE_BUTTON_LEFT);
         gl.rbutton_down = (button == GLFW_MOUSE_BUTTON_RIGHT);
         glfwGetCursorPos(window, &gl.x0, &gl.y0);
@@ -390,41 +385,22 @@ void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
 
 void mouseMotionCallback(GLFWwindow* window, double x, double y)
 {
-
     ImGuiIO& io = ImGui::GetIO();
     if (io.WantCaptureMouse)
         return;
     x = x - gl.gui_width;
 
-    if (gl.lbutton_down)
+    if (gl.lbutton_down || gl.rbutton_down)
     {
         double dx, dy;
-        dx = x - gl.x0;
-        dy = y - gl.y0;
-        dx /= cam.render_width;
-        dy /= cam.render_height;
+        dx = (x - gl.x0) / cam.render_width;
+        dy = (y - gl.y0) / cam.render_height;
 
-        mat4 h_rotation = glm::rotate(IDENTITY, float(dx), cam.up);
-        mat4 v_rotation = glm::rotate(IDENTITY, float(dy), cam.right);
-        cam.direction = glm::normalize(mat3(h_rotation) * mat3(v_rotation) * cam.direction);
-        cam.right     = glm::normalize(mat3(h_rotation) * mat3(v_rotation) * cam.right);
-        cam.look = cam.pos + cam.direction;
-        mesh.UpdateForView(cam);
+        if (gl.lbutton_down)
+            cam.ProcessMouseLeft(dx, dy);
+        if (gl.rbutton_down)
+            cam.ProcessMouseRight(dx, dy);
 
-        gl.x0 = x;
-        gl.y0 = y;
-    }
-
-    if (gl.rbutton_down)
-    {
-        double dx, dy;
-        dx = x - gl.x0;
-        dy = y - gl.y0;
-        dx /= cam.render_width;
-        dy /= cam.render_height;
-
-        cam.pos += -cam.right * vec3(dx) + cam.up * vec3(dy);
-        cam.look = cam.pos + cam.direction;
         mesh.UpdateForView(cam);
 
         gl.x0 = x;
@@ -438,11 +414,8 @@ void mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
     if (io.WantCaptureMouse)
         return;
 
-    vec3 forward = vec3((float)yoffset * 0.05f) * cam.direction ;
-    cam.pos += forward;
-    cam.look = cam.pos + cam.direction;
+    cam.ProcessMouseScroll(yoffset);
     mesh.UpdateForView(cam);
-    cout << cam.pos.z << endl;
 }
 
 void resizeCallback(GLFWwindow* window, int new_width, int new_height) {
@@ -470,7 +443,7 @@ void Init()
     if(gl.filepath != gl.default_filepath)
         gl.mode = MESH;
 
-     cam.Init(gl.mode);
+    cam.Init(gl.mode);
     mesh.Init((gl.mode == MESH) ? gl.filepath : "", cam);
     bench.Init();
     updateRenderParams();
@@ -482,7 +455,6 @@ void Init()
 
 void Draw()
 {
-    bench.UpdateTime();
 
     glViewport(gl.gui_width, 0, cam.render_width, cam.render_height);
     mesh.Draw(bench.delta_T, gl.mode);
@@ -500,6 +472,7 @@ void Draw()
             mesh.quadtree->UploadSettings();
         }
     }
+    bench.UpdateTime();
 }
 
 void Cleanup() {
@@ -513,7 +486,7 @@ void HandleArguments(int argc, char **argv)
 {
     if (argc == 1) {
         gl.filepath = gl.default_filepath;
-       cout << "Using default mesh: " << gl.default_filepath << endl;
+        cout << "Using default mesh: " << gl.default_filepath << endl;
     } else {
         if (argc > 2)
             cout << "Only takes in 1 obj file name, ignoring other arguments" << endl;

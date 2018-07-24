@@ -3,47 +3,138 @@
 
 #include "common.h"
 
+#define NEWCAM
+
+enum Camera_Movement {
+    FORWARD,
+    BACKWARD,
+    LEFT,
+    RIGHT
+};
+
 struct CameraManager
 {
 private:
-    const vec3 INIT_POS_TERRAIN =  vec3(3.9, 3.6, 0.6);
-    const vec3 INIT_LOOK_TERRAIN  = vec3(3.3, 2.9, 0.33);
-    const vec3 INIT_POS_MESH  = vec3(3.4, 3.4, 2.4);
-    const vec3 INIT_LOOK_MESH =  vec3(2.8, 2.8, 2.0);
+    const vec3 POS_TERRAIN    = vec3(3.695212, -3.568606, 0.218675);
+    const float YAW_TERRAIN   = -213.0f;
+    const float PITCH_TERRAIN =  -24.0f;
+
+    const vec3 POS_MESH    = vec3(0.073993, -1.757224, 0.711335);
+    const float YAW_MESH   = -270.0;
+    const float PITCH_MESH =  -18.0;
+
+    const float LOOK_SENSITIVITY   =  100.0f;
+    const float MOVE_SENSITIVITY   =  1.0f;
+    const float SCROLL_SENSITIVITY =  0.1f;
+
+    void updateCameraVectors()
+    {
+        // Calculate the new Front vector
+        glm::vec3 front;
+        front.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+        front.y = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+        front.z = sin(glm::radians(Pitch));
+        Direction = glm::normalize(front);
+
+        // Also re-calculate the Right and Up vector
+        // Normalize the vectors, because their length gets closer to 0 the more
+        // you look up or down which results in slower movement.
+        Right = glm::normalize(glm::cross(Direction, WorldUp));
+        Up    = glm::normalize(glm::cross(Right, Direction));
+    }
 
 public:
-    vec3 pos;
-    vec3 look;
-    vec3 up;
-    vec3 right;
-    vec3 direction;
+    // Camera Attributes
+    glm::vec3 Position;
+    glm::vec3 Direction;
+    glm::vec3 Up;
+    glm::vec3 Right;
+    glm::vec3 WorldUp;
+    // Euler Angles
+    float Yaw;
+    float Pitch;
+    // Camera options
+    float LookSensitivity;
+    float MoveSensitivity;
+    float ScrollSensitivity;
+
     float fov;
     int render_width, render_height;
 
     void PrintStatus()
     {
         cout << "-- CAMERA STATUS --" << endl;
-        cout << "  Position: " << glm::to_string(pos) << endl;
-        cout << "  Look    : " << glm::to_string(look) << endl;
-        cout << "  Up      : " << glm::to_string(up) << endl;
-        cout << "  Right   : " << glm::to_string(right) << endl ;
+        cout << "  Position: " << glm::to_string(Position) << endl;
+        cout << "  Front   : " << glm::to_string(Direction) << endl;
+        cout << "  Up      : " << glm::to_string(Up) << endl;
+        cout << "  Right   : " << glm::to_string(Right) << endl ;
+        cout << "  WorldUp : " << glm::to_string(WorldUp) << endl ;
+        cout << "  Yaw   : " << Yaw << endl ;
+        cout << "  Pitch : " << Pitch << endl ;
         cout << "-- END --" << endl;
     }
 
     void Init(uint mode)
     {
         if (mode == TERRAIN) {
-            pos = INIT_POS_TERRAIN;
-            look = INIT_LOOK_TERRAIN;
+            Position = POS_TERRAIN;
+            Yaw = YAW_TERRAIN;
+            Pitch = PITCH_TERRAIN;
         } else if (mode == MESH) {
-            pos = INIT_POS_MESH;
-            look = INIT_LOOK_MESH;
+            Position = POS_MESH;
+            Yaw = YAW_MESH;
+            Pitch = PITCH_MESH;
         }
+
         fov = 75.0;
-        up = vec3(0.0f, 0.0f, 1.0f);
-        direction = glm::normalize(look - pos);
-        right = glm::normalize(glm::cross(direction, up));
+        WorldUp = vec3(0.0f, 0.0f, 1.0f);
+        Direction = vec3(0.0f, 1.0f, 0.0f);
+        LookSensitivity = LOOK_SENSITIVITY;
+        MoveSensitivity = MOVE_SENSITIVITY;
+        ScrollSensitivity = SCROLL_SENSITIVITY;
+        updateCameraVectors();
     }
+
+    glm::mat4 GetViewMatrix() {
+        return glm::lookAt(Position, Position + Direction, Up);
+    }
+
+    // Processes input received from a mouse input system.
+    // Expects the offset value in both the x and y direction.
+    void ProcessMouseLeft(float xoffset, float yoffset, GLboolean constrainPitch = true)
+    {
+        Yaw   += xoffset * LookSensitivity;
+        Pitch += yoffset * LookSensitivity;
+
+        // Make sure that when pitch is out of bounds, screen doesn't get flipped
+        if (constrainPitch)
+            Pitch = utility::clamp(Pitch, -89.0f, 89.0f);
+
+        // Update Front, Right and Up Vectors using the updated Euler angles
+        updateCameraVectors();
+        PrintStatus();
+    }
+
+    // Processes input received from a mouse input system.
+    // Expects the offset value in both the x and y direction.
+    void ProcessMouseRight(float xoffset, float yoffset, GLboolean constrainPitch = true)
+    {
+        Position.z += yoffset * MoveSensitivity;
+        Position -= Right * xoffset * MoveSensitivity;
+
+        // Update Front, Right and Up Vectors using the updated Euler angles
+        updateCameraVectors();
+        PrintStatus();
+    }
+
+    // Processes input received from a mouse scroll-wheel event.
+    // Only requires input on the vertical wheel-axis
+    void ProcessMouseScroll(float yoffset)
+    {
+        Position += Direction * yoffset * ScrollSensitivity;
+    }
+
+
 };
 
 class TransformsManager
@@ -106,8 +197,8 @@ public:
 
     void UpdateForNewView(CameraManager& cam)
     {
-        block_.V = glm::lookAt(cam.pos, cam.look, cam.up);
-        block_.cam_pos = cam.pos;
+        block_.V = cam.GetViewMatrix();
+        block_.cam_pos = cam.Position;
         updateMV();
     }
 
@@ -128,7 +219,7 @@ public:
         updateMV();
     }
 
-    void Rotate(float angle, vec3 axis)
+    void RotateModel(float angle, vec3 axis)
     {
         block_.M = glm::rotate(block_.M, angle, axis);
         updateMV();
@@ -144,9 +235,9 @@ public:
         near_ = 0.01f;
         far_ = 1024.0f;
 
-        block_.cam_pos = cam.pos;
+        block_.cam_pos = cam.Position;
         block_.fovy = cam.fov;
-        block_.V = glm::lookAt(cam.pos, cam.look, cam.up);
+        block_.V = cam.GetViewMatrix();
         block_.P = glm::perspective(glm::radians( block_.fovy),
                                    cam.render_width/(float)cam.render_height,
                                    near_, far_);
