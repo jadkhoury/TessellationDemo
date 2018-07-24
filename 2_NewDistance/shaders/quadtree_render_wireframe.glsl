@@ -44,7 +44,7 @@ void main()
     uvec4 key = lt_getKey_64(instanceID);
     uvec2 nodeID = key.xy;
     uint meshPolygonID = key.z;
-    uint rootID = key.w & 0x3;
+    uint rootID = key.w & 3u;
     uint level = lt_level_64(key.xy);
 
     v_morphed = 0;
@@ -62,7 +62,7 @@ void main()
     // If morphing is activated, morph vertex
     uint morphed = 0;
     if (morph > 0) {
-        if (morph_debug > 1) {
+        if (morph_debug > 0) {
             tree_pos = morphVertexDebug(key, leaf_pos, tree_pos, morph_k);
             morphed = 1;
         } else {
@@ -125,7 +125,7 @@ void main()
         g_morphed = v_morphed[i];
         g_leaf_pos = v_leaf_pos[i];
         // Triangle pos for solid wireframe
-        g_tri_pos = vec2(i>>1, i & 0x1);
+        g_tri_pos = vec2(i>>1, i & 1u);
 
         // Final screen position
         gl_Position = toScreenSpace(g_vertex.p.xyz);

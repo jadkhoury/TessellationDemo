@@ -466,12 +466,17 @@ void Draw()
     RenderImgui();
 
     if (gl.auto_lod && !mesh.quadtree->settings.uniform_on) {
+        float inf = (gl.mode == TERRAIN) ? 1.01f : 0.99f;
+        float sup = (gl.mode == TERRAIN) ? 0.99f : 1.01f;
+        float& f = (gl.mode == TERRAIN) ? mesh.quadtree->settings.target_edge_length
+                                        : mesh.quadtree->settings.adaptive_factor;
+
         static float upperFPS = 70, lowerFPS = 60;
         if (bench.delta_T < 1.0/upperFPS) {
-            mesh.quadtree->settings.adaptive_factor *= 1.01f;
+            f *= sup;
             mesh.quadtree->UploadSettings();
         } else if (bench.delta_T > 1.0/lowerFPS){
-            mesh.quadtree->settings.adaptive_factor *= 0.99f;
+            f *= inf;
             mesh.quadtree->UploadSettings();
         }
     }

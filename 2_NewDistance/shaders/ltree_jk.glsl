@@ -89,16 +89,16 @@ int lt_findMSB_64(uvec2 nodeID)
 
 void lt_children_64(uvec2 nodeID, out uvec2 children[4])
 {
-    nodeID = lt_leftShift_64(nodeID, 0x2);
+    nodeID = lt_leftShift_64(nodeID, 2u);
     children[0] = nodeID;
-    children[1] = uvec2(nodeID.x, nodeID.y | 0x1);
-    children[2] = uvec2(nodeID.x, nodeID.y | 0x2);
-    children[3] = uvec2(nodeID.x, nodeID.y | 0x3);
+    children[1] = uvec2(nodeID.x, nodeID.y | 1u);
+    children[2] = uvec2(nodeID.x, nodeID.y | 2u);
+    children[3] = uvec2(nodeID.x, nodeID.y | 3u);
 }
 
 uvec2 lt_parent_64(uvec2 nodeID)
 {
-    return lt_rightShift_64(nodeID, 0x2);
+    return lt_rightShift_64(nodeID, 2u);
 }
 
 // --------------------------------- Level ---------------------------------- //
@@ -106,7 +106,7 @@ uvec2 lt_parent_64(uvec2 nodeID)
 uint lt_level_64(uvec2 nodeID)
 {
     uint i = lt_findMSB_64(nodeID);
-    return (i >> 0x1);
+    return (i >> 1u);
 }
 
 // ------------------------------ Leaf & Root ------------------------------- //
@@ -118,34 +118,34 @@ bool lt_isLeaf_64(uvec2 nodeID)
 
 bool lt_isRoot_64(uvec2 nodeID)
 {
-    return (lt_findMSB_64(nodeID) == 0x0);
+    return (lt_findMSB_64(nodeID) == 0u);
 }
 
 // -------------------------------- Topology -------------------------------- //
 
 bool lt_isLeft_64(uvec2 nodeID)
 {
-    return !bool(nodeID.y & 0x1);
+    return !bool(nodeID.y & 1u);
 }
 
 bool lt_isRight_64(uvec2 nodeID)
 {
-    return bool(nodeID.y & 0x1);
+    return bool(nodeID.y & 1u);
 }
 
 bool lt_isUpper_64(uvec2 nodeID)
 {
-    return !bool(nodeID.y & 0x2);
+    return !bool(nodeID.y & 2u);
 }
 
 bool lt_isLower_64(uvec2 nodeID)
 {
-    return bool(nodeID.y & 0x2);
+    return bool(nodeID.y & 2u);
 }
 
 bool lt_isUpperLeft_64(uvec2 nodeID)
 {
-    return !(bool(nodeID.y & 0x3));
+    return !(bool(nodeID.y & 3u));
 }
 
 // ----------------------------- Triangle XForm ----------------------------- //
@@ -189,8 +189,8 @@ void lt_getTriangleXform_64(uvec2 nodeID, out mat3x2 xform, out mat3x2 parent_xf
     }
 
     parent_xform = xf;
-    xform = mul(xf, jk_bitToMatrix((lsb >> 0x1) & 0x1));
-    xform = mul(xform, jk_bitToMatrix(lsb & 0x1));
+    xform = mul(xf, jk_bitToMatrix((lsb >> 1u) & 1u));
+    xform = mul(xform, jk_bitToMatrix(lsb & 1u));
 }
 
 
@@ -312,7 +312,7 @@ vec4 lt_Leaf_to_MeshPosition(vec2 p, uvec4 key, in bool parent, int poly_type)
 {
     uvec2 nodeID = key.xy;
     uint meshPolygonID = key.z;
-    uint rootID = key.w & 0x3;
+    uint rootID = key.w & 3u;
     vec2 tmp = p;
     tmp = lt_Leaf_to_Tree_64(tmp, nodeID, parent);
     return lt_Tree_to_MeshPosition(tmp, poly_type, meshPolygonID, rootID);
@@ -323,7 +323,7 @@ void lt_Leaf_n_Parent_to_MeshPosition(vec2 p, uvec4 key, out vec4 p_mesh, out ve
 {
     uvec2 nodeID = key.xy;
     uint meshPolygonID = key.z;
-    uint rootID = key.w & 0x3;
+    uint rootID = key.w & 3u;
     mat3x2 xf, pxf;
     vec2 p2D, pp2D;
 

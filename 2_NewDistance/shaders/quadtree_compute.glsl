@@ -73,7 +73,7 @@ const vec2 unit_U = vec2(0,1);
  */
 void compute_writeKey(uvec2 new_nodeID, uvec4 current_key)
 {
-    uvec4 new_key = uvec4(new_nodeID, current_key.z, (current_key.w & 0x3));
+    uvec4 new_key = uvec4(new_nodeID, current_key.z, (current_key.w & 3u));
     uint idx = atomicCounterIncrement(primCount_full[write_index]);
     nodes_out_full[idx] = new_key;
 }
@@ -82,7 +82,7 @@ void compute_writeChildren(uvec2 children[4], uvec4 current_key)
 {
     for(int i = 0; i<4; ++i) {
         uint idx = atomicCounterIncrement(primCount_full[write_index]);
-        uvec4 new_key = uvec4(children[i], current_key.z, (current_key.w & 0x3));
+        uvec4 new_key = uvec4(children[i], current_key.z, (current_key.w & 3u));
         nodes_out_full[idx] = new_key;
     }
 }
@@ -191,7 +191,7 @@ void main(void)
     uint invocation_idx = int(gl_GlobalInvocationID.x);
     uvec4 key = lt_getKey_64(invocation_idx);
     // Removing morph / destroy bit
-    key.w = key.w & 0x3;
+    key.w = key.w & 3u;
 
     // Check if the current instance should work
     int active_nodes;

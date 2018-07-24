@@ -31,14 +31,11 @@ float displace(vec2 p, float screen_resolution, out vec2 gradient)
 
 	for(float i=0.0; i<octaves-1.0; i+=1.0) {
 		vec3 v = SimplexPerlin2D_Deriv(p);
-//		v.yz*= sign(v.x);
 		value+= v * pow(frequency,-H)
 		      * vec3(1,vec2(pow(lacunarity,i)));
 		p*= lacunarity;
 		frequency*= lacunarity;
 	}
-//	vec3 v = SimplexPerlin2D_Deriv(p);
-//	v.yz*= sign(v.x);
 	value+= fract(octaves)*SimplexPerlin2D_Deriv(p)
 	      * pow(frequency,-H) * vec3(1,vec2(pow(lacunarity,octaves)));
 	gradient = value.yz;

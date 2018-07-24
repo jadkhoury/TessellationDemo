@@ -45,7 +45,7 @@ void main()
     uvec4 key = lt_getKey_64(instanceID);
     uvec2 nodeID = key.xy;
     uint meshPolygonID = key.z;
-    uint rootID = key.w & 0x3;
+    uint rootID = key.w & 3u;
     uint level = lt_level_64(key.xy);
 
     v_morphed = 0;
@@ -63,7 +63,7 @@ void main()
     // If morphing is activated, morph vertex
     uint morphed = 0;
     if (morph > 0) {
-        if (morph_debug > 1) {
+        if (morph_debug > 0) {
             tree_pos = morphVertexDebug(key, leaf_pos, tree_pos, morph_k);
             morphed = 1;
         } else {
@@ -118,6 +118,7 @@ const bool flat_n = true;
 
 void main()
 {
+#if 0
     // Position
     vec3 p = v_vertex.p.xyz;
     vec4 p_mv = MV * v_vertex.p;
@@ -141,6 +142,9 @@ void main()
     float nl =  max(dot(l_mv,n_mv),0.1);
     vec4 c = levelColor(v_lvl, v_morphed);
     color = vec4(c.xyz*nl, 1);
+#else
+    color = RED;
+#endif
 }
 #endif
 

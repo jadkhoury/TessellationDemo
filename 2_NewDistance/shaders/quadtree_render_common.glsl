@@ -27,6 +27,7 @@ vec2 morphVertex(uvec4 key, vec2 leaf_p, vec2 tree_p, out uint morphed)
     mat3x2 xform;
     lt_getTriangleXform_64(key.xy, xform);
     vec4 mesh_p = M * lt_Leaf_to_MeshPosition(leaf_p, key, false, poly_type);
+
     if(mode == TERRAIN && heightmap > 0) {
         mesh_p.z = getHeight(cam_pos.xy, screen_res);
     }
@@ -38,7 +39,7 @@ vec2 morphVertex(uvec4 key, vec2 leaf_p, vec2 tree_p, out uint morphed)
     morphed = (morphK > 0 && morphK < 1) ? 1 : 0;
 
     // nb of intervals per side of node primitive
-    float patchTessFactor = 0x1 << uint(cpu_lod);
+    float patchTessFactor = 1u << uint(cpu_lod);
     vec2 fracPart = fract(leaf_p * patchTessFactor * 0.5) * 2.0 / patchTessFactor;
     vec2 intPart = floor(leaf_p * patchTessFactor * 0.5);
     vec2 signVec = mod(intPart, 2.0) * vec2(-2.0) + vec2(1.0);
@@ -47,18 +48,13 @@ vec2 morphVertex(uvec4 key, vec2 leaf_p, vec2 tree_p, out uint morphed)
 }
 
 // based on Filip Strugar's CDLOD paper (until intPart & signVec)
-vec2 morphVertexDebug(uvec4 key, vec2 leaf_p, vec2 tree_p, float morph_k)
+vec2 morphVertexDebug(uvec4 key, vec2 leaf_p, vec2 tree_p, float k)
 {
     mat3x2 xform;
     lt_getTriangleXform_64(key.xy, xform);
-    vec4 mesh_p = M * lt_Leaf_to_MeshPosition(leaf_p, key, false, poly_type);
-    if(mode == TERRAIN && heightmap > 0) {
-        mesh_p.z = getHeight(cam_pos.xy, screen_res);
-    }
-    float morphK =  morph_k;
-
+    float morphK =  k;
     // nb of intervals per side of node primitive
-    float patchTessFactor = 0x1 << uint(cpu_lod);
+    float patchTessFactor = 1u << uint(cpu_lod);
     vec2 fracPart = fract(leaf_p * patchTessFactor * 0.5) * 2.0 / patchTessFactor;
     vec2 intPart = floor(leaf_p * patchTessFactor * 0.5);
     vec2 signVec = mod(intPart, 2.0) * vec2(-2.0) + vec2(1.0);
