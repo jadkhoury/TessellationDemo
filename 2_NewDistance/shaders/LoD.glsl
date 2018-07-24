@@ -30,15 +30,14 @@ layout(std140, binding = 0) uniform TransformBlock
 };
 
 const vec2 triangle_centroid = vec2(1.0/3.0, 1.0/3.0);
-
 const float SQRT_2 = sqrt(2);
-const float TAN_FOV = tan(radians(fov/2.0));
+float TAN_FOV = tan(radians(fov/2.0));
 
 float distanceToLod(vec3 pos)
 {
 
     float d = distance(pos, cam_pos);
-    float leaf_subdiv = float(1 << int(cpu_lod+1-morph));
+    float leaf_subdiv = float(1 << uint(cpu_lod+1-morph));
     float c;
     if (mode == TERRAIN) {
         c = screen_res/(SQRT_2 * float(target_edge_length) * leaf_subdiv);

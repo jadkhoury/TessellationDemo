@@ -66,7 +66,7 @@ uvec2 lt_leftShift_64(uvec2 nodeID, uint shift)
     uvec2 result = nodeID;
     //Extract the "shift" first bits of y and append them at the end of x
     result.x = result.x << shift;
-    result.x |= result.y >> (32 - shift);
+    result.x |= result.y >> (32u - shift);
     result.y  = result.y << shift;
     return result;
 }
@@ -75,7 +75,7 @@ uvec2 lt_rightShift_64(uvec2 nodeID, uint shift)
     uvec2 result = nodeID;
     //Extract the "shift" last bits of x and prepend them to y
     result.y = result.y >> shift;
-    result.y |= result.x << (32 - shift);
+    result.y |= result.x << (32u - shift);
     result.x = result.x >> shift;
     return result;
 }
@@ -89,7 +89,7 @@ int lt_findMSB_64(uvec2 nodeID)
 
 void lt_children_64(uvec2 nodeID, out uvec2 children[4])
 {
-    nodeID = lt_leftShift_64(nodeID, 2u);
+    nodeID = lt_leftShift_64(nodeID, 0x2);
     children[0] = nodeID;
     children[1] = uvec2(nodeID.x, nodeID.y | 0x1);
     children[2] = uvec2(nodeID.x, nodeID.y | 0x2);
@@ -98,7 +98,7 @@ void lt_children_64(uvec2 nodeID, out uvec2 children[4])
 
 uvec2 lt_parent_64(uvec2 nodeID)
 {
-    return lt_rightShift_64(nodeID, 2u);
+    return lt_rightShift_64(nodeID, 0x2);
 }
 
 // --------------------------------- Level ---------------------------------- //
@@ -106,7 +106,7 @@ uvec2 lt_parent_64(uvec2 nodeID)
 uint lt_level_64(uvec2 nodeID)
 {
     uint i = lt_findMSB_64(nodeID);
-    return (i >> 1u);
+    return (i >> 0x1);
 }
 
 // ------------------------------ Leaf & Root ------------------------------- //
@@ -118,7 +118,7 @@ bool lt_isLeaf_64(uvec2 nodeID)
 
 bool lt_isRoot_64(uvec2 nodeID)
 {
-    return (lt_findMSB_64(nodeID) == 0u);
+    return (lt_findMSB_64(nodeID) == 0x0);
 }
 
 // -------------------------------- Topology -------------------------------- //
@@ -189,8 +189,8 @@ void lt_getTriangleXform_64(uvec2 nodeID, out mat3x2 xform, out mat3x2 parent_xf
     }
 
     parent_xform = xf;
-    xform = mul(xf, jk_bitToMatrix((lsb >> 1u) & 1u));
-    xform = mul(xform, jk_bitToMatrix(lsb & 1u));
+    xform = mul(xf, jk_bitToMatrix((lsb >> 0x1) & 0x1));
+    xform = mul(xform, jk_bitToMatrix(lsb & 0x1));
 }
 
 

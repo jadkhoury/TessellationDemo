@@ -130,7 +130,7 @@ vec2 morphVertex(uvec4 key, vec2 leaf_p, vec2 tree_p)
     float tessLevel = clamp(node_lvl -  vertex_lvl, 0.0, 1.0);
     float morphK = (morph_debug > 0) ? morph_k : smoothstep(0.4, 0.5, tessLevel);
 
-    float patchTessFactor = 0x1 << int(cpu_lod); // = nb of intervals per side of node primitive
+    float patchTessFactor = 0x1 << uint(cpu_lod); // = nb of intervals per side of node primitive
     vec2 fracPart = fract(leaf_p * patchTessFactor * 0.5) * 2.0 / patchTessFactor;
     vec2 intPart = floor(leaf_p * patchTessFactor * 0.5);
     vec2 signVec = mod(intPart, 2.0) * vec2(2.0) - vec2(1.0);
