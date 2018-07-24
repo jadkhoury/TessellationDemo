@@ -34,7 +34,7 @@ public:
         int itpl_type; // Switch interpolation type
         float itpl_alpha; // Control interpolation factor
 
-        uint wg_count; // Control morph factor
+        uint wg_count;
 
         void Upload(uint pid)
         {
@@ -73,6 +73,8 @@ private:
     // Buffers and Arrays
     GLuint nodes_bo_[3];
     GLuint transfo_bo_;
+    GLuint cam_height_bo_;
+
 
     BufferCombo leaf_geometry_;
 
@@ -139,6 +141,7 @@ private:
         djgp_push_string(djp, "#define NODECOUNTER_CULLED_B %i\n", NODECOUNTER_CULLED_B);
         djgp_push_string(djp, "#define LEAF_VERT_B %i\n", LEAF_VERT_B);
         djgp_push_string(djp, "#define LEAF_IDX_B %i\n", LEAF_IDX_B);
+        djgp_push_string(djp, "#define CAM_HEIGHT_B %i\n", CAM_HEIGHT_B);
 
         djgp_push_string(djp, "#define MESH_V_B %i\n", MESH_V_B);
         djgp_push_string(djp, "#define MESH_Q_IDX_B %i\n", MESH_Q_IDX_B);
@@ -379,6 +382,14 @@ private:
         return (glGetError() == GL_NO_ERROR);
     }
 
+
+    bool loadCamHeightBuffer()
+    {
+        utility::EmptyBuffer(&cam_height_bo_);
+        glCreateBuffers(1, &cam_height_bo_);
+        glNamedBufferStorage(cam_height_bo_, sizeof(float), NULL, NULL);
+    }
+
     ////////////////////////////////////////////////////////////////////////////////
     ///
     /// VAO functions
@@ -446,6 +457,7 @@ public:
         loadLeafVao();
         loadNodesBuffers();
         loadPrograms();
+        loadCamHeightBuffer();
         commands_->Init(leaf_geometry_.idx.count, init_wg_count_, init_node_count_);
     }
 
@@ -525,6 +537,7 @@ public:
         loadLeafBuffers(settings.cpu_lod);
         loadLeafVao();
         loadNodesBuffers();
+        loadCamHeightBuffer();
 
         init_wg_count_ = ceil(init_node_count_ / float(local_WG_count));
 
@@ -564,12 +577,14 @@ public:
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODES_IN_B, nodes_bo_[ssbo_idx_.read]);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODES_OUT_FULL_B, nodes_bo_[ssbo_idx_.write_full]);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODES_OUT_CULLED_B, nodes_bo_[ssbo_idx_.write_culled]);
+
             glBindBufferBase(GL_UNIFORM_BUFFER, 0, transfo_bo_);
             commands_->BindForCompute(compute_program_);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_V_B, mesh_data_->v.bo);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_Q_IDX_B, mesh_data_->q_idx.bo);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_T_IDX_B, mesh_data_->t_idx.bo);
 
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, CAM_HEIGHT_B, cam_height_bo_);
             glDispatchComputeIndirect((long)NULL);
             glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT);
         }
@@ -624,6 +639,8 @@ RENDER_PASS:
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_Q_IDX_B, mesh_data_->q_idx.bo);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_T_IDX_B, mesh_data_->t_idx.bo);
             glBindBufferBase(GL_UNIFORM_BUFFER, 0, transfo_bo_);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, CAM_HEIGHT_B, cam_height_bo_);
+
             commands_->BindForRender();
             glBindVertexArray(leaf_geometry_.vao);
             glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, BUFFER_OFFSET(0));

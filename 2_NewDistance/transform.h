@@ -119,8 +119,8 @@ public:
     // Expects the offset value in both the x and y direction.
     void ProcessMouseRight(float xoffset, float yoffset, GLboolean constrainPitch = true)
     {
-        Position.z += yoffset * move_sensitivity;
-        Position -= Right * xoffset * move_sensitivity;
+        Position += yoffset * move_sensitivity * WorldUp;
+        Position -= xoffset * move_sensitivity * Right;
 
         // Update Front, Right and Up Vectors using the updated Euler angles
         updateCameraVectors();

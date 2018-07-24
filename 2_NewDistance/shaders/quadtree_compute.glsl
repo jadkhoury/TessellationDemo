@@ -2,6 +2,9 @@
 
 #ifdef COMPUTE_SHADER
 
+//#define BUFFER_HEIGHT
+
+
 /**
  * In LoD:
  * uniform int poly_type;
@@ -15,6 +18,11 @@ layout (local_size_x = LOCAL_WG_SIZE_X,
 
 layout (binding = NODECOUNTER_FULL_B)   uniform atomic_uint primCount_full[16];
 layout (binding = NODECOUNTER_CULLED_B) uniform atomic_uint primCount_culled[16];
+
+layout (std140, binding = CAM_HEIGHT_B) buffer Cam_Height
+{
+    float cam_height_buf;
+};
 
 uniform int read_index, write_index;
 
@@ -108,8 +116,12 @@ void computePass(uvec4 key, uint invocation_idx, int active_nodes)
     } else {
         float parentTargetLevel, targetLevel;
         if(mode == TERRAIN && heightmap > 0) {
+#ifdef BUFFER_HEIGHT
+            computeTessLvlWithParent(key, cam_height_buf, targetLevel, parentTargetLevel);
+#else
             float cam_height = getHeight(cam_pos.xy, screen_res);
             computeTessLvlWithParent(key, cam_height, targetLevel, parentTargetLevel);
+#endif
         } else {
             computeTessLvlWithParent(key,targetLevel, parentTargetLevel);
         }
@@ -188,6 +200,7 @@ void cullPass(uvec4 key)
 
 void main(void)
 {
+
     uint invocation_idx = int(gl_GlobalInvocationID.x);
     uvec4 key = lt_getKey_64(invocation_idx);
     // Removing morph / destroy bit
@@ -203,6 +216,14 @@ void main(void)
     }
     if (invocation_idx >= active_nodes)
         return;
+
+#ifdef BUFFER_HEIGHT
+    if(invocation_idx == 0) {
+        cam_height_buf = getHeight(cam_pos.xy, screen_res);
+    }
+    barrier();
+    memoryBarrierBuffer();
+#endif
 
     computePass(key, invocation_idx, active_nodes);
     cullPass(key);
