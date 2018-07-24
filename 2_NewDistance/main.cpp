@@ -1,3 +1,4 @@
+#include <cmath>
 // SOURCE FILES
 #include "common.h"
 #include "quadtree.h"
@@ -189,8 +190,10 @@ void RenderImgui()
         }
         ImGui::Checkbox("Auto LoD", &gl.auto_lod);
         ImGui::SameLine();
+        static float expo = log2(settings_ref.target_edge_length);
         if(gl.mode == TERRAIN) {
-            if (ImGui::SliderFloat("Target Edge Length", &settings_ref.target_edge_length, 2, 256)) {
+            if (ImGui::SliderFloat("Edge Length (2^x)", &expo, 1, 10)) {
+                settings_ref.target_edge_length = std::pow(2.0f, expo);
                 mesh.quadtree->UploadSettings();
             }
         } else {
