@@ -54,9 +54,9 @@ public:
     float Yaw;
     float Pitch;
     // Camera options
-    float LookSensitivity;
-    float MoveSensitivity;
-    float ScrollSensitivity;
+    float look_sensitivity;
+    float move_sensitivity;
+    float scroll_sensitivity;
 
     float fov;
     int render_width, render_height;
@@ -89,9 +89,9 @@ public:
         fov = 75.0;
         WorldUp = vec3(0.0f, 0.0f, 1.0f);
         Direction = vec3(0.0f, 1.0f, 0.0f);
-        LookSensitivity = LOOK_SENSITIVITY;
-        MoveSensitivity = MOVE_SENSITIVITY;
-        ScrollSensitivity = SCROLL_SENSITIVITY;
+        look_sensitivity = LOOK_SENSITIVITY;
+        move_sensitivity = MOVE_SENSITIVITY;
+        scroll_sensitivity = SCROLL_SENSITIVITY;
         updateCameraVectors();
     }
 
@@ -103,8 +103,8 @@ public:
     // Expects the offset value in both the x and y direction.
     void ProcessMouseLeft(float xoffset, float yoffset, GLboolean constrainPitch = true)
     {
-        Yaw   += xoffset * LookSensitivity;
-        Pitch += yoffset * LookSensitivity;
+        Yaw   += xoffset * look_sensitivity;
+        Pitch += yoffset * look_sensitivity;
 
         // Make sure that when pitch is out of bounds, screen doesn't get flipped
         if (constrainPitch)
@@ -119,8 +119,8 @@ public:
     // Expects the offset value in both the x and y direction.
     void ProcessMouseRight(float xoffset, float yoffset, GLboolean constrainPitch = true)
     {
-        Position.z += yoffset * MoveSensitivity;
-        Position -= Right * xoffset * MoveSensitivity;
+        Position.z += yoffset * move_sensitivity;
+        Position -= Right * xoffset * move_sensitivity;
 
         // Update Front, Right and Up Vectors using the updated Euler angles
         updateCameraVectors();
@@ -131,7 +131,7 @@ public:
     // Only requires input on the vertical wheel-axis
     void ProcessMouseScroll(float yoffset)
     {
-        Position += Direction * yoffset * ScrollSensitivity;
+        Position += Direction * yoffset * scroll_sensitivity;
     }
 
 
