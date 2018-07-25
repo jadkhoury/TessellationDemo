@@ -112,7 +112,6 @@ public:
 
         // Update Front, Right and Up Vectors using the updated Euler angles
         updateCameraVectors();
-        PrintStatus();
     }
 
     // Processes input received from a mouse input system.
@@ -124,7 +123,6 @@ public:
 
         // Update Front, Right and Up Vectors using the updated Euler angles
         updateCameraVectors();
-        PrintStatus();
     }
 
     // Processes input received from a mouse scroll-wheel event.
@@ -133,8 +131,6 @@ public:
     {
         Position += Direction * yoffset * scroll_sensitivity;
     }
-
-
 };
 
 class TransformsManager

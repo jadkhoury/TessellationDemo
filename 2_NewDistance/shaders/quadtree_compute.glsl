@@ -218,11 +218,18 @@ void main(void)
         return;
 
 #ifdef BUFFER_HEIGHT
-    if(invocation_idx == 0) {
-        cam_height_buf = getHeight(cam_pos.xy, screen_res);
-    }
+    cam_height_buf  = 0;
     barrier();
     memoryBarrierBuffer();
+
+    if(invocation_idx == 0)
+        cam_height_buf = getHeight(cam_pos.xy, screen_res);
+    barrier();
+    memoryBarrierBuffer();
+
+    if(cam_height_buf == 0)
+        return;
+
 #endif
 
     computePass(key, invocation_idx, active_nodes);

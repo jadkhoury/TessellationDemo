@@ -172,7 +172,6 @@ public:
 
         init_settings.itpl_type = LINEAR;
         init_settings.itpl_alpha = 0;
-        init_settings.wg_count = 512 ;
 
         this->LoadMeshData(filepath);
         this->tranforms_manager->Init(cam);

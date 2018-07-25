@@ -34,8 +34,6 @@ public:
         int itpl_type; // Switch interpolation type
         float itpl_alpha; // Control interpolation factor
 
-        uint wg_count;
-
         void Upload(uint pid)
         {
             utility::SetUniformBool(pid, "uniform_subdiv", uniform_on);
@@ -85,9 +83,9 @@ private:
     GLuint render_program_, compute_program_, copy_program_;
 
     //Compute Shader parameters
-    uvec3 local_WG_size_;
-    uint local_WG_count;
-    uint init_node_count_, init_wg_count_;
+    uvec3 wg_local_size_;
+    uint wg_local_count_;
+    uint init_node_count_, wg_init_global_count_;
     int max_node_count_;
 
     djg_clock* compute_clock_;
@@ -106,7 +104,6 @@ private:
         utility::SetUniformInt(compute_program_, "num_mesh_tri", mesh_data_->triangle_count);
         utility::SetUniformInt(compute_program_, "num_mesh_quad", mesh_data_->quad_count);
         utility::SetUniformInt(compute_program_, "max_node_count", max_node_count_);
-
         settings.Upload(compute_program_);
     }
 
@@ -146,10 +143,10 @@ private:
         djgp_push_string(djp, "#define MESH_V_B %i\n", MESH_V_B);
         djgp_push_string(djp, "#define MESH_Q_IDX_B %i\n", MESH_Q_IDX_B);
         djgp_push_string(djp, "#define MESH_T_IDX_B %i\n", MESH_T_IDX_B);
-        djgp_push_string(djp, "#define LOCAL_WG_SIZE_X %u\n", local_WG_size_.x);
-        djgp_push_string(djp, "#define LOCAL_WG_SIZE_Y %u\n", local_WG_size_.y);
-        djgp_push_string(djp, "#define LOCAL_WG_SIZE_Z %u\n", local_WG_size_.z);
-        djgp_push_string(djp, "#define LOCAL_WG_COUNT %u\n", local_WG_count);
+        djgp_push_string(djp, "#define LOCAL_WG_SIZE_X %u\n", wg_local_size_.x);
+        djgp_push_string(djp, "#define LOCAL_WG_SIZE_Y %u\n", wg_local_size_.y);
+        djgp_push_string(djp, "#define LOCAL_WG_SIZE_Z %u\n", wg_local_size_.z);
+        djgp_push_string(djp, "#define LOCAL_WG_COUNT %u\n", wg_local_count_);
 
     }
 
@@ -387,7 +384,8 @@ private:
     {
         utility::EmptyBuffer(&cam_height_bo_);
         glCreateBuffers(1, &cam_height_bo_);
-        glNamedBufferStorage(cam_height_bo_, sizeof(float), NULL, NULL);
+        glNamedBufferStorage(cam_height_bo_, sizeof(float), NULL, GL_DYNAMIC_STORAGE_BIT);
+        return (glGetError() == GL_NO_ERROR);
     }
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -458,7 +456,7 @@ public:
         loadNodesBuffers();
         loadPrograms();
         loadCamHeightBuffer();
-        commands_->Init(leaf_geometry_.idx.count, init_wg_count_, init_node_count_);
+        commands_->Init(leaf_geometry_.idx.count, wg_init_global_count_, init_node_count_);
     }
 
     void ReloadLeafPrimitive()
@@ -477,15 +475,6 @@ public:
         settings.Upload(render_program_);
     }
 
-    void UpdateWGCount()
-    {
-        local_WG_size_ = vec3(settings.wg_count,1,1);
-        local_WG_count = local_WG_size_.x * local_WG_size_.y * local_WG_size_.z;
-        init_wg_count_ = ceil(init_node_count_ / float(local_WG_count));
-
-        Reinitialize();
-    }
-
     void UpdateLightPos(vec3 lp)
     {
         utility::SetUniformVec3(render_program_, "light_pos", lp);
@@ -502,8 +491,6 @@ public:
         utility::SetUniformInt(compute_program_, "screen_res", s);
         utility::SetUniformInt(render_program_, "screen_res", s);
     }
-
-
 
     ////////////////////////////////////////////////////////////////////////////
     ///
@@ -531,21 +518,21 @@ public:
         compute_clock_ = djgc_create();
         render_clock_ = djgc_create();
 
-        local_WG_size_ = vec3(settings.wg_count,1,1);
-        local_WG_count = local_WG_size_.x * local_WG_size_.y * local_WG_size_.z;
+        wg_local_size_ = vec3(512,1,1);
+        wg_local_count_ = wg_local_size_.x * wg_local_size_.y * wg_local_size_.z;
 
         loadLeafBuffers(settings.cpu_lod);
         loadLeafVao();
         loadNodesBuffers();
         loadCamHeightBuffer();
 
-        init_wg_count_ = ceil(init_node_count_ / float(local_WG_count));
+        wg_init_global_count_ = ceil(init_node_count_ / float(wg_local_count_));
 
         if (!loadPrograms())
             throw std::runtime_error("shader creation error");
 
         transfo_bo_ = transfo_bo;
-        commands_->Init(leaf_geometry_.idx.count, init_wg_count_, init_node_count_);
+        commands_->Init(leaf_geometry_.idx.count, wg_init_global_count_, init_node_count_);
 
         ReconfigureShaders();
 

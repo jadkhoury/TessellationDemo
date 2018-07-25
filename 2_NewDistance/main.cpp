@@ -227,7 +227,6 @@ void RenderImgui()
         if (ImGui::Checkbox("Morph  ", &settings_ref.morph_on)) {
             mesh.quadtree->UploadSettings();
         }
-
         if (ImGui::Checkbox("Cull", &settings_ref.cull_on)) {
             mesh.quadtree->UploadSettings();
         }
@@ -238,6 +237,7 @@ void RenderImgui()
         ImGui::SameLine();
         if (ImGui::Button("Reinitialize QuadTree")) {
             mesh.quadtree->Reinitialize();
+            updateRenderParams();
         }
         if (ImGui::Checkbox("Debug morph", &settings_ref.morph_debug)) {
             mesh.quadtree->UploadSettings();
@@ -254,13 +254,6 @@ void RenderImgui()
 
         }
         ImGui::Text("\n------ Benchmarking ------");
-        static int tmp = log2(settings_ref.wg_count);
-        if (ImGui::SliderInt("wg count (pow2)", &tmp, 2, 10)) {
-            settings_ref.wg_count = 1 << tmp;
-            mesh.quadtree->UpdateWGCount();
-        }
-        ImGui::SameLine();
-        ImGui::Text("%s", std::to_string(settings_ref.wg_count).c_str());
 
         ImGui::Text("Frame  %07i\n", bench.frame_count);
         ImGui::Text("FPS    %07i\n", bench.fps);
@@ -296,7 +289,6 @@ void RenderImgui()
             offset = (offset+1) % IM_ARRAYSIZE(values_qt_gpu_compute);
             refresh_time += 1.0f/30.0f;
         }
-
 
         // QUADTREE COMPUTE DT
         tmp_max = *std::max_element(values_qt_gpu_compute, values_qt_gpu_compute+80);
@@ -570,7 +562,7 @@ int main(int argc, char **argv)
         ImGui::StyleColorsDark();
 
         // delta_T condition to avoid crashing my system
-        while (!glfwWindowShouldClose(window)  && bench.delta_T < 1.0)
+        while (!glfwWindowShouldClose(window)  && bench.delta_T < 5.0)
         {
             glfwPollEvents();
             if (!gl.pause)
