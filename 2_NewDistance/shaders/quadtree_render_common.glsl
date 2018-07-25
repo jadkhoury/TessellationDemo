@@ -20,6 +20,13 @@ uniform float u_itpl_alpha;
 uniform int u_color_mode;
 uniform int u_render_MVP;
 
+#ifdef BUFFER_HEIGHT
+layout(std140, binding = CAM_HEIGHT_B) uniform Cam_Height
+{
+    float cam_height_buf;
+};
+#endif
+
 // based on Filip Strugar's CDLOD paper (until intPart & signVec)
 vec2 morphVertex(uvec4 key, vec2 leaf_p, vec2 tree_p, out uint morphed)
 {
@@ -28,7 +35,12 @@ vec2 morphVertex(uvec4 key, vec2 leaf_p, vec2 tree_p, out uint morphed)
     vec4 mesh_p = M * lt_Leaf_to_MeshPosition(leaf_p, key, false, u_poly_type);
 
     if(u_mode == TERRAIN && u_displace_on > 0) {
+#ifdef BUFFER_HEIGHT
+        mesh_p.z = cam_height_buf;
+#else
         mesh_p.z = getHeight(cam_pos.xy, u_screen_res);
+#endif
+
     }
     float vertex_lvl = distanceToLod(mesh_p.xyz);
     float node_lvl = lt_level_64(key.xy);

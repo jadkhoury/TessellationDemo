@@ -2,7 +2,6 @@
 
 #ifdef COMPUTE_SHADER
 
-//#define BUFFER_HEIGHT
 
 layout (local_size_x = LOCAL_WG_SIZE_X,
         local_size_y = LOCAL_WG_SIZE_Y,
@@ -15,6 +14,9 @@ layout (std140, binding = CAM_HEIGHT_B) buffer Cam_Height
 {
     float cam_height_buf;
 };
+
+shared float cam_buff;
+
 
 uniform int u_read_index, u_write_index;
 
@@ -207,22 +209,18 @@ void main(void)
         return;
 
 #ifdef BUFFER_HEIGHT
-    cam_height_buf  = 0;
+    if(gl_LocalInvocationIndex == 0){
+        cam_buff = getHeight(cam_pos.xy, u_screen_res);
+    }
     barrier();
     memoryBarrierBuffer();
-
-    if(invocation_idx == 0)
-        cam_height_buf = getHeight(cam_pos.xy, u_screen_res);
-    barrier();
-    memoryBarrierBuffer();
-
-    if(cam_height_buf == 0)
-        return;
-
 #endif
 
     computePass(key, invocation_idx, active_nodes);
     cullPass(key);
+
+    if(invocation_idx == 0)
+        cam_height_buf = cam_buff;
 
     return;
 }

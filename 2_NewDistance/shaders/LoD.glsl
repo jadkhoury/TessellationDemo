@@ -11,6 +11,9 @@ uniform int u_screen_res;
 uniform int u_cpu_lod;
 uniform int u_morph_on;
 
+
+#define BUFFER_HEIGHT
+
 layout(std140, binding = 0) uniform TransformBlock
 {
     mat4 M;

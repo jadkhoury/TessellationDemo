@@ -568,9 +568,10 @@ public:
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_V_B, mesh_data_->v.bo);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_Q_IDX_B, mesh_data_->q_idx.bo);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_T_IDX_B, mesh_data_->t_idx.bo);
-
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, CAM_HEIGHT_B, cam_height_bo_);
+
             glDispatchComputeIndirect((long)NULL);
+
             glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT);
         }
         glUseProgram(0);
@@ -624,7 +625,7 @@ RENDER_PASS:
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_Q_IDX_B, mesh_data_->q_idx.bo);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_T_IDX_B, mesh_data_->t_idx.bo);
             glBindBufferBase(GL_UNIFORM_BUFFER, 0, transfo_bo_);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, CAM_HEIGHT_B, cam_height_bo_);
+            glBindBufferBase(GL_UNIFORM_BUFFER, CAM_HEIGHT_B, cam_height_bo_);
 
             commands_->BindForRender();
             glBindVertexArray(leaf_geometry_.vao);
