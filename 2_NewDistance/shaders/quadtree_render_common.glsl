@@ -23,7 +23,7 @@ uniform int u_render_MVP;
 #ifdef BUFFER_HEIGHT
 layout(std140, binding = CAM_HEIGHT_B) uniform Cam_Height
 {
-    float cam_height_buf;
+    float cam_height_ssbo;
 };
 #endif
 
@@ -36,7 +36,7 @@ vec2 morphVertex(uvec4 key, vec2 leaf_p, vec2 tree_p, out uint morphed)
 
     if(u_mode == TERRAIN && u_displace_on > 0) {
 #ifdef BUFFER_HEIGHT
-        mesh_p.z = cam_height_buf;
+        mesh_p.z = cam_height_ssbo;
 #else
         mesh_p.z = getHeight(cam_pos.xy, u_screen_res);
 #endif

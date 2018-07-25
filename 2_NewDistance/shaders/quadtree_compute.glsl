@@ -12,10 +12,10 @@ layout (binding = NODECOUNTER_CULLED_B) uniform atomic_uint primCount_culled[16]
 
 layout (std140, binding = CAM_HEIGHT_B) buffer Cam_Height
 {
-    float cam_height_buf;
+    float cam_height_ssbo;
 };
 
-shared float cam_buff;
+shared float cam_height_local;
 
 
 uniform int u_read_index, u_write_index;
@@ -108,7 +108,7 @@ void computePass(uvec4 key, uint invocation_idx, int active_nodes)
         float parentTargetLevel, targetLevel;
         if(u_mode == TERRAIN && u_displace_on > 0) {
 #ifdef BUFFER_HEIGHT
-            computeTessLvlWithParent(key, cam_height_buf, targetLevel, parentTargetLevel);
+            computeTessLvlWithParent(key, cam_height_local, targetLevel, parentTargetLevel);
 #else
             float cam_height = getHeight(cam_pos.xy, u_screen_res);
             computeTessLvlWithParent(key, cam_height, targetLevel, parentTargetLevel);
@@ -210,17 +210,17 @@ void main(void)
 
 #ifdef BUFFER_HEIGHT
     if(gl_LocalInvocationIndex == 0){
-        cam_buff = getHeight(cam_pos.xy, u_screen_res);
+        cam_height_local = getHeight(cam_pos.xy, u_screen_res);
     }
     barrier();
-    memoryBarrierBuffer();
+    memoryBarrierShared();
 #endif
 
     computePass(key, invocation_idx, active_nodes);
     cullPass(key);
 
     if(invocation_idx == 0)
-        cam_height_buf = cam_buff;
+        cam_height_ssbo = cam_height_local;
 
     return;
 }
