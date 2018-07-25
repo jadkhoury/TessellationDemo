@@ -70,7 +70,7 @@ enum { LOD,
        FRUSTUM,
        CULL,
        DEBUG,
-       COLOR_MODES_COUNT
+       u_color_modeS_COUNT
      } ColorModes;
 
 enum { TRIANGLES,

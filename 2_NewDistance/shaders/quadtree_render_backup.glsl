@@ -1,11 +1,4 @@
 #line 2
-/**
- * In LoD:
- * uniform int poly_type;
- * uniform vec3 cam_pos;
- * uniform mat4 M, V, P, MV, MVP;
- */
-
 const vec4 RED     = vec4(1,0,0,1);
 const vec4 GREEN   = vec4(0,1,0,1);
 const vec4 BLUE    = vec4(0,0,1,1);
@@ -14,10 +7,9 @@ const vec4 MAGENTA = vec4(1,0,0.5,1);
 const vec4 YELLOW  = vec4(1,1,0,1);
 const vec4 BLACK   = vec4(0,0,0,1);
 
-uniform int color_mode;
-uniform int render_MVP;
-
-uniform float cpu_lod;
+uniform int u_color_mode;
+uniform int u_render_MVP;
+uniform float u_cpu_lod;
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -41,12 +33,12 @@ layout (binding = LEAF_IDX_B) uniform idx_block {
 };
 
 
-uniform int morph;
-uniform int heightmap;
+uniform int u_morph_on;
+uniform int u_displace_on;
 uniform int num_vertices, num_indices;
 
-uniform int morph_debug;
-uniform float morph_k;
+uniform int u_morph_debug;
+uniform float u_morph_k;
 
 
 uniform int ipl_on;
@@ -128,9 +120,9 @@ vec2 morphVertex(uvec4 key, vec2 leaf_p, vec2 tree_p)
 
     float node_lvl = lt_level_64(key.xy);
     float tessLevel = clamp(node_lvl -  vertex_lvl, 0.0, 1.0);
-    float morphK = (morph_debug > 0) ? morph_k : smoothstep(0.4, 0.5, tessLevel);
+    float morphK = (u_morph_debug > 0) ? u_morph_k : smoothstep(0.4, 0.5, tessLevel);
 
-    float patchTessFactor = 1u << uint(cpu_lod); // = nb of intervals per side of node primitive
+    float patchTessFactor = 1u << uint(u_cpu_lod); // = nb of intervals per side of node primitive
     vec2 fracPart = fract(leaf_p * patchTessFactor * 0.5) * 2.0 / patchTessFactor;
     vec2 intPart = floor(leaf_p * patchTessFactor * 0.5);
     vec2 signVec = mod(intPart, 2.0) * vec2(2.0) - vec2(1.0);
@@ -166,12 +158,12 @@ void main()
         // Compute mesh-space position after morphing
         v_pos = lt_Leaf_to_MeshPrimitive(v_uv, key, false, poly_type).xyz;
         vec2 tree_pos = lt_Leaf_to_Tree_64(v_uv, nodeID, false);
-        if (morph > 0)
+        if (u_morph_on > 0)
             tree_pos = morphVertex(key, v_uv, tree_pos);
         v_pos = lt_Tree_to_MeshTriangle(tree_pos, poly_type, key.z, key.w).xyz;
 
         // Update normal and position for displacement mapping
-        if (heightmap > 0) {
+        if (u_displace_on > 0) {
             n = vec4(0,0,1,0);
             v_pos =  heightDisplace(v_pos, n.xyz);
         } else {
@@ -181,14 +173,14 @@ void main()
         vec2 tree_pos = lt_Leaf_to_Tree_64(v_uv, nodeID, false);
         p = vec4(0.0);
         n = vec4(0.0);
-        if (morph > 0)
+        if (u_morph_on > 0)
             tree_pos = morphVertex(key, v_uv, tree_pos);
         PNInterpolation(key, tree_pos, poly_type, ipl_alpha, p, n);
         v_pos = p.xyz;
     }
 
     // Assign color to current vertex
-    switch (color_mode) {
+    switch (u_color_mode) {
     case LOD:
         v_color = levelColor(level);
         break;
@@ -242,7 +234,7 @@ layout (location = 4) out vec2 g_root_uv;
 
 vec4 toScreenSpace(vec3 v)
 {
-    if(render_MVP > 0)
+    if(u_render_MVP > 0)
         return MVP * vec4(v.x, v.y, v.z, 1);
     else
         return vec4(v.xyz * 0.2, 1) ;
@@ -292,7 +284,7 @@ void main()
     float h;
 
     vec4 white_leaves = vec4(vec3(gridFactor(g_leaf_uv, 0.5)), 1);
-    switch (color_mode)
+    switch (u_color_mode)
     {
     case WHITE_WIREFRAME:
         color = white_leaves;

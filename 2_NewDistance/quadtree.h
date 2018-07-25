@@ -12,18 +12,18 @@ public:
     {        
         bool uniform_on;           // Toggle uniform subdivision
         int uniform_lvl;            // Level of uniform subdivision
-        float adaptive_factor;  // Factor scaling the adaptive subdivision
-        float target_edge_length;
+        float lod_factor;  // Factor scaling the adaptive subdivision
+        float target_e_length;
         bool map_primcount;     // Toggle the readback of the node counters
         bool rotateMesh;        // Toggle mesh rotation (for mesh)
-        bool displace;          // Toggle displacement mapping (for terrain)
-        float height_factor;     // Factor for displacement mapping (for terrain)
+        bool displace_on;          // Toggle displacement mapping (for terrain)
+        float displace_factor;     // Factor for displacement mapping (for terrain)
         int color_mode;         // Switch color mode of the render
         bool projection_on; // Toggle the MVP matrix
 
         bool wireframe_on; // Toggle wireframe visualisation
 
-        int poly_type;    // Type of polygon of the mesh (changes number of root triangle)
+        int polygon_type;    // Type of polygon of the mesh (changes number of root triangle)
         bool morph_on;    // Toggle T-Junction Removal
         bool freeze;      // Toggle freeze i.e. stop updating the quadtree, but keep rendering
         int cpu_lod;      // Control CPU LoD, i.e. subdivision level of the instantiated triangle grid
@@ -36,23 +36,23 @@ public:
 
         void Upload(uint pid)
         {
-            utility::SetUniformBool(pid, "uniform_subdiv", uniform_on);
-            utility::SetUniformInt(pid, "uniform_level", uniform_lvl);
-            utility::SetUniformFloat(pid, "adaptive_factor", adaptive_factor);
-            utility::SetUniformFloat(pid, "target_edge_length", target_edge_length);
-            utility::SetUniformBool(pid, "heightmap", displace);
-            utility::SetUniformFloat(pid, "height_factor", height_factor);
-            utility::SetUniformInt(pid, "color_mode", color_mode);
-            utility::SetUniformBool(pid, "render_MVP", projection_on);
-            utility::SetUniformBool(pid, "cull", cull_on);
-            utility::SetUniformInt(pid, "cpu_lod", float(cpu_lod));
-            utility::SetUniformInt(pid, "poly_type", poly_type);
-            utility::SetUniformBool(pid, "morph", morph_on);
-            utility::SetUniformBool(pid, "morph_debug", morph_debug);
-            utility::SetUniformFloat(pid, "morph_k", morph_k);
+            utility::SetUniformBool(pid, "u_uniform_subdiv", uniform_on);
+            utility::SetUniformInt(pid, "u_uniform_level", uniform_lvl);
+            utility::SetUniformFloat(pid, "u_adaptive_factor", lod_factor);
+            utility::SetUniformFloat(pid, "u_target_edge_length", target_e_length);
+            utility::SetUniformBool(pid, "u_displace_on", displace_on);
+            utility::SetUniformFloat(pid, "u_displace_factor", displace_factor);
+            utility::SetUniformInt(pid, "u_color_mode", color_mode);
+            utility::SetUniformBool(pid, "u_render_MVP", projection_on);
+            utility::SetUniformBool(pid, "u_cull", cull_on);
+            utility::SetUniformInt(pid, "u_cpu_lod", cpu_lod);
+            utility::SetUniformInt(pid, "u_poly_type", polygon_type);
+            utility::SetUniformBool(pid, "u_morph_on", morph_on);
+            utility::SetUniformBool(pid, "u_morph_debug", morph_debug);
+            utility::SetUniformFloat(pid, "u_morph_k", morph_k);
 
-            utility::SetUniformInt(pid, "itpl_type", itpl_type);
-            utility::SetUniformFloat(pid, "itpl_alpha", itpl_alpha);
+            utility::SetUniformInt(pid, "u_itpl_type", itpl_type);
+            utility::SetUniformFloat(pid, "u_itpl_alpha", itpl_alpha);
         }
     } settings;
 
@@ -101,23 +101,21 @@ private:
 
     void configureComputeProgram()
     {
-        utility::SetUniformInt(compute_program_, "num_mesh_tri", mesh_data_->triangle_count);
-        utility::SetUniformInt(compute_program_, "num_mesh_quad", mesh_data_->quad_count);
-        utility::SetUniformInt(compute_program_, "max_node_count", max_node_count_);
+        utility::SetUniformInt(compute_program_, "u_num_mesh_tri", mesh_data_->triangle_count);
+        utility::SetUniformInt(compute_program_, "u_num_mesh_quad", mesh_data_->quad_count);
+        utility::SetUniformInt(compute_program_, "u_max_node_count", max_node_count_);
         settings.Upload(compute_program_);
     }
 
     void configureCopyProgram()
     {
-        utility::SetUniformInt(copy_program_, "num_vertices", leaf_geometry_.v.count);
-        utility::SetUniformInt(copy_program_, "num_indices", leaf_geometry_.idx.count);
+        utility::SetUniformInt(copy_program_, "u_num_vertices", leaf_geometry_.v.count);
+        utility::SetUniformInt(copy_program_, "u_num_indices", leaf_geometry_.idx.count);
 
     }
 
     void configureRenderProgram()
     {
-        utility::SetUniformInt(render_program_, "num_vertices", leaf_geometry_.v.count);
-        utility::SetUniformInt(render_program_, "num_indices", leaf_geometry_.idx.count);
         settings.Upload(render_program_);
     }
 
@@ -273,12 +271,12 @@ private:
          cout << "max_num_nodes  " << max_node_count_ << endl;
          cout << "max_ssbo_size " << max_ssbo_size << "B" << endl;
         uvec4* nodes_array =  new uvec4[max_node_count_];
-        if (settings.poly_type == TRIANGLES) {
+        if (settings.polygon_type == TRIANGLES) {
             init_node_count_ = mesh_data_->triangle_count;
             for (int ctr = 0; ctr < (int)init_node_count_; ++ctr) {
                 nodes_array[ctr] = uvec4(0, 0x1, uint(ctr*3), 0);
             }
-        } else if (settings.poly_type == QUADS) {
+        } else if (settings.polygon_type == QUADS) {
             init_node_count_ = 2 * mesh_data_->quad_count;
             for (int ctr = 0; ctr < (int)init_node_count_; ++ctr) {
                 nodes_array[2*ctr+0] = uvec4(0, 0x1, uint(ctr*4), 0);
@@ -477,19 +475,19 @@ public:
 
     void UpdateLightPos(vec3 lp)
     {
-        utility::SetUniformVec3(render_program_, "light_pos", lp);
+        utility::SetUniformVec3(render_program_, "u_light_pos", lp);
     }
 
     void UpdateMode(uint mode)
     {
-        utility::SetUniformInt(compute_program_, "mode", mode);
-        utility::SetUniformInt(render_program_, "mode", mode);
+        utility::SetUniformInt(compute_program_, "u_mode", mode);
+        utility::SetUniformInt(render_program_, "u_mode", mode);
     }
 
     void UpdateScreenRes(int s)
     {
-        utility::SetUniformInt(compute_program_, "screen_res", s);
-        utility::SetUniformInt(render_program_, "screen_res", s);
+        utility::SetUniformInt(compute_program_, "u_screen_res", s);
+        utility::SetUniformInt(render_program_, "u_screen_res", s);
     }
 
     ////////////////////////////////////////////////////////////////////////////

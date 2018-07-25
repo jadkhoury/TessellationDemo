@@ -3,17 +3,13 @@
 #ifndef LOD_GLSL
 #define LOD_GLSL
 
-uniform int poly_type;
-uniform float adaptive_factor;
-uniform int mode;
-uniform float target_edge_length;
-uniform int screen_res;
-uniform int cpu_lod;
-uniform int morph;
-
-//uniform mat4 M, V, P, MV, MVP, invMV;
-//uniform vec3 cam_pos;
-//uniform float fov;
+uniform int u_poly_type;
+uniform float u_adaptive_factor;
+uniform int u_mode;
+uniform float u_target_edge_length;
+uniform int u_screen_res;
+uniform int u_cpu_lod;
+uniform int u_morph_on;
 
 layout(std140, binding = 0) uniform TransformBlock
 {
@@ -38,11 +34,11 @@ float distanceToLod(vec3 pos)
     float d = distance(pos, cam_pos);
     float f;
 
-    if (mode == TERRAIN) {
-        float leaf_subdiv = float(1 << uint(cpu_lod+1-morph));
-        f = screen_res/(SQRT_2 * target_edge_length * leaf_subdiv);
+    if (u_mode == TERRAIN) {
+        float leaf_subdiv = float(1 << uint(u_cpu_lod+1-u_morph_on));
+        f = u_screen_res/(SQRT_2 * u_target_edge_length * leaf_subdiv);
     } else {
-        f = adaptive_factor;
+        f = u_adaptive_factor;
     }
     float lod = (d * TAN_FOV)/ (SQRT_2 * f);
     lod = clamp(lod, 0.0, 1.0) ;
@@ -51,7 +47,7 @@ float distanceToLod(vec3 pos)
 
 void computeTessLvlWithParent(uvec4 key, float height, out float lvl, out float parent_lvl) {
     vec4 p_mesh, pp_mesh;
-    lt_Leaf_n_Parent_to_MeshPosition(triangle_centroid, key, p_mesh, pp_mesh, poly_type);
+    lt_Leaf_n_Parent_to_MeshPosition(triangle_centroid, key, p_mesh, pp_mesh, u_poly_type);
     p_mesh  = M * p_mesh;
     pp_mesh = M * pp_mesh;
     p_mesh.z = height;
@@ -64,7 +60,7 @@ void computeTessLvlWithParent(uvec4 key, float height, out float lvl, out float 
 
 void computeTessLvlWithParent(uvec4 key, out float lvl, out float parent_lvl) {
     vec4 p_mesh, pp_mesh;
-    lt_Leaf_n_Parent_to_MeshPosition(triangle_centroid, key, p_mesh, pp_mesh, poly_type);
+    lt_Leaf_n_Parent_to_MeshPosition(triangle_centroid, key, p_mesh, pp_mesh, u_poly_type);
     p_mesh  = M * p_mesh;
     pp_mesh = M * pp_mesh;
 

@@ -68,9 +68,9 @@ public:
         } else {
             meshutils::ParseObj(filepath, 0, &mesh_data);
             if (mesh_data.quad_count > 0 && mesh_data.triangle_count == 0) {
-                init_settings.poly_type = QUADS;
+                init_settings.polygon_type = QUADS;
             } else if (mesh_data.quad_count == 0 && mesh_data.triangle_count > 0) {
-                init_settings.poly_type = TRIANGLES;
+                init_settings.polygon_type = TRIANGLES;
             } else {
                 cout << "ERROR when parsing obj" << endl;
             }
@@ -150,19 +150,19 @@ public:
 
         init_settings.uniform_on = false;
         init_settings.uniform_lvl = 1;
-        init_settings.adaptive_factor = 1;
-        init_settings.target_edge_length = 16;
+        init_settings.lod_factor = 1;
+        init_settings.target_e_length = 16;
         init_settings.map_primcount = true;
         init_settings.rotateMesh = false;
         // No filepath => Terrain => displace
-        init_settings.displace = (filepath == "");
-        init_settings.height_factor = 0.3f;
+        init_settings.displace_on = (filepath == "");
+        init_settings.displace_factor = 0.3f;
         init_settings.color_mode = LOD;
         init_settings.projection_on = true;
 
         init_settings.wireframe_on = false;
 
-        init_settings.poly_type = TRIANGLES;
+        init_settings.polygon_type = TRIANGLES;
         init_settings.morph_on = true;
         init_settings.freeze = false;
         init_settings.cpu_lod = 2;

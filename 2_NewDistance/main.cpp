@@ -162,11 +162,11 @@ void RenderImgui()
             mesh.quadtree->ReloadRenderProgram();
             updateRenderParams();
         }
-        if (ImGui::Checkbox("Displace Mesh", &settings_ref.displace)) {
+        if (ImGui::Checkbox("Displace Mesh", &settings_ref.displace_on)) {
             mesh.quadtree->UploadSettings();
         }
-        if(settings_ref.displace){
-            if (ImGui::SliderFloat("Height Factor", &settings_ref.height_factor, 0, 2)) {
+        if(settings_ref.displace_on){
+            if (ImGui::SliderFloat("Height Factor", &settings_ref.displace_factor, 0, 2)) {
                 mesh.quadtree->UploadSettings();
             }
         }
@@ -190,14 +190,14 @@ void RenderImgui()
         }
         ImGui::Checkbox("Auto LoD", &gl.auto_lod);
         ImGui::SameLine();
-        float expo = log2(settings_ref.target_edge_length);
+        float expo = log2(settings_ref.target_e_length);
         if(gl.mode == TERRAIN) {
             if (ImGui::SliderFloat("Edge Length (2^x)", &expo, 1, 10)) {
-                settings_ref.target_edge_length = std::pow(2.0f, expo);
+                settings_ref.target_e_length = std::pow(2.0f, expo);
                 mesh.quadtree->UploadSettings();
             }
         } else {
-            if (ImGui::SliderFloat("LoD Factor", &settings_ref.adaptive_factor, 1, max_lod)) {
+            if (ImGui::SliderFloat("LoD Factor", &settings_ref.lod_factor, 1, max_lod)) {
                 mesh.quadtree->UploadSettings();
             }
         }
@@ -214,7 +214,7 @@ void RenderImgui()
             ImGui::Text("%s", utility::LongToString(mesh.quadtree->drawn_node_count*leaf_tri).c_str());
         }
         ImGui::Text("\n------ QuadTree settings ------");
-        if (ImGui::Combo("Polygon type", &settings_ref.poly_type, "Triangle\0Quad\0\0")) {
+        if (ImGui::Combo("Polygon type", &settings_ref.polygon_type, "Triangle\0Quad\0\0")) {
             mesh.LoadMeshBuffers();
             mesh.quadtree->Reinitialize();
         }
@@ -460,8 +460,8 @@ void Draw()
     if (gl.auto_lod && !mesh.quadtree->settings.uniform_on) {
         float inf = (gl.mode == TERRAIN) ? 1.01f : 0.99f;
         float sup = (gl.mode == TERRAIN) ? 0.99f : 1.01f;
-        float& f = (gl.mode == TERRAIN) ? mesh.quadtree->settings.target_edge_length
-                                        : mesh.quadtree->settings.adaptive_factor;
+        float& f = (gl.mode == TERRAIN) ? mesh.quadtree->settings.target_e_length
+                                        : mesh.quadtree->settings.lod_factor;
 
         static float upperFPS = 70, lowerFPS = 60;
         if (bench.delta_T < 1.0/upperFPS) {

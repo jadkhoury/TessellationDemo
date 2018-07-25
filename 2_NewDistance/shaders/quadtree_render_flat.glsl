@@ -22,13 +22,13 @@ layout (binding = LEAF_IDX_B) uniform idx_block {
 };
 
 #ifndef LOD_GLSL
-uniform int morph;
-uniform int cpu_lod;
-uniform int poly_type;
+uniform int u_morph_on;
+uniform int u_cpu_lod;
+uniform int u_poly_type;
 #endif
 
 #ifndef NOISE_GLSL
-uniform float height_factor;
+uniform float u_displace_factor;
 #endif
 
 vec3 eye;
@@ -52,7 +52,7 @@ void main()
 
     // Fetch target mesh-space triangle
     Triangle mesh_t;
-    lt_getTargetTriangle(poly_type, meshPolygonID, rootID, mesh_t);
+    lt_getTargetTriangle(u_poly_type, meshPolygonID, rootID, mesh_t);
 
     Vertex current_v;
 
@@ -60,11 +60,11 @@ void main()
     vec4 p, n;
     vec2 tree_pos = lt_Leaf_to_Tree_64(leaf_pos, nodeID, false);
 
-    // If morphing is activated, morph vertex
+    // If morphing is activated, u_morph_on vertex
     uint morphed = 0;
-    if (morph > 0) {
-        if (morph_debug > 0) {
-            tree_pos = morphVertexDebug(key, leaf_pos, tree_pos, morph_k);
+    if (u_morph_on > 0) {
+        if (u_morph_debug > 0) {
+            tree_pos = morphVertexDebug(key, leaf_pos, tree_pos, u_morph_k);
             morphed = 1;
         } else {
             tree_pos = morphVertex(key, leaf_pos, tree_pos, morphed);
@@ -72,19 +72,19 @@ void main()
     }
 
     // Interpolate
-    switch(itpl_type) {
+    switch(u_itpl_type) {
     case LINEAR:
         current_v = lt_interpolateVertex(mesh_t, tree_pos);
         break;
     case PN:
-        PNInterpolation(mesh_t, tree_pos, poly_type, itpl_alpha, current_v);
+        PNInterpolation(mesh_t, tree_pos, u_poly_type, u_itpl_alpha, current_v);
         break;
     case PHONG:
-        PhongInterpolation(mesh_t, tree_pos, poly_type, itpl_alpha, current_v);
+        PhongInterpolation(mesh_t, tree_pos, u_poly_type, u_itpl_alpha, current_v);
         break;
     }
 
-    if (heightmap > 0)
+    if (u_displace_on > 0)
         current_v.p.xyz =  displaceVertex(current_v.p.xyz, cam_pos);
 
     // Pass relevant values
@@ -112,7 +112,7 @@ layout (location = 6) in vec2 v_leaf_pos;
 layout(location = 0) out vec4 color;
 
 
-uniform vec3 light_pos = vec3(0, 110, 00);
+uniform vec3 u_light_pos = vec3(0, 110, 00);
 
 const bool flat_n = true;
 
@@ -132,11 +132,11 @@ void main()
         float dp = sqrt(dot(dx,dx));
         vec2 s;
         float d = displace(p.xy, 1.0/(0.5*dp), s);
-        n = normalize(vec3(-s * height_factor,1));
+        n = normalize(vec3(-s * u_displace_factor,1));
     }
     vec4 n_mv = normalMatrix * vec4(n,0);
 
-    vec4 light_pos_mv =  V * vec4(light_pos, 1.0);
+    vec4 light_pos_mv =  V * vec4(u_light_pos, 1.0);
     vec4 l_mv = normalize(light_pos_mv - p_mv);
 
     float nl =  max(dot(l_mv,n_mv),0.1);

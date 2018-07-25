@@ -9,27 +9,26 @@ const vec4 MAGENTA = vec4(1,0,0.5,1);
 const vec4 YELLOW  = vec4(1,1,0,1);
 const vec4 BLACK   = vec4(0,0,0,1);
 
-uniform int heightmap;
-uniform int num_vertices, num_indices;
+uniform int u_displace_on;
 
-uniform int morph_debug;
-uniform float morph_k;
+uniform int u_morph_debug;
+uniform float u_morph_k;
 
-uniform int itpl_type;
-uniform float itpl_alpha;
+uniform int u_itpl_type;
+uniform float u_itpl_alpha;
 
-uniform int color_mode;
-uniform int render_MVP;
+uniform int u_color_mode;
+uniform int u_render_MVP;
 
 // based on Filip Strugar's CDLOD paper (until intPart & signVec)
 vec2 morphVertex(uvec4 key, vec2 leaf_p, vec2 tree_p, out uint morphed)
 {
     mat3x2 xform;
     lt_getTriangleXform_64(key.xy, xform);
-    vec4 mesh_p = M * lt_Leaf_to_MeshPosition(leaf_p, key, false, poly_type);
+    vec4 mesh_p = M * lt_Leaf_to_MeshPosition(leaf_p, key, false, u_poly_type);
 
-    if(mode == TERRAIN && heightmap > 0) {
-        mesh_p.z = getHeight(cam_pos.xy, screen_res);
+    if(u_mode == TERRAIN && u_displace_on > 0) {
+        mesh_p.z = getHeight(cam_pos.xy, u_screen_res);
     }
     float vertex_lvl = distanceToLod(mesh_p.xyz);
     float node_lvl = lt_level_64(key.xy);
@@ -39,7 +38,7 @@ vec2 morphVertex(uvec4 key, vec2 leaf_p, vec2 tree_p, out uint morphed)
     morphed = (morphK > 0 && morphK < 1) ? 1 : 0;
 
     // nb of intervals per side of node primitive
-    float patchTessFactor = 1u << uint(cpu_lod);
+    float patchTessFactor = 1u << uint(u_cpu_lod);
     vec2 fracPart = fract(leaf_p * patchTessFactor * 0.5) * 2.0 / patchTessFactor;
     vec2 intPart = floor(leaf_p * patchTessFactor * 0.5);
     vec2 signVec = mod(intPart, 2.0) * vec2(-2.0) + vec2(1.0);
@@ -54,7 +53,7 @@ vec2 morphVertexDebug(uvec4 key, vec2 leaf_p, vec2 tree_p, float k)
     lt_getTriangleXform_64(key.xy, xform);
     float morphK =  k;
     // nb of intervals per side of node primitive
-    float patchTessFactor = 1u << uint(cpu_lod);
+    float patchTessFactor = 1u << uint(u_cpu_lod);
     vec2 fracPart = fract(leaf_p * patchTessFactor * 0.5) * 2.0 / patchTessFactor;
     vec2 intPart = floor(leaf_p * patchTessFactor * 0.5);
     vec2 signVec = mod(intPart, 2.0) * vec2(-2.0) + vec2(1.0);
@@ -65,7 +64,7 @@ vec2 morphVertexDebug(uvec4 key, vec2 leaf_p, vec2 tree_p, float k)
 
 vec4 toScreenSpace(vec3 v)
 {
-    if(render_MVP > 0)
+    if(u_render_MVP > 0)
         return MVP * vec4(v.x, v.y, v.z, 1);
     else
         return vec4(v.xyz * 0.2, 1) ;

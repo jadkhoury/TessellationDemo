@@ -4,14 +4,6 @@
 
 //#define BUFFER_HEIGHT
 
-
-/**
- * In LoD:
- * uniform int poly_type;
- * uniform vec3 cam_pos;
- * uniform mat4 M, V, P, MV, MVP;
- */
-
 layout (local_size_x = LOCAL_WG_SIZE_X,
         local_size_y = LOCAL_WG_SIZE_Y,
         local_size_z = LOCAL_WG_SIZE_Z) in;
@@ -26,24 +18,22 @@ layout (std140, binding = CAM_HEIGHT_B) buffer Cam_Height
 
 uniform int read_index, write_index;
 
-uniform int uniform_level;
-uniform int uniform_subdiv;
+uniform int u_uniform_subdiv;
+uniform int u_uniform_level;
 
-uniform int num_mesh_tri;
-uniform int num_mesh_quad;
-uniform int max_node_count;
+uniform int u_num_mesh_tri;
+uniform int u_num_mesh_quad;
+uniform int u_max_node_count;
 
-uniform int cull;
-
-uniform int copy_pass;
+uniform int u_cull;
 
 #ifndef LOD_GLSL
-uniform int poly_type;
-uniform int screen_res;
-uniform int mode;
+uniform int u_poly_type;
+uniform int u_screen_res;
+uniform int u_mode;
 #endif
 
-uniform int heightmap;
+uniform int u_displace_on;
 
 vec3 eye;
 
@@ -64,7 +54,6 @@ const int U = 2;
 const vec2 unit_O = vec2(0,0);
 const vec2 unit_R = vec2(1,0);
 const vec2 unit_U = vec2(0,1);
-
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -110,16 +99,16 @@ void computePass(uvec4 key, uint invocation_idx, int active_nodes)
 
     // Check if a merge or division is required
     bool should_divide, should_merge;
-    if (uniform_subdiv > 0) {
-        should_divide = current_lvl < uniform_level;
-        should_merge = current_lvl > uniform_level;
+    if (u_uniform_subdiv > 0) {
+        should_divide = current_lvl < u_uniform_level;
+        should_merge = current_lvl > u_uniform_level;
     } else {
         float parentTargetLevel, targetLevel;
-        if(mode == TERRAIN && heightmap > 0) {
+        if(u_mode == TERRAIN && u_displace_on > 0) {
 #ifdef BUFFER_HEIGHT
             computeTessLvlWithParent(key, cam_height_buf, targetLevel, parentTargetLevel);
 #else
-            float cam_height = getHeight(cam_pos.xy, screen_res);
+            float cam_height = getHeight(cam_pos.xy, u_screen_res);
             computeTessLvlWithParent(key, cam_height, targetLevel, parentTargetLevel);
 #endif
         } else {
@@ -164,17 +153,17 @@ void cull_writeKey(uvec4 new_key)
  */
 void cullPass(uvec4 key)
 {
-    if(cull > 0)
+    if(u_cull > 0)
     {
         mat4 mesh_coord;
         vec4 b_min = vec4(10e6);
         vec4 b_max = vec4(-10e6);
 
-        mesh_coord[O] = lt_Leaf_to_MeshPosition(unit_O, key, false, poly_type);
-        mesh_coord[U] = lt_Leaf_to_MeshPosition(unit_U, key, false, poly_type);
-        mesh_coord[R] = lt_Leaf_to_MeshPosition(unit_R, key, false, poly_type);
+        mesh_coord[O] = lt_Leaf_to_MeshPosition(unit_O, key, false, u_poly_type);
+        mesh_coord[U] = lt_Leaf_to_MeshPosition(unit_U, key, false, u_poly_type);
+        mesh_coord[R] = lt_Leaf_to_MeshPosition(unit_R, key, false, u_poly_type);
 
-        if (heightmap > 0) {
+        if (u_displace_on > 0) {
             mesh_coord[O] = displaceVertex(mesh_coord[O], cam_pos);
             mesh_coord[U] = displaceVertex(mesh_coord[U], cam_pos);
             mesh_coord[R] = displaceVertex(mesh_coord[R], cam_pos);
@@ -203,16 +192,16 @@ void main(void)
 
     uint invocation_idx = int(gl_GlobalInvocationID.x);
     uvec4 key = lt_getKey_64(invocation_idx);
-    // Removing morph / destroy bit
+    // Removing u_morph_on / destroy bit
     key.w = key.w & 3u;
 
     // Check if the current instance should work
     int active_nodes;
 
-    if (poly_type == QUADS) {
-        active_nodes = max(num_mesh_quad * 2, int(atomicCounter(primCount_full[read_index])));
-    } else if (poly_type ==  TRIANGLES) {
-        active_nodes = max(num_mesh_tri, int(atomicCounter(primCount_full[read_index])));
+    if (u_poly_type == QUADS) {
+        active_nodes = max(u_num_mesh_quad * 2, int(atomicCounter(primCount_full[read_index])));
+    } else if (u_poly_type ==  TRIANGLES) {
+        active_nodes = max(u_num_mesh_tri, int(atomicCounter(primCount_full[read_index])));
     }
     if (invocation_idx >= active_nodes)
         return;
@@ -223,7 +212,7 @@ void main(void)
     memoryBarrierBuffer();
 
     if(invocation_idx == 0)
-        cam_height_buf = getHeight(cam_pos.xy, screen_res);
+        cam_height_buf = getHeight(cam_pos.xy, u_screen_res);
     barrier();
     memoryBarrierBuffer();
 

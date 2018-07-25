@@ -33,7 +33,7 @@ layout (std430, binding = DRAW_INDIRECT_B) buffer draw_out
 
 
 uniform int read_index, delete_index;
-uniform int num_vertices, num_indices;
+uniform int u_num_vertices, u_num_indices;
 
 void main(void)
 {
@@ -41,7 +41,7 @@ void main(void)
     uint culled_count = nodeCount_culled[read_index];
 
     //Set the primcount for the draw pass
-    count = num_indices;
+    count = u_num_indices;
     primCount = culled_count;
     //Set the WG siwe for the next compute pass
     workgroup_size_x = uint(full_count / float(LOCAL_WG_COUNT)) + 1;
