@@ -140,8 +140,8 @@ public:
     // Update the atomic counters indices
     void BindForCompute(GLuint program)
     {
-        utility::SetUniformInt(program, "read_index", primCount_read_);
-        utility::SetUniformInt(program, "write_index", primCount_write_);
+        utility::SetUniformInt(program, "u_read_index", primCount_read_);
+        utility::SetUniformInt(program, "u_write_index", primCount_write_);
         glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, NODECOUNTER_FULL_B, buffers_[NodeCounterFull]);
         glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, NODECOUNTER_CULLED_B, buffers_[NodeCounterCulled]);
 
@@ -156,8 +156,8 @@ public:
     // Uploads the atomic array indices
     void BindForCopy(GLuint program)
     {
-        utility::SetUniformInt(program, "read_index", primCount_read_);
-        utility::SetUniformInt(program, "delete_index", primCount_delete_);
+        utility::SetUniformInt(program, "u_read_index", primCount_read_);
+        utility::SetUniformInt(program, "u_delete_index", primCount_delete_);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODECOUNTER_FULL_B, buffers_[NodeCounterFull]);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODECOUNTER_CULLED_B, buffers_[NodeCounterCulled]);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, DISPATCH_INDIRECT_B, buffers_[DispatchIndirect]);

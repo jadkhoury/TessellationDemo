@@ -6,12 +6,12 @@
 
 #ifdef VERTEX_SHADER
 
-layout (location = 1) in vec2 tri_p;
+layout (location = 1) in vec2 i_vpos;
 
-layout (location = 0) out Vertex v_vertex;
-layout (location = 4) out flat uint v_lvl;
-layout (location = 5) out flat uint v_morphed;
-layout (location = 6) out vec2 v_leaf_pos;
+layout (location = 0) out flat uint o_lvl;
+layout (location = 1) out flat uint o_morphed;
+layout (location = 2) out vec2 o_leaf_pos;
+layout (location = 3) out Vertex o_vertex;
 
 layout (binding = LEAF_VERT_B) uniform v_block {
     vec2 positions[100];
@@ -38,7 +38,7 @@ void main()
 {
 
     // Read VAO
-    vec2 leaf_pos = tri_p.xy;
+    vec2 leaf_pos = i_vpos.xy;
 
     // Decode key
     uint instanceID = gl_InstanceID;
@@ -48,13 +48,9 @@ void main()
     uint rootID = key.w & 3u;
     uint level = lt_level_64(key.xy);
 
-    v_morphed = 0;
-
     // Fetch target mesh-space triangle
     Triangle mesh_t;
     lt_getTargetTriangle(u_poly_type, meshPolygonID, rootID, mesh_t);
-
-    Vertex current_v;
 
     // Compute Qt position
     vec4 p, n;
@@ -72,6 +68,7 @@ void main()
     }
 
     // Interpolate
+    Vertex current_v;
     switch(u_itpl_type) {
     case LINEAR:
         current_v = lt_interpolateVertex(mesh_t, tree_pos);
@@ -88,10 +85,10 @@ void main()
         current_v.p.xyz =  displaceVertex(current_v.p.xyz, cam_pos);
 
     // Pass relevant values
-    v_vertex = current_v;
-    v_lvl = level;
-    v_leaf_pos = leaf_pos;
-    v_morphed = morphed;
+    o_vertex = current_v;
+    o_lvl = level;
+    o_leaf_pos = leaf_pos;
+    o_morphed = morphed;
 
     gl_Position = toScreenSpace(current_v.p.xyz);
 }
@@ -104,12 +101,12 @@ void main()
 
 #ifdef FRAGMENT_SHADER
 
-layout (location = 0) in Vertex v_vertex;
-layout (location = 4) in flat uint v_lvl;
-layout (location = 5) in flat uint v_morphed;
-layout (location = 6) in vec2 v_leaf_pos;
+layout (location = 0) in flat uint i_lvl;
+layout (location = 1) in flat uint i_morphed;
+layout (location = 2) in vec2 i_leaf_pos;
+layout (location = 3) in Vertex i_vertex;
 
-layout(location = 0) out vec4 color;
+layout(location = 0) out vec4 o_color;
 
 
 uniform vec3 u_light_pos = vec3(0, 110, 00);
@@ -120,11 +117,10 @@ void main()
 {
 #if 1
     // Position
-    vec3 p = v_vertex.p.xyz;
-    vec4 p_mv = MV * v_vertex.p;
+    vec3 p = i_vertex.p.xyz;
+    vec4 p_mv = MV * i_vertex.p;
     //Normal
     vec3 n;
-    mat4 normalMatrix = transpose(inverse(MV));
     vec3 dx = dFdx(p), dy = dFdy(p);
     if (flat_n){
         n = normalize(cross(dx,dy));
@@ -134,16 +130,16 @@ void main()
         float d = displace(p.xy, 1.0/(0.5*dp), s);
         n = normalize(vec3(-s * u_displace_factor,1));
     }
-    vec4 n_mv = normalMatrix * vec4(n,0);
+    vec4 n_mv = invMV * vec4(n,0);
 
-    vec4 light_pos_mv =  V * vec4(u_light_pos, 1.0);
+    vec4 light_pos_mv =  V * vec4(u_light_pos, 1);
     vec4 l_mv = normalize(light_pos_mv - p_mv);
 
-    float nl =  max(dot(l_mv,n_mv),0.1);
-    vec4 c = levelColor(v_lvl, v_morphed);
-    color = vec4(c.xyz*nl, 1);
+    float nl =  max(dot(l_mv,n_mv), 0);
+    vec4 c = levelColor(i_lvl, i_morphed);
+    o_color = vec4(c.xyz*nl, 1);
 #else
-    color = RED;
+    o_color = RED;
 #endif
 }
 #endif

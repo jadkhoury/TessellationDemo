@@ -16,7 +16,7 @@ layout (std140, binding = CAM_HEIGHT_B) buffer Cam_Height
     float cam_height_buf;
 };
 
-uniform int read_index, write_index;
+uniform int u_read_index, u_write_index;
 
 uniform int u_uniform_subdiv;
 uniform int u_uniform_level;
@@ -71,14 +71,14 @@ const vec2 unit_U = vec2(0,1);
 void compute_writeKey(uvec2 new_nodeID, uvec4 current_key)
 {
     uvec4 new_key = uvec4(new_nodeID, current_key.z, (current_key.w & 3u));
-    uint idx = atomicCounterIncrement(primCount_full[write_index]);
+    uint idx = atomicCounterIncrement(primCount_full[u_write_index]);
     nodes_out_full[idx] = new_key;
 }
 
 void compute_writeChildren(uvec2 children[4], uvec4 current_key)
 {
     for(int i = 0; i<4; ++i) {
-        uint idx = atomicCounterIncrement(primCount_full[write_index]);
+        uint idx = atomicCounterIncrement(primCount_full[u_write_index]);
         uvec4 new_key = uvec4(children[i], current_key.z, (current_key.w & 3u));
         nodes_out_full[idx] = new_key;
     }
@@ -141,7 +141,7 @@ void computePass(uvec4 key, uint invocation_idx, int active_nodes)
 // Store the new key in the Culled SSBO for the Render Pass
 void cull_writeKey(uvec4 new_key)
 {
-    uint idx = atomicCounterIncrement(primCount_culled[write_index]);
+    uint idx = atomicCounterIncrement(primCount_culled[u_write_index]);
     nodes_out_culled[idx] =  new_key;
 }
 
@@ -199,9 +199,9 @@ void main(void)
     int active_nodes;
 
     if (u_poly_type == QUADS) {
-        active_nodes = max(u_num_mesh_quad * 2, int(atomicCounter(primCount_full[read_index])));
+        active_nodes = max(u_num_mesh_quad * 2, int(atomicCounter(primCount_full[u_read_index])));
     } else if (u_poly_type ==  TRIANGLES) {
-        active_nodes = max(u_num_mesh_tri, int(atomicCounter(primCount_full[read_index])));
+        active_nodes = max(u_num_mesh_tri, int(atomicCounter(primCount_full[u_read_index])));
     }
     if (invocation_idx >= active_nodes)
         return;
