@@ -477,10 +477,7 @@ void Draw()
 }
 
 void Cleanup() {
-    app.mesh.quadtree->CleanUp();
-    delete[] app.mesh.mesh_data.v_array;
-    delete[] app.mesh.mesh_data.q_idx_array;
-    delete[] app.mesh.mesh_data.t_idx_array;
+    app.mesh.CleanUp();
 }
 
 void HandleArguments(int argc, char **argv)

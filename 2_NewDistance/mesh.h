@@ -186,6 +186,13 @@ public:
         quadtree->Draw(deltaT);
     }
 
+    void CleanUp()
+    {
+        quadtree->CleanUp();
+        tranforms_manager->CleanUp();
+        mesh_data.CleanUp();
+    }
+
 };
 
 

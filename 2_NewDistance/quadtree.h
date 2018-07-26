@@ -644,6 +644,8 @@ RENDER_PASS:
     {
         glUseProgram(0);
         glDeleteBuffers(3, nodes_bo_);
+        utility::EmptyBuffer(&transfo_bo_);
+        utility::EmptyBuffer(&cam_height_bo_);
         glDeleteProgram(compute_program_);
         glDeleteProgram(copy_program_);
         glDeleteProgram(render_program_);

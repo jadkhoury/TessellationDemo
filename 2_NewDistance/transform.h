@@ -239,6 +239,12 @@ public:
         updateMV();
     }
 
+    void CleanUp()
+    {
+        delete &block_;
+        utility::EmptyBuffer(&bo_);
+    }
+
 };
 
 #endif
