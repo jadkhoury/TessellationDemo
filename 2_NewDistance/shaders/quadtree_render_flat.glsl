@@ -13,14 +13,6 @@ layout (location = 1) out flat uint o_morphed;
 layout (location = 2) out vec2 o_leaf_pos;
 layout (location = 3) out Vertex o_vertex;
 
-layout (binding = LEAF_VERT_B) uniform v_block {
-    vec2 positions[100];
-};
-
-layout (binding = LEAF_IDX_B) uniform idx_block {
-    uint indices[300];
-};
-
 #ifndef LOD_GLSL
 uniform int u_morph_on;
 uniform int u_cpu_lod;
@@ -30,8 +22,6 @@ uniform int u_poly_type;
 #ifndef NOISE_GLSL
 uniform float u_displace_factor;
 #endif
-
-vec3 eye;
 
 // ------------------------ Main ------------------------ //
 void main()
@@ -68,18 +58,8 @@ void main()
     }
 
     // Interpolate
-    Vertex current_v;
-    switch(u_itpl_type) {
-    case LINEAR:
-        current_v = lt_interpolateVertex(mesh_t, tree_pos);
-        break;
-    case PN:
-        PNInterpolation(mesh_t, tree_pos, u_poly_type, u_itpl_alpha, current_v);
-        break;
-    case PHONG:
-        PhongInterpolation(mesh_t, tree_pos, u_poly_type, u_itpl_alpha, current_v);
-        break;
-    }
+    Vertex current_v = interpolate(mesh_t, tree_pos, u_poly_type,
+                                   u_itpl_type, u_itpl_alpha);
 
     if (u_displace_on > 0)
         current_v.p.xyz =  displaceVertex(current_v.p.xyz, cam_pos);
@@ -115,7 +95,6 @@ const bool flat_n = true;
 
 void main()
 {
-#if 1
     // Position
     vec3 p = i_vertex.p.xyz;
     vec4 p_mv = MV * i_vertex.p;
@@ -138,9 +117,6 @@ void main()
     float nl =  max(dot(l_mv,n_mv), 0);
     vec4 c = levelColor(i_lvl, i_morphed);
     o_color = vec4(c.xyz*nl, 1);
-#else
-    o_color = RED;
-#endif
 }
 #endif
 

@@ -82,8 +82,9 @@ void getPnPatch(Triangle t, out PnPatch oPnPatch)
 }
 
 
-void Interpolate_pn(Triangle target_T, vec3 uvw, float alpha, out Vertex vertex)
+Vertex Interpolate_pn(Triangle target_T, vec3 uvw, float alpha)
 {
+    Vertex vertex;
     PnPatch pnPatch;
     getPnPatch(target_T, pnPatch);
 
@@ -133,14 +134,15 @@ void Interpolate_pn(Triangle target_T, vec3 uvw, float alpha, out Vertex vertex)
     // final position and normal
 
     vertex.p = vec4((1.0-alpha)*barPos + alpha*pnPos, 1.0);
+    return vertex;
 }
 
-void PNInterpolation(Triangle mesh_t, vec2 uv, int poly_type, float alpha, out Vertex vertex)
+Vertex PNInterpolation(Triangle mesh_t, vec2 uv, int poly_type, float alpha)
 {
     float u = uv.x, v = uv.y, w = 1.0-u-v;
     vec3 uvw = vec3(v, u, w);
     uvw = uvw / (u+v+w);
 
-    Interpolate_pn(mesh_t, uvw, alpha, vertex);
+    return Interpolate_pn(mesh_t, uvw, alpha);
 }
 #endif

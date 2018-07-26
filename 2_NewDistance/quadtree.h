@@ -10,20 +10,20 @@ class QuadTree
 public:
     struct Settings
     {
-        bool uniform_on;           // Toggle uniform subdivision
-        int uniform_lvl;            // Level of uniform subdivision
-        float lod_factor;  // Factor scaling the adaptive subdivision
-        float target_e_length;
-        bool map_primcount;     // Toggle the readback of the node counters
-        bool rotateMesh;        // Toggle mesh rotation (for mesh)
-        bool displace_on;          // Toggle displacement mapping (for terrain)
-        float displace_factor;     // Factor for displacement mapping (for terrain)
-        int color_mode;         // Switch color mode of the render
-        bool projection_on; // Toggle the MVP matrix
+        bool uniform_on;       // Toggle uniform subdivision
+        int uniform_lvl;       // Level of uniform subdivision
+        float lod_factor;      // Factor scaling the adaptive subdivision
+        float target_e_length; // Target edge length on rendered grid
+        bool map_primcount;    // Toggle the readback of the node counters
+        bool rotateMesh;       // Toggle mesh rotation (for mesh)
+        bool displace_on;      // Toggle displacement mapping (for terrain)
+        float displace_factor; // Factor for displacement mapping (for terrain)
+        int color_mode;        // Switch color mode of the render
+        bool projection_on;    // Toggle the MVP matrix
 
         bool wireframe_on; // Toggle wireframe visualisation
 
-        int polygon_type;    // Type of polygon of the mesh (changes number of root triangle)
+        int polygon_type; // Type of polygon of the mesh (changes number of root triangle)
         bool morph_on;    // Toggle T-Junction Removal
         bool freeze;      // Toggle freeze i.e. stop updating the quadtree, but keep rendering
         int cpu_lod;      // Control CPU LoD, i.e. subdivision level of the instantiated triangle grid
@@ -31,7 +31,7 @@ public:
         bool morph_debug; // Toggle morph debuging
         float morph_k;    // Control morph factor
 
-        int itpl_type; // Switch interpolation type
+        int itpl_type;    // Switch interpolation type
         float itpl_alpha; // Control interpolation factor
 
         void Upload(uint pid)
@@ -90,9 +90,6 @@ private:
 
     djg_clock* compute_clock_;
     djg_clock* render_clock_;
-
-    bool first_frame_ = true;
-
 
     ////////////////////////////////////////////////////////////////////////////////
     ///
@@ -635,9 +632,6 @@ RENDER_PASS:
         }
         glUseProgram(0);
         djgc_ticks(render_clock_, &ticks.cpu, &ticks.gpu_render);
-
-        if (first_frame_)
-            first_frame_ = false;
     }
 
     void CleanUp()

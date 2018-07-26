@@ -1,3 +1,4 @@
+#line 5001
 #ifndef RENDER_COMMON_GLSL
 #define RENDER_COMMON_GLSL
 
@@ -83,6 +84,18 @@ vec4 levelColor(uint lvl, uint morphed)
     }
     c = mix(c, RED, float(morphed)*0.5);
     return c;
+}
+
+Vertex interpolate(Triangle mesh_t, vec2 v, int poly_type, int itpl_type, float itpl_alpha)
+{
+    switch(itpl_type) {
+    case LINEAR:
+        return lt_interpolateVertex(mesh_t, v);
+    case PN:
+        return PNInterpolation(mesh_t, v, poly_type, itpl_alpha);
+    case PHONG:
+        return PhongInterpolation(mesh_t, v, poly_type, itpl_alpha);
+    }
 }
 
 #endif
