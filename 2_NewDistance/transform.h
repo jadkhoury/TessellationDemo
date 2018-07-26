@@ -221,7 +221,6 @@ public:
         updateMV();
     }
 
-
     void Init(CameraManager& cam)
     {
         utility::EmptyBuffer(&bo_);

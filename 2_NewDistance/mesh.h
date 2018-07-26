@@ -51,7 +51,6 @@ public:
         }
     }
 
-
     /*
      * Fill the Mesh_Data structure with vertices and indices
      * Either:
@@ -60,12 +59,12 @@ public:
      * Depending on the index array filled by the parsing function, sets the
      * quadtree to the correct polygon rendering mode
      */
-    void LoadMeshData(string filepath)
+    void LoadMeshData(uint mode, string filepath = "")
     {
-        if (filepath == "") {
+        if (mode == TERRAIN) {
             meshutils::LoadGrid(&mesh_data,  grid_quads_count);
             LoadMeshBuffers();
-        } else {
+        } else if (mode == MESH){
             meshutils::ParseObj(filepath, 0, &mesh_data);
             if (mesh_data.quad_count > 0 && mesh_data.triangle_count == 0) {
                 init_settings.polygon_type = QUADS;
@@ -74,7 +73,6 @@ public:
             } else {
                 cout << "ERROR when parsing obj" << endl;
             }
-            LoadMeshBuffers();
         }
     }
 
@@ -140,7 +138,7 @@ public:
         tranforms_manager->Init(cam);
     }
 
-    void Init(string filepath, CameraManager& cam)
+    void Init(uint mode, CameraManager& cam, string filepath = "")
     {
         quadtree = new QuadTree();
         tranforms_manager = new TransformsManager();
@@ -154,8 +152,7 @@ public:
         init_settings.target_e_length = 2;
         init_settings.map_primcount = true;
         init_settings.rotateMesh = false;
-        // No filepath => Terrain => displace
-        init_settings.displace_on = (filepath == "");
+        init_settings.displace_on = (mode == TERRAIN);
         init_settings.displace_factor = 0.3f;
         init_settings.color_mode = LOD;
         init_settings.projection_on = true;
@@ -173,7 +170,9 @@ public:
         init_settings.itpl_type = LINEAR;
         init_settings.itpl_alpha = 0;
 
-        this->LoadMeshData(filepath);
+        this->LoadMeshData(mode, filepath);
+        this->LoadMeshBuffers();
+
         this->tranforms_manager->Init(cam);
         quadtree->Init(&(this->mesh_data), this->tranforms_manager->GetBo(), init_settings);
     }
