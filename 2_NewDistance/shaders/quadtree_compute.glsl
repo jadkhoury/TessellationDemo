@@ -2,7 +2,6 @@
 
 #ifdef COMPUTE_SHADER
 
-
 layout (local_size_x = LOCAL_WG_SIZE_X,
         local_size_y = LOCAL_WG_SIZE_Y,
         local_size_z = LOCAL_WG_SIZE_Z) in;
@@ -10,11 +9,9 @@ layout (local_size_x = LOCAL_WG_SIZE_X,
 layout (binding = NODECOUNTER_FULL_B)   uniform atomic_uint primCount_full[16];
 layout (binding = NODECOUNTER_CULLED_B) uniform atomic_uint primCount_culled[16];
 
-layout (std140, binding = CAM_HEIGHT_B) buffer Cam_Height
-{
+layout (std140, binding = CAM_HEIGHT_B) buffer Cam_Height {
     float cam_height_ssbo;
 };
-
 shared float cam_height_local;
 
 
@@ -107,12 +104,7 @@ void computePass(uvec4 key, uint invocation_idx, int active_nodes)
     } else {
         float parentTargetLevel, targetLevel;
         if(u_mode == TERRAIN && u_displace_on > 0) {
-#ifdef BUFFER_HEIGHT
             computeTessLvlWithParent(key, cam_height_local, targetLevel, parentTargetLevel);
-#else
-            float cam_height = getHeight(cam_pos.xy, u_screen_res);
-            computeTessLvlWithParent(key, cam_height, targetLevel, parentTargetLevel);
-#endif
         } else {
             computeTessLvlWithParent(key,targetLevel, parentTargetLevel);
         }
@@ -208,13 +200,15 @@ void main(void)
     if (invocation_idx >= active_nodes)
         return;
 
-#ifdef BUFFER_HEIGHT
+    // When subdividing heightfield, we set the plane height to the heightmap
+    // value under the camera for more fidelity.
+    // To avoid computing the procedural height value in each instance, we
+    // store it in a shared variable and push it to a buffer at the end of exe
     if(gl_LocalInvocationIndex == 0){
         cam_height_local = getHeight(cam_pos.xy, u_screen_res);
     }
     barrier();
     memoryBarrierShared();
-#endif
 
     computePass(key, invocation_idx, active_nodes);
     cullPass(key);

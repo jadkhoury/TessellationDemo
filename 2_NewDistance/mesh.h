@@ -151,7 +151,7 @@ public:
         init_settings.uniform_on = false;
         init_settings.uniform_lvl = 1;
         init_settings.lod_factor = 1;
-        init_settings.target_e_length = 16;
+        init_settings.target_e_length = 2;
         init_settings.map_primcount = true;
         init_settings.rotateMesh = false;
         // No filepath => Terrain => displace

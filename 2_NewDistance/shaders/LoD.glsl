@@ -12,7 +12,7 @@ uniform int u_cpu_lod;
 uniform int u_morph_on;
 
 
-#define BUFFER_HEIGHT
+//#define BUFFER_HEIGHT
 
 layout(std140, binding = 0) uniform TransformBlock
 {

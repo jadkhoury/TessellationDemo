@@ -9,7 +9,7 @@ class QuadTree
 
 public:
     struct Settings
-    {        
+    {
         bool uniform_on;           // Toggle uniform subdivision
         int uniform_lvl;            // Level of uniform subdivision
         float lod_factor;  // Factor scaling the adaptive subdivision
