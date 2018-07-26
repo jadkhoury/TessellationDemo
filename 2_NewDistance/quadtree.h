@@ -46,7 +46,6 @@ public:
             utility::SetUniformBool(pid, "u_render_MVP", projection_on);
             utility::SetUniformBool(pid, "u_cull", cull_on);
             utility::SetUniformInt(pid, "u_cpu_lod", cpu_lod);
-            utility::SetUniformInt(pid, "u_poly_type", polygon_type);
             utility::SetUniformBool(pid, "u_morph_on", morph_on);
             utility::SetUniformBool(pid, "u_morph_debug", morph_debug);
             utility::SetUniformFloat(pid, "u_morph_k", morph_k);
@@ -56,7 +55,6 @@ public:
     } settings;
 
     uint full_node_count, drawn_node_count;
-
 
 private:
     Commands* commands_;
@@ -117,8 +115,10 @@ private:
 
     void pushMacrosToProgram(djg_program* djp)
     {
-        djgp_push_string(djp, "#define TRIANGLES %i\n", TRIANGLES);
-        djgp_push_string(djp, "#define QUADS %i\n", QUADS);
+        if(settings.polygon_type == TRIANGLES)
+            djgp_push_string(djp, "#define TRIANGLES 1\n");
+        else if (settings.polygon_type == QUADS)
+            djgp_push_string(djp, "#define QUADS 1\n");
 
         djgp_push_string(djp, "#define TERRAIN %i\n", TERRAIN);
         djgp_push_string(djp, "#define MESH %i\n", MESH);
@@ -213,13 +213,13 @@ private:
 
         switch (settings.itpl_type) {
         case LINEAR:
-            djgp_push_string(djp, "#define ITPL_LINEAR %i\n", 1);
+            djgp_push_string(djp, "#define ITPL_LINEAR 1\n");
             break;
         case PN:
-            djgp_push_string(djp, "#define ITPL_PN %i\n", 1);
+            djgp_push_string(djp, "#define ITPL_PN 1\n");
             break;
         case PHONG:
-            djgp_push_string(djp, "#define ITPL_PHONG %i\n", 1);
+            djgp_push_string(djp, "#define ITPL_PHONG 1\n");
             break;
         default:
             break;

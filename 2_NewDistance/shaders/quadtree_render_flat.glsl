@@ -16,7 +16,6 @@ layout (location = 3) out Vertex o_vertex;
 #ifndef LOD_GLSL
 uniform int u_morph_on;
 uniform int u_cpu_lod;
-uniform int u_poly_type;
 #endif
 
 #ifndef NOISE_GLSL
@@ -40,7 +39,7 @@ void main()
 
     // Fetch target mesh-space triangle
     Triangle mesh_t;
-    lt_getTargetTriangle(u_poly_type, meshPolygonID, rootID, mesh_t);
+    lt_getTargetTriangle(meshPolygonID, rootID, mesh_t);
 
     // Compute Qt position
     vec4 p, n;
@@ -58,7 +57,7 @@ void main()
     }
 
     // Interpolate
-    Vertex current_v = interpolate(mesh_t, tree_pos, u_poly_type, u_itpl_alpha);
+    Vertex current_v = interpolate(mesh_t, tree_pos, u_itpl_alpha);
 
     if (u_displace_on > 0)
         current_v.p.xyz =  displaceVertex(current_v.p.xyz, cam_pos);

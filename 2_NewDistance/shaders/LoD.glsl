@@ -3,7 +3,6 @@
 #ifndef LOD_GLSL
 #define LOD_GLSL
 
-uniform int u_poly_type;
 uniform float u_adaptive_factor;
 uniform int u_mode;
 uniform float u_target_edge_length;
@@ -50,7 +49,7 @@ float distanceToLod(vec3 pos)
 
 void computeTessLvlWithParent(uvec4 key, float height, out float lvl, out float parent_lvl) {
     vec4 p_mesh, pp_mesh;
-    lt_Leaf_n_Parent_to_MeshPosition(triangle_centroid, key, p_mesh, pp_mesh, u_poly_type);
+    lt_Leaf_n_Parent_to_MeshPosition(triangle_centroid, key, p_mesh, pp_mesh);
     p_mesh  = M * p_mesh;
     pp_mesh = M * pp_mesh;
     p_mesh.z = height;
@@ -63,7 +62,7 @@ void computeTessLvlWithParent(uvec4 key, float height, out float lvl, out float 
 
 void computeTessLvlWithParent(uvec4 key, out float lvl, out float parent_lvl) {
     vec4 p_mesh, pp_mesh;
-    lt_Leaf_n_Parent_to_MeshPosition(triangle_centroid, key, p_mesh, pp_mesh, u_poly_type);
+    lt_Leaf_n_Parent_to_MeshPosition(triangle_centroid, key, p_mesh, pp_mesh);
     p_mesh  = M * p_mesh;
     pp_mesh = M * pp_mesh;
 

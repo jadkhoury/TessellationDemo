@@ -271,12 +271,14 @@ void lt_getQuadMeshTriangle(uint meshPolygonID, uint rootID, out Triangle mesh_t
 }
 
 
-void lt_getTargetTriangle(uint poly_type, uint meshPolygonID, uint rootID, out Triangle mesh_t)
+void lt_getTargetTriangle(uint meshPolygonID, uint rootID, out Triangle mesh_t)
 {
-    if (poly_type == TRIANGLES)
+#ifdef TRIANGLES
         lt_getMeshTriangle(meshPolygonID, mesh_t);
-    else
+#elif defined(QUADS)
         lt_getQuadMeshTriangle(meshPolygonID, rootID, mesh_t);
+#endif
+
 }
 
 // ------------------------ Mapping from Leaf to QT  ------------------------ //
@@ -291,35 +293,34 @@ vec2 lt_Leaf_to_Tree_64(vec2 p, uvec2 nodeID, in bool parent)
 
 // ------------------------- Mapping from QT to Mesh ------------------------ //
 
-vec4 lt_Tree_to_MeshPosition(vec2 p, uint poly_type, uint meshPolygonID, uint rootID)
+vec4 lt_Tree_to_MeshPosition(vec2 p, uint meshPolygonID, uint rootID)
 {
     Triangle mesh_t;
-    lt_getTargetTriangle(poly_type, meshPolygonID, rootID, mesh_t);
+    lt_getTargetTriangle(meshPolygonID, rootID, mesh_t);
     return lt_mapTo3DTriangle(mesh_t, p);
 }
 
 
-Vertex lt_Tree_to_MeshVertex(vec2 p, uint poly_type, uint meshPolygonID, uint rootID)
+Vertex lt_Tree_to_MeshVertex(vec2 p, uint meshPolygonID, uint rootID)
 {
     Triangle mesh_t;
-    lt_getTargetTriangle(poly_type, meshPolygonID, rootID, mesh_t);
+    lt_getTargetTriangle(meshPolygonID, rootID, mesh_t);
     return lt_interpolateVertex(mesh_t, p);
 }
 
 // ------------------------- Mapping from Leaf to Mesh ------------------------ //
 
-vec4 lt_Leaf_to_MeshPosition(vec2 p, uvec4 key, in bool parent, int poly_type)
+vec4 lt_Leaf_to_MeshPosition(vec2 p, uvec4 key, in bool parent)
 {
     uvec2 nodeID = key.xy;
     uint meshPolygonID = key.z;
     uint rootID = key.w & 3u;
     vec2 tmp = p;
     tmp = lt_Leaf_to_Tree_64(tmp, nodeID, parent);
-    return lt_Tree_to_MeshPosition(tmp, poly_type, meshPolygonID, rootID);
+    return lt_Tree_to_MeshPosition(tmp, meshPolygonID, rootID);
 }
 
-void lt_Leaf_n_Parent_to_MeshPosition(vec2 p, uvec4 key, out vec4 p_mesh, out vec4 pp_mesh,
-                                       uint poly_type)
+void lt_Leaf_n_Parent_to_MeshPosition(vec2 p, uvec4 key, out vec4 p_mesh, out vec4 pp_mesh)
 {
     uvec2 nodeID = key.xy;
     uint meshPolygonID = key.z;
@@ -331,8 +332,8 @@ void lt_Leaf_n_Parent_to_MeshPosition(vec2 p, uvec4 key, out vec4 p_mesh, out ve
     p2D = (xf * vec3(p, 1)).xy;
     pp2D = (pxf * vec3(p, 1)).xy;
 
-    p_mesh  = lt_Tree_to_MeshPosition(p2D, poly_type, meshPolygonID, rootID);
-    pp_mesh = lt_Tree_to_MeshPosition(pp2D, poly_type, meshPolygonID, rootID);
+    p_mesh  = lt_Tree_to_MeshPosition(p2D, meshPolygonID, rootID);
+    pp_mesh = lt_Tree_to_MeshPosition(pp2D, meshPolygonID, rootID);
 }
 
 #endif

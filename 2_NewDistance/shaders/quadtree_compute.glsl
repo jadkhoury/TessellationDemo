@@ -27,7 +27,6 @@ uniform int u_max_node_count;
 uniform int u_cull;
 
 #ifndef LOD_GLSL
-uniform int u_poly_type;
 uniform int u_screen_res;
 uniform int u_mode;
 #endif
@@ -153,9 +152,9 @@ void cullPass(uvec4 key)
         vec4 b_min = vec4(10e6);
         vec4 b_max = vec4(-10e6);
 
-        mesh_coord[O] = lt_Leaf_to_MeshPosition(unit_O, key, false, u_poly_type);
-        mesh_coord[U] = lt_Leaf_to_MeshPosition(unit_U, key, false, u_poly_type);
-        mesh_coord[R] = lt_Leaf_to_MeshPosition(unit_R, key, false, u_poly_type);
+        mesh_coord[O] = lt_Leaf_to_MeshPosition(unit_O, key, false);
+        mesh_coord[U] = lt_Leaf_to_MeshPosition(unit_U, key, false);
+        mesh_coord[R] = lt_Leaf_to_MeshPosition(unit_R, key, false);
 
         if (u_displace_on > 0) {
             mesh_coord[O] = displaceVertex(mesh_coord[O], cam_pos);
@@ -192,11 +191,12 @@ void main(void)
     // Check if the current instance should work
     int active_nodes;
 
-    if (u_poly_type == QUADS) {
-        active_nodes = max(u_num_mesh_quad * 2, int(atomicCounter(primCount_full[u_read_index])));
-    } else if (u_poly_type ==  TRIANGLES) {
-        active_nodes = max(u_num_mesh_tri, int(atomicCounter(primCount_full[u_read_index])));
-    }
+#ifdef TRIANGLES
+    active_nodes = max(u_num_mesh_tri, int(atomicCounter(primCount_full[u_read_index])));
+#elif defined(QUADS)
+    active_nodes = max(u_num_mesh_quad * 2, int(atomicCounter(primCount_full[u_read_index])));
+#endif
+
     if (invocation_idx >= active_nodes)
         return;
 

@@ -30,7 +30,7 @@ vec2 morphVertex(uvec4 key, vec2 leaf_p, vec2 tree_p, out uint morphed)
 {
     mat3x2 xform;
     lt_getTriangleXform_64(key.xy, xform);
-    vec4 mesh_p = M * lt_Leaf_to_MeshPosition(leaf_p, key, false, u_poly_type);
+    vec4 mesh_p = M * lt_Leaf_to_MeshPosition(leaf_p, key, false);
 
     if(u_mode == TERRAIN && u_displace_on > 0) {
         mesh_p.z = cam_height_ssbo;
@@ -85,14 +85,14 @@ vec4 levelColor(uint lvl, uint morphed)
     return c;
 }
 
-Vertex interpolate(Triangle mesh_t, vec2 v, int poly_type, float itpl_alpha)
+Vertex interpolate(Triangle mesh_t, vec2 v, float itpl_alpha)
 {
 #ifdef ITPL_LINEAR
     return lt_interpolateVertex(mesh_t, v);
 #elif defined(ITPL_PN)
-    return PNInterpolation(mesh_t, v, poly_type, itpl_alpha);
+    return PNInterpolation(mesh_t, v, itpl_alpha);
 #elif defined(ITPL_PHONG)
-    return PhongInterpolation(mesh_t, v, poly_type, itpl_alpha);
+    return PhongInterpolation(mesh_t, v, itpl_alpha);
 #else
     return lt_interpolateVertex(mesh_t, v);
 #endif

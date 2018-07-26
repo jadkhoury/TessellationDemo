@@ -218,6 +218,7 @@ void RenderImgui()
         if (ImGui::Combo("Polygon type", &settings_ref.polygon_type, "Triangle\0Quad\0\0")) {
             app.mesh.LoadMeshBuffers();
             app.mesh.quadtree->Reinitialize();
+            updateRenderParams();
         }
         if (ImGui::SliderInt("CPU LoD", &settings_ref.cpu_lod, 0, 8)) {
             if(settings_ref.cpu_lod < 2)

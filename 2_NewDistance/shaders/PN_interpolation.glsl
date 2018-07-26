@@ -137,7 +137,7 @@ Vertex Interpolate_pn(Triangle target_T, vec3 uvw, float alpha)
     return vertex;
 }
 
-Vertex PNInterpolation(Triangle mesh_t, vec2 uv, int poly_type, float alpha)
+Vertex PNInterpolation(Triangle mesh_t, vec2 uv, float alpha)
 {
     float u = uv.x, v = uv.y, w = 1.0-u-v;
     vec3 uvw = vec3(v, u, w);

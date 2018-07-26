@@ -74,7 +74,7 @@ Vertex Interpolate_phong(Triangle target_T, vec3 uvw, float alpha)
 
 }
 
-Vertex PhongInterpolation(Triangle mesh_t, vec2 uv, int poly_type, float alpha)
+Vertex PhongInterpolation(Triangle mesh_t, vec2 uv, float alpha)
 {
     float u = uv.x, v = uv.y, w = 1-u-v;
     vec3 uvw = vec3(w,v,u);
