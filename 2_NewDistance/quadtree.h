@@ -51,7 +51,6 @@ public:
             utility::SetUniformBool(pid, "u_morph_debug", morph_debug);
             utility::SetUniformFloat(pid, "u_morph_k", morph_k);
 
-            utility::SetUniformInt(pid, "u_itpl_type", itpl_type);
             utility::SetUniformFloat(pid, "u_itpl_alpha", itpl_alpha);
         }
     } settings;
@@ -212,12 +211,21 @@ private:
         djgp_push_string(djp, "#define CULL %i\n", CULL);
         djgp_push_string(djp, "#define DEBUG %i\n", DEBUG);
 
-        djgp_push_string(djp, "#define LINEAR %i\n", LINEAR);
-        djgp_push_string(djp, "#define PN %i\n", PN);
-        djgp_push_string(djp, "#define PHONG %i\n", PHONG);
+        switch (settings.itpl_type) {
+        case LINEAR:
+            djgp_push_string(djp, "#define ITPL_LINEAR %i\n", 1);
+            break;
+        case PN:
+            djgp_push_string(djp, "#define ITPL_PN %i\n", 1);
+            break;
+        case PHONG:
+            djgp_push_string(djp, "#define ITPL_PHONG %i\n", 1);
+            break;
+        default:
+            break;
+        }
 
         char buf[1024];
-
         djgp_push_file(djp, strcat2(buf, shader_dir, "gpu_noise_lib.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "ltree_jk.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "LoD.glsl"));

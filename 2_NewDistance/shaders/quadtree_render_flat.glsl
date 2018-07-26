@@ -58,8 +58,7 @@ void main()
     }
 
     // Interpolate
-    Vertex current_v = interpolate(mesh_t, tree_pos, u_poly_type,
-                                   u_itpl_type, u_itpl_alpha);
+    Vertex current_v = interpolate(mesh_t, tree_pos, u_poly_type, u_itpl_alpha);
 
     if (u_displace_on > 0)
         current_v.p.xyz =  displaceVertex(current_v.p.xyz, cam_pos);

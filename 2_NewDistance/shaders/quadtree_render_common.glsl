@@ -15,7 +15,6 @@ uniform int u_displace_on;
 uniform int u_morph_debug;
 uniform float u_morph_k;
 
-uniform int u_itpl_type;
 uniform float u_itpl_alpha;
 
 uniform int u_color_mode;
@@ -86,16 +85,17 @@ vec4 levelColor(uint lvl, uint morphed)
     return c;
 }
 
-Vertex interpolate(Triangle mesh_t, vec2 v, int poly_type, int itpl_type, float itpl_alpha)
+Vertex interpolate(Triangle mesh_t, vec2 v, int poly_type, float itpl_alpha)
 {
-    switch(itpl_type) {
-    case LINEAR:
-        return lt_interpolateVertex(mesh_t, v);
-    case PN:
-        return PNInterpolation(mesh_t, v, poly_type, itpl_alpha);
-    case PHONG:
-        return PhongInterpolation(mesh_t, v, poly_type, itpl_alpha);
-    }
+#ifdef ITPL_LINEAR
+    return lt_interpolateVertex(mesh_t, v);
+#elif defined(ITPL_PN)
+    return PNInterpolation(mesh_t, v, poly_type, itpl_alpha);
+#elif defined(ITPL_PHONG)
+    return PhongInterpolation(mesh_t, v, poly_type, itpl_alpha);
+#else
+    return lt_interpolateVertex(mesh_t, v);
+#endif
 }
 
 #endif

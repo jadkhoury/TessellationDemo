@@ -248,7 +248,8 @@ void RenderImgui()
         }
         if (ImGui::Combo("Interpolation type", &settings_ref.itpl_type,
                          "Linear\0PN Triangles\0Phong\0\0\0")) {
-            app.mesh.quadtree->UploadSettings();
+            app.mesh.quadtree->ReloadRenderProgram();
+            updateRenderParams();
         }
         if (ImGui::SliderFloat("alpha", &settings_ref.itpl_alpha, 0, 1)) {
             app.mesh.quadtree->UploadSettings();
