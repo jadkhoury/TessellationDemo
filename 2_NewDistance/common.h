@@ -14,6 +14,7 @@
 #include <sstream>
 #include <algorithm>
 #include <map>
+#include <cmath>
 
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"

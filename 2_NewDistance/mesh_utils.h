@@ -20,7 +20,8 @@ namespace meshutils {
 
 // Loads a grid with the number of quads specified in grid_quads_count (rounded down to square)
 // Stores the resulting mesh in mesh_data
-void LoadGrid(Mesh_Data* mesh_data)
+// Returns expected edge length
+float LoadGrid(Mesh_Data* mesh_data)
 {
 
     float factor = 10.0;
@@ -89,7 +90,8 @@ static char const * sgets( char * s, int size, char ** stream ) {
 // Creates unique Vertex objects for each unencountered set of position / normal / UV
 // Stores the result in mesh_data
 // File parsing taken from OpenSubdiv
-void ParseObj(string name, int axis, Mesh_Data* mesh_data)
+// Returns the expected edge length
+float ParseObj(string name, int axis, Mesh_Data* mesh_data)
 {
     // Opening file and stuff
     ifstream instream(name);
@@ -99,6 +101,8 @@ void ParseObj(string name, int axis, Mesh_Data* mesh_data)
 
     char* str = const_cast<char *>(shapestr), line[256];
     bool done = false;
+    int face_count;
+
 
     // Filling independent vectors from the data
     vector<vec4> verts;
@@ -155,6 +159,7 @@ void ParseObj(string name, int axis, Mesh_Data* mesh_data)
                     throw runtime_error("Need quads or triangle faces");
                 if (nverts != nvertsPerFace)
                     throw runtime_error("Need faces with same number of vertices");
+                face_count++;
             } break;
         default:
             break;
@@ -239,7 +244,9 @@ void ParseObj(string name, int axis, Mesh_Data* mesh_data)
     facenormals.clear();
     idx_vector.clear();
     vert_vector.clear();
+    return cbrt(face_count);
 }
+
 
 }
 

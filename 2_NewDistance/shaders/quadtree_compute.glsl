@@ -9,7 +9,8 @@ layout (local_size_x = LOCAL_WG_SIZE_X,
 layout (binding = NODECOUNTER_FULL_B)   uniform atomic_uint nodeCount_full[16];
 layout (binding = NODECOUNTER_CULLED_B) uniform atomic_uint nodeCount_culled[16];
 
-layout (std140, binding = CAM_HEIGHT_B) buffer Cam_Height {
+layout (std140, binding = CAM_HEIGHT_B)
+buffer Cam_Height {
     float cam_height_ssbo;
 };
 shared float cam_height_local;
@@ -70,15 +71,27 @@ void compute_writeKey(uvec2 new_nodeID, uvec4 current_key)
 {
     uvec4 new_key = uvec4(new_nodeID, current_key.z, (current_key.w & 3u));
     uint idx = atomicCounterIncrement(nodeCount_full[u_write_index]);
-    nodes_out_full[idx] = new_key;
+    u_SubdBufferOut[idx] = new_key;
 }
 
-void compute_writeChildren(uvec2 children[4], uvec4 current_key)
+/**
+ * Writes the keys in the buffer as dictated by the merge / split operators
+ */
+void updateKey (uvec4 key, bool should_divide, bool should_merge)
 {
-    for(int i = 0; i<4; ++i) {
-        uint idx = atomicCounterIncrement(nodeCount_full[u_write_index]);
-        uvec4 new_key = uvec4(children[i], current_key.z, (current_key.w & 3u));
-        nodes_out_full[idx] = new_key;
+    uvec2 nodeID = key.xy;
+    if (should_divide && !lt_isLeaf_64(nodeID)) {
+        uvec2 childrenID[4];
+        lt_children_64(nodeID, childrenID);
+        for(int i = 0; i<4; ++i)
+            compute_writeKey(childrenID[i], key);
+    } else if (should_merge && !lt_isRoot_64(nodeID)) {
+        if (lt_isUpperLeft_64(nodeID)) {
+            uvec2 parentID = lt_parent_64(nodeID);
+            compute_writeKey(parentID, key);
+        }
+    } else {
+        compute_writeKey(nodeID, key);
     }
 }
 
@@ -92,14 +105,14 @@ void compute_writeChildren(uvec2 children[4], uvec4 current_key)
 void computePass(uvec4 key, uint invocation_idx, int active_nodes)
 {
     uvec2 nodeID = key.xy;
-    uint current_lvl = lt_level_64(nodeID);
+    uint key_lvl = lt_level_64(nodeID);
 
 
     // Check if a merge or division is required
     bool should_divide, should_merge;
     if (u_uniform_subdiv > 0) {
-        should_divide = current_lvl < u_uniform_level;
-        should_merge = current_lvl > u_uniform_level;
+        should_divide = key_lvl < u_uniform_level;
+        should_merge = key_lvl > u_uniform_level;
     } else {
         float parentTargetLevel, targetLevel;
         if(u_mode == TERRAIN && u_displace_on > 0) {
@@ -107,23 +120,11 @@ void computePass(uvec4 key, uint invocation_idx, int active_nodes)
         } else {
             computeTessLvlWithParent(key,targetLevel, parentTargetLevel);
         }
-        should_divide = float(current_lvl) < targetLevel;
-        should_merge  = float(current_lvl) >= parentTargetLevel + 1.0;
+        should_divide = float(key_lvl) < targetLevel;
+        should_merge  = float(key_lvl) >= parentTargetLevel + 1.0;
     }
 
-    // Perform merge, subdiv, or passthrough
-    if (should_divide && !lt_isLeaf_64(nodeID)) {
-        uvec2 childrenID[4];
-        lt_children_64(nodeID, childrenID);
-        compute_writeChildren(childrenID, key);
-    } else if (should_merge && !lt_isRoot_64(nodeID)) {
-        if (lt_isUpperLeft_64(nodeID)) {
-            uvec2 parentID = lt_parent_64(nodeID);
-            compute_writeKey(parentID, key);
-        }
-    } else {
-        compute_writeKey(nodeID, key);
-    }
+    updateKey(key, should_divide, should_merge);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -135,7 +136,7 @@ void computePass(uvec4 key, uint invocation_idx, int active_nodes)
 void cull_writeKey(uvec4 new_key)
 {
     uint idx = atomicCounterIncrement(nodeCount_culled[u_write_index]);
-    nodes_out_culled[idx] =  new_key;
+    u_SubdBufferOut_culled[idx] =  new_key;
 }
 
 /**

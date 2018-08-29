@@ -64,7 +64,8 @@ public:
             meshutils::LoadGrid(&mesh_data);
             LoadMeshBuffers();
         } else if (mode == MESH){
-            meshutils::ParseObj(filepath, 0, &mesh_data);
+            float avg_edge_size =  1.0 / meshutils::ParseObj(filepath, 0, &mesh_data);
+            cout << "XXXXXXXXXXXXXXX " << avg_edge_size << endl;
             if (mesh_data.quad_count > 0 && mesh_data.triangle_count == 0) {
                 init_settings.polygon_type = QUADS;
             } else if (mesh_data.quad_count == 0 && mesh_data.triangle_count > 0) {

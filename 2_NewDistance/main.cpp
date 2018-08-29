@@ -452,15 +452,13 @@ void Init()
     app.pause = false;
     app.auto_lod = false;
 
-#if 1
+#if 0
    app.mode = TERRAIN;
     if(app.filepath != app.default_filepath)
         app.mode = MESH;
 #else
     app.mode = MESH;
 #endif
-
-
 
     app.cam.Init(app.mode);
     app.mesh.Init(app.mode, app.cam, app.filepath);

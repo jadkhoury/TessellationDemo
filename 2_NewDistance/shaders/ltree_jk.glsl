@@ -26,37 +26,39 @@ struct Key {
     uint rootID;
 };
 
-layout (std430, binding = NODES_IN_B) readonly buffer Data_In
-{
-    uvec4 nodes_in[];
+layout (std430, binding = NODES_IN_B)
+readonly buffer Data_In {
+    uvec4 u_SubdBufferIn[];
 };
 
-layout (std430, binding = NODES_OUT_FULL_B) buffer Data_Out_F
-{
-    uvec4 nodes_out_full[];
+layout (std430, binding = NODES_OUT_FULL_B)
+buffer Data_Out_F {
+    uvec4 u_SubdBufferOut[];
 };
 
-layout (std430, binding = NODES_OUT_CULLED_B) buffer Data_Out_C
-{
-    uvec4 nodes_out_culled[];
+layout (std430, binding = NODES_OUT_CULLED_B)
+buffer Data_Out_C {
+    uvec4 u_SubdBufferOut_culled[];
 };
 
-layout (std430, binding = MESH_V_B) readonly buffer Mesh_V
-{
-    Vertex mesh_v[];
+layout (std430, binding = MESH_V_B)
+readonly buffer Mesh_V {
+    Vertex u_MeshVertex[];
 };
-layout (std430, binding = MESH_Q_IDX_B) readonly buffer Mesh_Q_Idx
-{
-    uint mesh_q_idx[];
+
+layout (std430, binding = MESH_Q_IDX_B)
+readonly buffer Mesh_Q_Idx {
+    uint u_QuadIdx[];
 };
-layout (std430, binding = MESH_T_IDX_B) readonly buffer Mesh_T_Idx
-{
-    uint  mesh_t_idx[];
+\
+layout (std430, binding = MESH_T_IDX_B) readonly
+buffer Mesh_T_Idx {
+    uint  u_TriangleIdx[];
 };
 
 uvec4 lt_getKey_64(uint idx)
 {
-    return nodes_in[idx];
+    return u_SubdBufferIn[idx];
 }
 
 // --------- Bitwise operations reimplemented for concatenated ints --------- //
@@ -239,9 +241,9 @@ void lt_getMeshTriangle(uint meshPolygonID, out Triangle triangle)
 {
     for (int i = 0; i < 3; ++i)
     {
-        triangle.vertex[i].p = mesh_v[mesh_t_idx[meshPolygonID + i]].p;
-        triangle.vertex[i].n = mesh_v[mesh_t_idx[meshPolygonID + i]].n;
-        triangle.vertex[i].uv = mesh_v[mesh_t_idx[meshPolygonID + i]].uv;
+        triangle.vertex[i].p = u_MeshVertex[u_TriangleIdx[meshPolygonID + i]].p;
+        triangle.vertex[i].n = u_MeshVertex[u_TriangleIdx[meshPolygonID + i]].n;
+        triangle.vertex[i].uv = u_MeshVertex[u_TriangleIdx[meshPolygonID + i]].uv;
     }
 }
 
@@ -249,9 +251,9 @@ void lt_getMeshQuad(uint meshPolygonID, out Quad quad)
 {
     for (int i = 0; i < 4; ++i)
     {
-        quad.vertex[i].p = mesh_v[mesh_q_idx[meshPolygonID + i]].p;
-        quad.vertex[i].n = mesh_v[mesh_q_idx[meshPolygonID + i]].n;
-        quad.vertex[i].uv = mesh_v[mesh_q_idx[meshPolygonID + i]].uv;
+        quad.vertex[i].p = u_MeshVertex[u_QuadIdx[meshPolygonID + i]].p;
+        quad.vertex[i].n = u_MeshVertex[u_QuadIdx[meshPolygonID + i]].n;
+        quad.vertex[i].uv = u_MeshVertex[u_QuadIdx[meshPolygonID + i]].uv;
     }
 }
 
