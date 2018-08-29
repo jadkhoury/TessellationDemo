@@ -24,7 +24,7 @@ private:
     const float PITCH_MESH =  -18.0;
 
     const float LOOK_SENSITIVITY   =  100.0f;
-    const float MOVE_SENSITIVITY   =  1.0f;
+    const float MOVE_SENSITIVITY   =  2.f;
     const float SCROLL_SENSITIVITY =  0.1f;
 
     void updateCameraVectors()
@@ -86,7 +86,7 @@ public:
             Pitch = PITCH_MESH;
         }
 
-        fov = 75.0;
+        fov = 55.0;
         WorldUp = vec3(0.0f, 0.0f, 1.0f);
         Direction = vec3(0.0f, 1.0f, 0.0f);
         look_sensitivity = LOOK_SENSITIVITY;
@@ -147,7 +147,7 @@ private:
         vec4 frustum_planes[6];
 
         vec3 cam_pos = vec3(1.0);
-        float fovy = 45.0;
+        float fovy = 55.0;
     } block_;
 
     GLuint bo_;

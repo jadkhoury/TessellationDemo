@@ -37,7 +37,7 @@ float distanceToLod(vec3 pos)
     float f;
 
     if (u_mode == TERRAIN) {
-        float leaf_subdiv = float(1 << uint(u_cpu_lod+1-u_morph_on));
+        float leaf_subdiv = float(1 << uint(u_cpu_lod+1));
         f = u_screen_res/(SQRT_2 * u_target_edge_length * leaf_subdiv);
     } else {
         f = u_adaptive_factor;
@@ -54,7 +54,6 @@ void computeTessLvlWithParent(uvec4 key, float height, out float lvl, out float 
     pp_mesh = M * pp_mesh;
     p_mesh.z = height;
     pp_mesh.z = height;
-
 
     lvl        = distanceToLod(p_mesh.xyz);
     parent_lvl = distanceToLod(pp_mesh.xyz);

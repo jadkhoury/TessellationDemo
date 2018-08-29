@@ -14,7 +14,7 @@ public:
         int uniform_lvl;       // Level of uniform subdivision
         float lod_factor;      // Factor scaling the adaptive subdivision
         float target_e_length; // Target edge length on rendered grid
-        bool map_primcount;    // Toggle the readback of the node counters
+        bool map_nodecount;    // Toggle the readback of the node counters
         bool rotateMesh;       // Toggle mesh rotation (for mesh)
         bool displace_on;      // Toggle displacement mapping (for terrain)
         float displace_factor; // Factor for displacement mapping (for terrain)
@@ -606,7 +606,7 @@ public:
 
         glDisable(GL_RASTERIZER_DISCARD);
 RENDER_PASS:
-        if (settings.map_primcount) {
+        if (settings.map_nodecount) {
             drawn_node_count = commands_->GetDrawnNodeCount();
             full_node_count = commands_->GetFullNodeCount();
         }

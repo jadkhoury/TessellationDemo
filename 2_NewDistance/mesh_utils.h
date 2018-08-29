@@ -20,14 +20,13 @@ namespace meshutils {
 
 // Loads a grid with the number of quads specified in grid_quads_count (rounded down to square)
 // Stores the resulting mesh in mesh_data
-void LoadGrid(Mesh_Data* mesh_data, int grid_quads_count)
+void LoadGrid(Mesh_Data* mesh_data)
 {
 
     float factor = 10.0;
 
     const uint16_t* indices;
-    int num_div = int(sqrt(grid_quads_count)) - 1;
-    num_div = int(factor)- 1;
+    int num_div = int(factor)- 1;
     djg_mesh* mesh = djgm_load_plane(num_div, num_div);
 
     int count;
@@ -40,7 +39,6 @@ void LoadGrid(Mesh_Data* mesh_data, int grid_quads_count)
                                 factor * (vertices[i].p.y - 0.5),
                                 0.0,
                                 1.0);
-        cout << glm::to_string(v_array_tmp[i].p) << endl;
         v_array_tmp[i].n = sky;
         v_array_tmp[i].uv = vec2(vertices[i].st.s, vertices[i].st.t);
     }
@@ -109,7 +107,7 @@ void ParseObj(string name, int axis, Mesh_Data* mesh_data)
     vector<int> faceverts;
     vector<int> faceuvs;
     vector<int> facenormals;
-    vec3 p, n, max = vec3(0);
+    vec3 p, n, vmax = vec3(0), vmin = vec3(9999999);
     int nvertsPerFace = -1;
     while (! done) {
         done = sgets(line, sizeof(line), &str)==0;
@@ -122,7 +120,8 @@ void ParseObj(string name, int axis, Mesh_Data* mesh_data)
             case ' ':
                 if (sscanf(line, "v %f %f %f", &x, &y, &z) == 3) {
                     p = (axis == 0) ? vec3(x, -z, y) : vec3(x,y,z);
-                    max = glm::max(max, glm::abs(p));
+                    vmax = glm::max(vmax, p);
+                    vmin= glm::min(vmin, p);
                     verts.push_back(vec4(p, 1.0));
                 } break;
             case 't':
@@ -162,9 +161,13 @@ void ParseObj(string name, int axis, Mesh_Data* mesh_data)
         }
     }
 
-    float m = glm::compMax(max);
+    // Normalize size and center on 0
+    vec3 extent = vmax - vmin;
+    float scale = glm::compMax(extent);
+    vec3 shift = vmin + extent * vec3(0.5);
+
     for (int i = 0; i < (int)verts.size(); ++i) {
-        verts[i] /= vec4(m,m,m,1);
+        verts[i] = (verts[i] - vec4(shift, 0)) / vec4(scale,scale,scale,1);
     }
 
     // Putting this data in well constructed data structure
@@ -176,7 +179,7 @@ void ParseObj(string name, int axis, Mesh_Data* mesh_data)
     int Nv = verts.size();
     int Nn = normals.size();
     int Nt = uvs.size();
-    cout << "Mesh Data:" << endl;
+    cout << "-- Mesh Data: --" << endl;
     cout << Nv << " Vertice, " << endl;
     cout << Nn << " Normals, " << endl;
     cout << Nt << " UVs" << endl;

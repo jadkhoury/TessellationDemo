@@ -26,20 +26,11 @@ layout(std140, binding = CAM_HEIGHT_B) uniform Cam_Height
 };
 
 // based on Filip Strugar's CDLOD paper (until intPart & signVec)
-vec2 morphVertex(uvec4 key, vec2 leaf_p, vec2 tree_p, out uint morphed)
+vec2 morphVertex(vec2 leaf_p,  float key_lod, float target_lod, out uint morphed)
 {
-    mat3x2 xform;
-    lt_getTriangleXform_64(key.xy, xform);
-    vec4 mesh_p = M * lt_Leaf_to_MeshPosition(leaf_p, key, false);
-
-    if(u_mode == TERRAIN && u_displace_on > 0) {
-        mesh_p.z = cam_height_ssbo;
-    }
-    float vertex_lvl = distanceToLod(mesh_p.xyz);
-    float node_lvl = lt_level_64(key.xy);
-    float tessLevel = clamp(node_lvl -  vertex_lvl, 0.0, 1.0);
+    float tessLevel = clamp(key_lod -  target_lod, 0.0, 1.0);
     float morphK = smoothstep(0.4, 0.5, tessLevel);
-
+    // out variable for shading
     morphed = (morphK > 0 && morphK < 1) ? 1 : 0;
 
     // nb of intervals per side of node primitive
@@ -48,22 +39,20 @@ vec2 morphVertex(uvec4 key, vec2 leaf_p, vec2 tree_p, out uint morphed)
     vec2 intPart = floor(leaf_p * patchTessFactor * 0.5);
     vec2 signVec = mod(intPart, 2.0) * vec2(-2.0) + vec2(1.0);
 
-    return tree_p - mat2(xform) * (signVec * fracPart) * morphK;
+    return (leaf_p - signVec * fracPart * morphK);
 }
 
 // based on Filip Strugar's CDLOD paper (until intPart & signVec)
-vec2 morphVertexDebug(uvec4 key, vec2 leaf_p, vec2 tree_p, float k)
+vec2 morphVertexDebug(vec2 leaf_p, float k)
 {
-    mat3x2 xform;
-    lt_getTriangleXform_64(key.xy, xform);
-    float morphK =  k;
     // nb of intervals per side of node primitive
     float patchTessFactor = 1u << uint(u_cpu_lod);
-    vec2 fracPart = fract(leaf_p * patchTessFactor * 0.5) * 2.0 / patchTessFactor;
-    vec2 intPart = floor(leaf_p * patchTessFactor * 0.5);
+    float tmp = patchTessFactor * 0.5;
+    vec2 fracPart = fract(leaf_p * tmp) / tmp;
+    vec2 intPart = floor(leaf_p * tmp);
     vec2 signVec = mod(intPart, 2.0) * vec2(-2.0) + vec2(1.0);
 
-    return tree_p - mat2(xform) * (signVec * fracPart) * morphK;
+    return (leaf_p - signVec * fracPart * k);
 }
 
 vec4 toScreenSpace(vec3 v)

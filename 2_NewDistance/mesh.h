@@ -13,7 +13,6 @@ public:
     QuadTree::Settings init_settings;
 
     Mesh_Data mesh_data;
-    uint grid_quads_count;
 
     int roundUpToSq(int n)
     {
@@ -62,7 +61,7 @@ public:
     void LoadMeshData(uint mode, string filepath = "")
     {
         if (mode == TERRAIN) {
-            meshutils::LoadGrid(&mesh_data,  grid_quads_count);
+            meshutils::LoadGrid(&mesh_data);
             LoadMeshBuffers();
         } else if (mode == MESH){
             meshutils::ParseObj(filepath, 0, &mesh_data);
@@ -143,15 +142,13 @@ public:
         quadtree = new QuadTree();
         tranforms_manager = new TransformsManager();
         mesh_data = {};
-        grid_quads_count = 1;
-        grid_quads_count = roundUpToSq(grid_quads_count);
 
         init_settings.uniform_on = false;
-        init_settings.uniform_lvl = 1;
+        init_settings.uniform_lvl = 0;
         init_settings.lod_factor = 1;
-        init_settings.target_e_length = 2;
-        init_settings.map_primcount = true;
-        init_settings.rotateMesh = false;
+        init_settings.target_e_length = 8;
+        init_settings.map_nodecount = false;
+        init_settings.rotateMesh = (mode == MESH);
         init_settings.displace_on = (mode == TERRAIN);
         init_settings.displace_factor = 0.3f;
         init_settings.color_mode = LOD;
@@ -167,8 +164,8 @@ public:
         init_settings.morph_debug = false;
         init_settings.morph_k = 0;
 
-        init_settings.itpl_type = LINEAR;
-        init_settings.itpl_alpha = 0;
+        init_settings.itpl_type = PHONG;
+        init_settings.itpl_alpha = 1;
 
         this->LoadMeshData(mode, filepath);
         this->LoadMeshBuffers();

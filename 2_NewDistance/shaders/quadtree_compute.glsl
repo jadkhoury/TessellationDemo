@@ -6,8 +6,8 @@ layout (local_size_x = LOCAL_WG_SIZE_X,
         local_size_y = LOCAL_WG_SIZE_Y,
         local_size_z = LOCAL_WG_SIZE_Z) in;
 
-layout (binding = NODECOUNTER_FULL_B)   uniform atomic_uint primCount_full[16];
-layout (binding = NODECOUNTER_CULLED_B) uniform atomic_uint primCount_culled[16];
+layout (binding = NODECOUNTER_FULL_B)   uniform atomic_uint nodeCount_full[16];
+layout (binding = NODECOUNTER_CULLED_B) uniform atomic_uint nodeCount_culled[16];
 
 layout (std140, binding = CAM_HEIGHT_B) buffer Cam_Height {
     float cam_height_ssbo;
@@ -69,14 +69,14 @@ const vec2 unit_U = vec2(0,1);
 void compute_writeKey(uvec2 new_nodeID, uvec4 current_key)
 {
     uvec4 new_key = uvec4(new_nodeID, current_key.z, (current_key.w & 3u));
-    uint idx = atomicCounterIncrement(primCount_full[u_write_index]);
+    uint idx = atomicCounterIncrement(nodeCount_full[u_write_index]);
     nodes_out_full[idx] = new_key;
 }
 
 void compute_writeChildren(uvec2 children[4], uvec4 current_key)
 {
     for(int i = 0; i<4; ++i) {
-        uint idx = atomicCounterIncrement(primCount_full[u_write_index]);
+        uint idx = atomicCounterIncrement(nodeCount_full[u_write_index]);
         uvec4 new_key = uvec4(children[i], current_key.z, (current_key.w & 3u));
         nodes_out_full[idx] = new_key;
     }
@@ -134,7 +134,7 @@ void computePass(uvec4 key, uint invocation_idx, int active_nodes)
 // Store the new key in the Culled SSBO for the Render Pass
 void cull_writeKey(uvec4 new_key)
 {
-    uint idx = atomicCounterIncrement(primCount_culled[u_write_index]);
+    uint idx = atomicCounterIncrement(nodeCount_culled[u_write_index]);
     nodes_out_culled[idx] =  new_key;
 }
 
@@ -192,9 +192,9 @@ void main(void)
     int active_nodes;
 
 #ifdef TRIANGLES
-    active_nodes = max(u_num_mesh_tri, int(atomicCounter(primCount_full[u_read_index])));
+    active_nodes = max(u_num_mesh_tri, int(atomicCounter(nodeCount_full[u_read_index])));
 #elif defined(QUADS)
-    active_nodes = max(u_num_mesh_quad * 2, int(atomicCounter(primCount_full[u_read_index])));
+    active_nodes = max(u_num_mesh_quad * 2, int(atomicCounter(nodeCount_full[u_read_index])));
 #endif
 
     if (invocation_idx >= active_nodes)

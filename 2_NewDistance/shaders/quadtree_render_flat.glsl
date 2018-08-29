@@ -35,26 +35,30 @@ void main()
     uvec2 nodeID = key.xy;
     uint meshPolygonID = key.z;
     uint rootID = key.w & 3u;
-    uint level = lt_level_64(key.xy);
+    uint key_lod = lt_level_64(key.xy);
 
     // Fetch target mesh-space triangle
     Triangle mesh_t;
     lt_getTargetTriangle(meshPolygonID, rootID, mesh_t);
 
-    // Compute Qt position
-    vec4 p, n;
-    vec2 tree_pos = lt_Leaf_to_Tree_64(leaf_pos, nodeID, false);
-
-    // If morphing is activated, u_morph_on vertex
+    // Perform T-Junction Removal
     uint morphed = 0;
     if (u_morph_on > 0) {
         if (u_morph_debug > 0) {
-            tree_pos = morphVertexDebug(key, leaf_pos, tree_pos, u_morph_k);
+            leaf_pos = morphVertexDebug(leaf_pos, u_morph_k);
             morphed = 1;
         } else {
-            tree_pos = morphVertex(key, leaf_pos, tree_pos, morphed);
+            vec4 mesh_p = M * lt_Leaf_to_MeshPosition(leaf_pos, key, false);
+            if(u_mode == TERRAIN && u_displace_on > 0) {
+                mesh_p.z = cam_height_ssbo;
+            }
+            float target_lod = distanceToLod(mesh_p.xyz);
+            leaf_pos = morphVertex(leaf_pos, key_lod,  target_lod, morphed);
         }
     }
+
+    // Map from leaf to quadtree position
+    vec2 tree_pos = lt_Leaf_to_Tree_64(leaf_pos, nodeID, false);
 
     // Interpolate
     Vertex current_v = interpolate(mesh_t, tree_pos, u_itpl_alpha);
@@ -64,7 +68,7 @@ void main()
 
     // Pass relevant values
     o_vertex = current_v;
-    o_lvl = level;
+    o_lvl = key_lod;
     o_leaf_pos = leaf_pos;
     o_morphed = morphed;
 

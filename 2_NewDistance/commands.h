@@ -21,7 +21,7 @@ enum {NODES_IN_B,
 
 typedef struct {
     GLuint  count;
-    GLuint  primCount;
+    GLuint  nodeCount;
     GLuint  firstIndex;
     GLuint  baseVertex;
     GLuint  baseInstance;
@@ -54,8 +54,8 @@ private:
     uint init_node_count_; // Number of nodes when starting the program
 
     // indices of the atomic array
-    int primCount_delete_;
-    int primCount_read_, primCount_write_;
+    int nodeCount_delete_;
+    int nodeCount_read_, nodeCount_write_;
 
     uint num_idx_; // Number of vertex indices for the current leaf geometry
 
@@ -130,9 +130,9 @@ public:
 
         loadCommandBuffers();
 
-        primCount_read_  = 0;
-        primCount_write_ = 1;
-        primCount_delete_ = floor(NUM_ELEM / 2);
+        nodeCount_read_  = 0;
+        nodeCount_write_ = 1;
+        nodeCount_delete_ = floor(NUM_ELEM / 2);
     }
 
     // Binds the relevant buffers for the compute pass
@@ -140,24 +140,24 @@ public:
     // Update the atomic counters indices
     void BindForCompute(GLuint program)
     {
-        utility::SetUniformInt(program, "u_read_index", primCount_read_);
-        utility::SetUniformInt(program, "u_write_index", primCount_write_);
+        utility::SetUniformInt(program, "u_read_index", nodeCount_read_);
+        utility::SetUniformInt(program, "u_write_index", nodeCount_write_);
         glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, NODECOUNTER_FULL_B, buffers_[NodeCounterFull]);
         glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, NODECOUNTER_CULLED_B, buffers_[NodeCounterCulled]);
 
         glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, buffers_[DispatchIndirect]);
 
-        primCount_read_   = primCount_write_;
-        primCount_write_  = (primCount_read_ + 1) % NUM_ELEM;
-        primCount_delete_ = (primCount_delete_ + 1) % NUM_ELEM;
+        nodeCount_read_   = nodeCount_write_;
+        nodeCount_write_  = (nodeCount_read_ + 1) % NUM_ELEM;
+        nodeCount_delete_ = (nodeCount_delete_ + 1) % NUM_ELEM;
     }
 
     // Binds the relevant buffers for the copy pass
     // Uploads the atomic array indices
     void BindForCopy(GLuint program)
     {
-        utility::SetUniformInt(program, "u_read_index", primCount_read_);
-        utility::SetUniformInt(program, "u_delete_index", primCount_delete_);
+        utility::SetUniformInt(program, "u_read_index", nodeCount_read_);
+        utility::SetUniformInt(program, "u_delete_index", nodeCount_delete_);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODECOUNTER_FULL_B, buffers_[NodeCounterFull]);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODECOUNTER_CULLED_B, buffers_[NodeCounterCulled]);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, DISPATCH_INDIRECT_B, buffers_[DispatchIndirect]);
@@ -183,7 +183,7 @@ public:
     int GetFullNodeCount()
     {
         glCopyNamedBufferSubData(buffers_[NodeCounterFull], buffers_[Proxy],
-                                 sizeof(uint)*primCount_read_, 0, sizeof(uint));
+                                 sizeof(uint)*nodeCount_read_, 0, sizeof(uint));
 
         uint* data = (uint*) glMapNamedBuffer(buffers_[Proxy], GL_READ_ONLY);
         glUnmapNamedBuffer(buffers_[Proxy]);
