@@ -43,6 +43,7 @@ const char* shader_dir = "../2_NewDistance/shaders/";
 using glm::vec2;
 using glm::vec3;
 using glm::vec4;
+using glm::uvec2;
 using glm::uvec3;
 using glm::uvec4;
 using glm::mat3;

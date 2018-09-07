@@ -3,6 +3,7 @@
 
 uniform float u_displace_factor;
 
+#if 0
 const float H = 0.96;
 const float lacunarity = 1.99;
 
@@ -57,6 +58,6 @@ float getHeight(vec2 v, float f) {
     return displace(v, f) * u_displace_factor;
 }
 
-
+#endif
 
 #endif

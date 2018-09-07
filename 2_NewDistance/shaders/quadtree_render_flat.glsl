@@ -31,7 +31,7 @@ void main()
 
     // Decode key
     uint instanceID = gl_InstanceID;
-    uvec4 key = lt_getKey_64(instanceID);
+    uvec4 key = u_SubdBufferIn[instanceID];
     uvec2 nodeID = key.xy;
     uint meshPolygonID = key.z;
     uint rootID = key.w & 3u;
@@ -43,19 +43,6 @@ void main()
 
     // Perform T-Junction Removal
     uint morphed = 0;
-    if (u_morph_on > 0) {
-        if (u_morph_debug > 0) {
-            leaf_pos = morphVertexDebug(leaf_pos, u_morph_k);
-            morphed = 1;
-        } else {
-            vec4 mesh_p = M * lt_Leaf_to_MeshPosition(leaf_pos, key, false);
-            if(u_mode == TERRAIN && u_displace_on > 0) {
-                mesh_p.z = cam_height_ssbo;
-            }
-            float target_lod = distanceToLod(mesh_p.xyz);
-            leaf_pos = morphVertex(leaf_pos, key_lod,  target_lod, morphed);
-        }
-    }
 
     // Map from leaf to quadtree position
     vec2 tree_pos = lt_Leaf_to_Tree_64(leaf_pos, nodeID, false);

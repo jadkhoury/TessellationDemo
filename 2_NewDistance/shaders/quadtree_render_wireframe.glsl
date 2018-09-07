@@ -30,46 +30,28 @@ void main()
 
     // Decode key
     uint instanceID = gl_InstanceID;
-    uvec4 key = lt_getKey_64(instanceID);
-    uvec2 nodeID = key.xy;
-    uint meshPolygonID = key.z;
-    uint rootID = key.w & 3u;
-    uint key_lod = lt_level_64(key.xy);
+    uint primID = u_SubdBufferIn[instanceID].x;
+    uint key    = u_SubdBufferIn[instanceID].y;
 
-    // Fetch target mesh-space triangle
-    Triangle mesh_t;
-    lt_getTargetTriangle(meshPolygonID, rootID, mesh_t);
-
-    // Perform T-Junction Removal
+    int keyLod = findMSB(key);
     uint morphed = 0;
-    if (u_morph_on > 0) {
-        if (u_morph_debug > 0) {
-            leaf_pos = morphVertexDebug(leaf_pos, u_morph_k);
-            morphed = 1;
-        } else {
-            vec4 mesh_p = M * lt_Leaf_to_MeshPosition(leaf_pos, key, false);
-            if(u_mode == TERRAIN && u_displace_on > 0) {
-                mesh_p.z = cam_height_ssbo;
-            }
-            float target_lod = distanceToLod(mesh_p.xyz);
-            leaf_pos = morphVertex(leaf_pos, key_lod,  target_lod, morphed);
-        }
-    }
+    // Fetch target mesh-space triangle
+
 
     // Map from leaf to quadtree position
-    vec2 tree_pos = lt_Leaf_to_Tree_64(leaf_pos, nodeID, false);
+    mat3 xf = keyToXform(key);
+    vec2 tree_pos = vec2(xf * vec3(i_vpos, 1.0));
 
+    vec3 t[3];
+    getMeshTriangle(primID, t);
 
     // Interpolate
-    Vertex current_v = interpolate(mesh_t, tree_pos, u_itpl_alpha);
-
-
-    if (u_displace_on > 0)
-        current_v.p.xyz =  displaceVertex(current_v.p.xyz, cam_pos);
+    Vertex current_v;
+    current_v.p.xyz = berp(t, tree_pos);
 
     // Pass relevant values
     o_vertex = current_v;
-    o_lvl = key_lod;
+    o_lvl = keyLod;
     o_leaf_pos = leaf_pos;
     o_morphed = morphed;
 }

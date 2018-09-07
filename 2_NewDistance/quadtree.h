@@ -38,7 +38,7 @@ public:
         {
             utility::SetUniformBool(pid, "u_uniform_subdiv", uniform_on);
             utility::SetUniformInt(pid, "u_uniform_level", uniform_lvl);
-            utility::SetUniformFloat(pid, "u_adaptive_factor", lod_factor);
+            utility::SetUniformFloat(pid, "u_lod_factor", lod_factor);
             utility::SetUniformFloat(pid, "u_target_edge_length", target_e_length);
             utility::SetUniformBool(pid, "u_displace_on", displace_on);
             utility::SetUniformFloat(pid, "u_displace_factor", displace_factor);
@@ -61,12 +61,11 @@ private:
 
     struct ssbo_indices {
         int read = 0;
-        int write_full = 1;
-        int write_culled = 2;
+        int write = 1;
     } ssbo_idx_;
 
     // Buffers and Arrays
-    GLuint nodes_bo_[3];
+    GLuint nodes_bo_[2];
     GLuint transfo_bo_;
     GLuint cam_height_bo_;
 
@@ -124,12 +123,10 @@ private:
         djgp_push_string(djp, "#define MESH %i\n", MESH);
 
         djgp_push_string(djp, "#define NODES_IN_B %i\n", NODES_IN_B);
-        djgp_push_string(djp, "#define NODES_OUT_FULL_B %i\n", NODES_OUT_FULL_B);
-        djgp_push_string(djp, "#define NODES_OUT_CULLED_B %i\n", NODES_OUT_CULLED_B);
+        djgp_push_string(djp, "#define NODES_OUT_FULL_B %i\n", NODES_OUT_B);
         djgp_push_string(djp, "#define DISPATCH_COUNTER_B %i\n", DISPATCH_INDIRECT_B);
         djgp_push_string(djp, "#define DRAW_INDIRECT_B %i\n", DRAW_INDIRECT_B);
-        djgp_push_string(djp, "#define NODECOUNTER_FULL_B %i\n", NODECOUNTER_FULL_B);
-        djgp_push_string(djp, "#define NODECOUNTER_CULLED_B %i\n", NODECOUNTER_CULLED_B);
+        djgp_push_string(djp, "#define NODECOUNTER_FULL_B %i\n", NODECOUNTER_B);
         djgp_push_string(djp, "#define LEAF_VERT_B %i\n", LEAF_VERT_B);
         djgp_push_string(djp, "#define LEAF_IDX_B %i\n", LEAF_IDX_B);
         djgp_push_string(djp, "#define CAM_HEIGHT_B %i\n", CAM_HEIGHT_B);
@@ -272,32 +269,24 @@ private:
         int max_ssbo_size;
         glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &max_ssbo_size);
         max_ssbo_size /= 8;
-        max_node_count_ = max_ssbo_size / sizeof(uvec4);
+        max_node_count_ = max_ssbo_size / sizeof(uvec2);
          cout << "max_num_nodes  " << max_node_count_ << endl;
          cout << "max_ssbo_size " << max_ssbo_size << "B" << endl;
-        uvec4* nodes_array =  new uvec4[max_node_count_];
+        uvec2* nodes_array =  new uvec2[max_node_count_];
         if (settings.polygon_type == TRIANGLES) {
             init_node_count_ = mesh_data_->triangle_count;
             for (int ctr = 0; ctr < (int)init_node_count_; ++ctr) {
-                nodes_array[ctr] = uvec4(0, 0x1, uint(ctr*3), 0);
-            }
-        } else if (settings.polygon_type == QUADS) {
-            init_node_count_ = 2 * mesh_data_->quad_count;
-            for (int ctr = 0; ctr < (int)init_node_count_; ++ctr) {
-                nodes_array[2*ctr+0] = uvec4(0, 0x1, uint(ctr*4), 0);
-                nodes_array[2*ctr+1] = uvec4(0, 0x1, uint(ctr*4), 1);
+                nodes_array[ctr] = uvec2(uint(ctr), 0x1);
             }
         }
 
         utility::EmptyBuffer(&nodes_bo_[0]);
         utility::EmptyBuffer(&nodes_bo_[1]);
-        utility::EmptyBuffer(&nodes_bo_[2]);
 
-        glCreateBuffers(3, nodes_bo_);
+        glCreateBuffers(2, nodes_bo_);
 
         glNamedBufferStorage(nodes_bo_[0], max_ssbo_size, nodes_array, 0);
         glNamedBufferStorage(nodes_bo_[1], max_ssbo_size, nodes_array, 0);
-        glNamedBufferStorage(nodes_bo_[2], max_ssbo_size, nodes_array, 0);
 
         return (glGetError() == GL_NO_ERROR);
     }
@@ -418,9 +407,8 @@ private:
     ///
     void pingpong()
     {
-        ssbo_idx_.read = ssbo_idx_.write_full;
-        ssbo_idx_.write_full = (ssbo_idx_.read + 1) % 3;
-        ssbo_idx_.write_culled = (ssbo_idx_.read + 2) % 3;
+        ssbo_idx_.read = 1 - ssbo_idx_.read;
+        ssbo_idx_.write =1 - ssbo_idx_.write;
     }
 
 public:
@@ -495,6 +483,16 @@ public:
         utility::SetUniformInt(render_program_, "u_screen_res", s);
     }
 
+    void UpdateLodFactor(int res, float fov) {
+        float l = tan(glm::radians(fov) * 0.5)
+                  * settings.target_e_length
+                  * float(1 << settings.cpu_lod)
+                  / float(res)
+                  /10.0;
+        settings.lod_factor = l;
+    }
+
+
     ////////////////////////////////////////////////////////////////////////////
     ///
     /// The Program
@@ -565,8 +563,7 @@ public:
         {
             utility::SetUniformFloat(compute_program_, "deltaT", deltaT);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODES_IN_B, nodes_bo_[ssbo_idx_.read]);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODES_OUT_FULL_B, nodes_bo_[ssbo_idx_.write_full]);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODES_OUT_CULLED_B, nodes_bo_[ssbo_idx_.write_culled]);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODES_OUT_B, nodes_bo_[ssbo_idx_.write]);
 
             glBindBufferBase(GL_UNIFORM_BUFFER, 0, transfo_bo_);
             commands_->BindForCompute(compute_program_);
@@ -576,8 +573,8 @@ public:
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, CAM_HEIGHT_B, cam_height_bo_);
 
             glDispatchComputeIndirect((long)NULL);
-
             glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT);
+            glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         }
         glUseProgram(0);
 
@@ -595,6 +592,8 @@ public:
 
             glDispatchCompute(1,1,1);
             glMemoryBarrier(GL_COMMAND_BARRIER_BIT);
+            glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
         }
         glUseProgram(0);
 
@@ -625,7 +624,7 @@ RENDER_PASS:
         glUseProgram(render_program_);
         {
             djgc_start(render_clock_);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODES_IN_B, nodes_bo_[ssbo_idx_.write_culled]);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODES_IN_B, nodes_bo_[ssbo_idx_.write]);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_V_B, mesh_data_->v.bo);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_Q_IDX_B, mesh_data_->q_idx.bo);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_T_IDX_B, mesh_data_->t_idx.bo);

@@ -147,21 +147,21 @@ public:
         init_settings.uniform_on = false;
         init_settings.uniform_lvl = 0;
         init_settings.lod_factor = 1;
-        init_settings.target_e_length = 8;
+        init_settings.target_e_length = 32;
         init_settings.map_nodecount = false;
         init_settings.rotateMesh = (mode == MESH);
-        init_settings.displace_on = (mode == TERRAIN);
+        init_settings.displace_on = false;// (mode == TERRAIN);
         init_settings.displace_factor = 0.3f;
         init_settings.color_mode = LOD;
-        init_settings.projection_on = true;
+        init_settings.projection_on = false;
 
-        init_settings.wireframe_on = false;
+        init_settings.wireframe_on = true;
 
         init_settings.polygon_type = TRIANGLES;
-        init_settings.morph_on = true;
+        init_settings.morph_on = false;
         init_settings.freeze = false;
         init_settings.cpu_lod = 2;
-        init_settings.cull_on = true;
+        init_settings.cull_on = false;
         init_settings.morph_debug = false;
         init_settings.morph_k = 0;
 

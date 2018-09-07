@@ -3,12 +3,13 @@
 #ifndef LOD_GLSL
 #define LOD_GLSL
 
-uniform float u_adaptive_factor;
+uniform float u_lod_factor;
 uniform int u_mode;
 uniform float u_target_edge_length;
 uniform int u_screen_res;
 uniform int u_cpu_lod;
 uniform int u_morph_on;
+
 
 
 //#define BUFFER_HEIGHT
@@ -27,46 +28,12 @@ layout(std140, binding = 0) uniform TransformBlock
     float fov;
 };
 
-const vec2 triangle_centroid = vec2(1.0/3.0, 1.0/3.0);
 const float SQRT_2 = sqrt(2);
 float TAN_FOV = tan(radians(fov/2.0));
 
-float distanceToLod(vec3 pos)
+float distanceToLod(float d)
 {
-    float d = distance(pos, cam_pos);
-    float f;
-
-    if (u_mode == TERRAIN) {
-        float leaf_subdiv = float(1 << uint(u_cpu_lod+1));
-        f = u_screen_res/(SQRT_2 * u_target_edge_length * leaf_subdiv);
-    } else {
-        f = u_adaptive_factor;
-    }
-    float lod = (d * TAN_FOV)/ (SQRT_2 * f);
-    lod = clamp(lod, 0.0, 1.0) ;
-    return -log2(lod);
-}
-
-void computeTessLvlWithParent(uvec4 key, float height, out float lvl, out float parent_lvl) {
-    vec4 p_mesh, pp_mesh;
-    lt_Leaf_n_Parent_to_MeshPosition(triangle_centroid, key, p_mesh, pp_mesh);
-    p_mesh  = M * p_mesh;
-    pp_mesh = M * pp_mesh;
-    p_mesh.z = height;
-    pp_mesh.z = height;
-
-    lvl        = distanceToLod(p_mesh.xyz);
-    parent_lvl = distanceToLod(pp_mesh.xyz);
-}
-
-void computeTessLvlWithParent(uvec4 key, out float lvl, out float parent_lvl) {
-    vec4 p_mesh, pp_mesh;
-    lt_Leaf_n_Parent_to_MeshPosition(triangle_centroid, key, p_mesh, pp_mesh);
-    p_mesh  = M * p_mesh;
-    pp_mesh = M * pp_mesh;
-
-    lvl        = distanceToLod(p_mesh.xyz);
-    parent_lvl = distanceToLod(pp_mesh.xyz);
+    return - 2.0f * log2(clamp(d * u_lod_factor, 0.0f, 1.0f));
 }
 
 bool culltest(mat4 mvp, vec3 bmin, vec3 bmax)

@@ -4,10 +4,8 @@
 #include "common.h"
 
 enum {NODES_IN_B,
-      NODES_OUT_FULL_B,
-      NODES_OUT_CULLED_B,
-      NODECOUNTER_FULL_B,
-      NODECOUNTER_CULLED_B,
+      NODES_OUT_B,
+      NODECOUNTER_B,
       DRAW_INDIRECT_B,
       DISPATCH_INDIRECT_B,
       MESH_V_B,
@@ -43,19 +41,16 @@ private:
         DrawIndirect,      // Draw command
         DispatchIndirect,  // Dispatch command
         NodeCounterFull,   // Array of atomic counters of unculled nodes
-        NodeCounterCulled, // Array of atomic counters of all nodes
         Proxy,              // Proxy buffer used to read back from GPU
         BUFFER_COUNT
     };
-    static const int NUM_ELEM = 16; // Number of atomic counters in the array
+    static const int NUM_ELEM = 2; // Number of atomic counters in the array
     GLuint buffers_[BUFFER_COUNT]; // Array of buffers
     DrawElementsIndirectCommand init_draw_command_;
     DispatchIndirectCommand     init_dispatch_command_;
     uint init_node_count_; // Number of nodes when starting the program
 
-    // indices of the atomic array
-    int nodeCount_delete_;
-    int nodeCount_read_, nodeCount_write_;
+    int nodeCount_read_;
 
     uint num_idx_; // Number of vertex indices for the current leaf geometry
 
@@ -64,13 +59,6 @@ private:
     bool loadCounterBuffers()
     {
         uint zeros[NUM_ELEM] = {0};
-        utility::EmptyBuffer(&buffers_[NodeCounterCulled]);
-        glCreateBuffers(1, &buffers_[NodeCounterCulled]);
-        glNamedBufferStorage(buffers_[NodeCounterCulled], NUM_ELEM * sizeof(uint),
-                             (const void*)&zeros, 0);
-
-        zeros[0] = init_node_count_;
-
         utility::EmptyBuffer(&buffers_[NodeCounterFull]);
         glCreateBuffers(1, &buffers_[NodeCounterFull]);
         glNamedBufferStorage(buffers_[NodeCounterFull], NUM_ELEM * sizeof(uint),
@@ -79,7 +67,7 @@ private:
         return (glGetError() == GL_NO_ERROR);
     }
 
-    bool loadCopyBuffer()
+    bool loadProxyBuffer()
     {
         utility::EmptyBuffer(&buffers_[Proxy]);
         glCreateBuffers(1, &buffers_[Proxy]);
@@ -113,7 +101,7 @@ private:
     bool loadCommandBuffers()
     {
         bool b = true;
-        b &= loadCopyBuffer();
+        b &= loadProxyBuffer();
         b &= loadCounterBuffers();
         b &= loadTriangleDrawCommandBuffers();
         b &= loadComputeCommandBuffer();
@@ -131,8 +119,6 @@ public:
         loadCommandBuffers();
 
         nodeCount_read_  = 0;
-        nodeCount_write_ = 1;
-        nodeCount_delete_ = floor(NUM_ELEM / 2);
     }
 
     // Binds the relevant buffers for the compute pass
@@ -141,15 +127,10 @@ public:
     void BindForCompute(GLuint program)
     {
         utility::SetUniformInt(program, "u_read_index", nodeCount_read_);
-        utility::SetUniformInt(program, "u_write_index", nodeCount_write_);
-        glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, NODECOUNTER_FULL_B, buffers_[NodeCounterFull]);
-        glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, NODECOUNTER_CULLED_B, buffers_[NodeCounterCulled]);
+        glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, NODECOUNTER_B, buffers_[NodeCounterFull]);
 
         glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, buffers_[DispatchIndirect]);
-
-        nodeCount_read_   = nodeCount_write_;
-        nodeCount_write_  = (nodeCount_read_ + 1) % NUM_ELEM;
-        nodeCount_delete_ = (nodeCount_delete_ + 1) % NUM_ELEM;
+        nodeCount_read_   = 1 - nodeCount_read_;
     }
 
     // Binds the relevant buffers for the copy pass
@@ -157,9 +138,7 @@ public:
     void BindForCopy(GLuint program)
     {
         utility::SetUniformInt(program, "u_read_index", nodeCount_read_);
-        utility::SetUniformInt(program, "u_delete_index", nodeCount_delete_);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODECOUNTER_FULL_B, buffers_[NodeCounterFull]);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODECOUNTER_CULLED_B, buffers_[NodeCounterCulled]);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODECOUNTER_B, buffers_[NodeCounterFull]);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, DISPATCH_INDIRECT_B, buffers_[DispatchIndirect]);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, DRAW_INDIRECT_B, buffers_[DrawIndirect]);
     }

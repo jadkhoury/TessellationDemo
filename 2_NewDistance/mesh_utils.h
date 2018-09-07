@@ -27,7 +27,7 @@ float LoadGrid(Mesh_Data* mesh_data)
     float factor = 10.0;
 
     const uint16_t* indices;
-    int num_div = int(factor)- 1;
+    int num_div = 0;
     djg_mesh* mesh = djgm_load_plane(num_div, num_div);
 
     int count;
