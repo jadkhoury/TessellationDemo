@@ -38,7 +38,7 @@ public:
         {
             utility::SetUniformBool(pid, "u_uniform_subdiv", uniform_on);
             utility::SetUniformInt(pid, "u_uniform_level", uniform_lvl);
-            utility::SetUniformFloat(pid, "u_adaptive_factor", lod_factor);
+            utility::SetUniformFloat(pid, "u_lod_factor", lod_factor);
             utility::SetUniformFloat(pid, "u_target_edge_length", target_e_length);
             utility::SetUniformBool(pid, "u_displace_on", displace_on);
             utility::SetUniformFloat(pid, "u_displace_factor", displace_factor);
@@ -462,16 +462,6 @@ public:
         commands_->Init(leaf_geometry_.idx.count, wg_init_global_count_, init_node_count_);
     }
 
-    void ReloadLeafPrimitive()
-    {
-        loadLeafBuffers(settings.cpu_lod);
-        loadLeafVao();
-        configureComputeProgram();
-        configureCopyProgram();
-        configureRenderProgram();
-        commands_->UpdateLeafGeometry(leaf_geometry_.idx.count);
-    }
-
     void UploadSettings()
     {
         settings.Upload(compute_program_);
@@ -494,6 +484,16 @@ public:
         utility::SetUniformInt(compute_program_, "u_screen_res", s);
         utility::SetUniformInt(render_program_, "u_screen_res", s);
     }
+
+    void UpdateLodFactor(int res, float fov) {
+        float l = 2.0f * tan(glm::radians(fov) / 2.0f)
+                * settings.target_e_length
+                * (1 << settings.cpu_lod)
+                / float(res)
+                / float(mesh_data_->avg_e_length);
+        settings.lod_factor = l;
+    }
+
 
     ////////////////////////////////////////////////////////////////////////////
     ///

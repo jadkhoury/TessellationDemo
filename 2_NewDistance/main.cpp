@@ -207,9 +207,12 @@ void RenderImgui()
 #endif
 
         if (ImGui::Combo("Mode", (int*)&app.mode, "Terrain\0Mesh\0\0")) {
+            app.mesh.CleanUp();
             app.cam.Init(app.mode);
             app.mesh.Init(app.mode, app.cam, app.filepath);
             updateRenderParams();
+            app.mesh.quadtree->UpdateLodFactor(app.cam.render_width, app.cam.fov);
+            app.mesh.quadtree->UploadSettings();
         }
 
         static bool advanced = false;
@@ -223,11 +226,15 @@ void RenderImgui()
                 app.mesh.quadtree->UploadSettings();
             }
             if (ImGui::SliderFloat("FOV", &app.cam.fov, 5, 90)) {
+                app.mesh.quadtree->UpdateLodFactor(app.cam.render_width, app.cam.fov);
                 app.mesh.UpdateForFOV(app.cam);
+                app.mesh.quadtree->UploadSettings();
             }
             if (ImGui::Button("Reinit Camera")) {
                 app.cam.Init(app.mode);
                 app.mesh.InitTransforms(app.cam);
+                app.mesh.quadtree->UpdateLodFactor(app.cam.render_width, app.cam.fov);
+                app.mesh.quadtree->UploadSettings();
             }
 
             if (ImGui::Checkbox("Wireframe", &settings_ref.wireframe_on)) {
@@ -273,15 +280,11 @@ void RenderImgui()
             }
             ImGui::Checkbox("Auto LoD", &app.auto_lod);
             float expo = log2(settings_ref.target_e_length);
-            if(app.mode == TERRAIN) {
-                if (ImGui::SliderFloat("Edge Length (2^x)", &expo, 1, 10)) {
-                    settings_ref.target_e_length = std::pow(2.0f, expo);
-                    app.mesh.quadtree->UploadSettings();
-                }
-            } else {
-                if (ImGui::SliderFloat("LoD Factor", &settings_ref.lod_factor, 1, max_lod)) {
-                    app.mesh.quadtree->UploadSettings();
-                }
+            if (ImGui::SliderFloat("Edge Length (2^x)", &expo, 1, 5)) {
+                settings_ref.target_e_length = std::pow(2.0f, expo);
+                app.mesh.quadtree->UpdateLodFactor(app.cam.render_width, app.cam.fov);
+                app.mesh.quadtree->UploadSettings();
+
             }
             if (ImGui::Checkbox("Readback node count", &settings_ref.map_nodecount)) {
                 app.mesh.quadtree->UploadSettings();
@@ -300,9 +303,12 @@ void RenderImgui()
                 app.mesh.quadtree->Reinitialize();
                 updateRenderParams();
             }
-            if (ImGui::SliderInt("CPU LoD", &settings_ref.cpu_lod, 2, 8)) {
-                app.mesh.quadtree->ReloadLeafPrimitive();
+            if (ImGui::SliderInt("CPU LoD", &settings_ref.cpu_lod, 0, 4)) {
+                app.mesh.quadtree->Reinitialize();
+                app.mesh.quadtree->UpdateLodFactor(app.cam.render_width, app.cam.fov);
                 app.mesh.quadtree->UploadSettings();
+                updateRenderParams();
+
             }
             if (ImGui::Checkbox("Morph  ", &settings_ref.morph_on)) {
                 app.mesh.quadtree->UploadSettings();
@@ -437,13 +443,14 @@ void resizeCallback(GLFWwindow* window, int new_width, int new_height) {
     app.gui_height = new_height;
     app.mesh.quadtree->UpdateScreenRes(std::max(app.cam.render_height, app.cam.render_width));
     app.mesh.UpdateForSize(app.cam);
+    app.mesh.quadtree->UpdateLodFactor(app.cam.render_width, app.cam.fov);
+    app.mesh.quadtree->UploadSettings();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// The Program
 ///
-
 void Init()
 {
     cout << "******************************************************" << endl;
@@ -452,18 +459,17 @@ void Init()
     app.pause = false;
     app.auto_lod = false;
 
-#if 0
-   app.mode = TERRAIN;
+    app.mode = TERRAIN;
     if(app.filepath != app.default_filepath)
         app.mode = MESH;
-#else
-    app.mode = MESH;
-#endif
 
     app.cam.Init(app.mode);
     app.mesh.Init(app.mode, app.cam, app.filepath);
     bench.Init();
     updateRenderParams();
+
+    app.mesh.quadtree->UpdateLodFactor(app.cam.render_width, app.cam.fov);
+    app.mesh.quadtree->UploadSettings();
 
     cout << "END OF INITIALIZATION" << endl;
     cout << "******************************************************" << endl << endl;
@@ -488,9 +494,11 @@ void Draw()
         static float upperFPS = 70, lowerFPS = 60;
         if (bench.delta_T < 1.0/upperFPS) {
             f *= sup;
+            app.mesh.quadtree->UpdateLodFactor(app.cam.render_width, app.cam.fov);
             app.mesh.quadtree->UploadSettings();
         } else if (bench.delta_T > 1.0/lowerFPS){
             f *= inf;
+            app.mesh.quadtree->UpdateLodFactor(app.cam.render_width, app.cam.fov);
             app.mesh.quadtree->UploadSettings();
         }
     }

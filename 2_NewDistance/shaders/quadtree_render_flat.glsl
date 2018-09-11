@@ -9,14 +9,8 @@
 layout (location = 1) in vec2 i_vpos;
 
 layout (location = 0) out flat uint o_lvl;
-layout (location = 1) out flat uint o_morphed;
 layout (location = 2) out vec2 o_leaf_pos;
 layout (location = 3) out Vertex o_vertex;
-
-#ifndef LOD_GLSL
-uniform int u_morph_on;
-uniform int u_cpu_lod;
-#endif
 
 #ifndef NOISE_GLSL
 uniform float u_displace_factor;
@@ -41,22 +35,6 @@ void main()
     Triangle mesh_t;
     lt_getTargetTriangle(meshPolygonID, rootID, mesh_t);
 
-    // Perform T-Junction Removal
-    uint morphed = 0;
-    if (u_morph_on > 0) {
-        if (u_morph_debug > 0) {
-            leaf_pos = morphVertexDebug(leaf_pos, u_morph_k);
-            morphed = 1;
-        } else {
-            vec4 mesh_p = M * lt_Leaf_to_MeshPosition(leaf_pos, key, false);
-            if(u_mode == TERRAIN && u_displace_on > 0) {
-                mesh_p.z = cam_height_ssbo;
-            }
-            float target_lod = distanceToLod(mesh_p.xyz);
-            leaf_pos = morphVertex(leaf_pos, key_lod,  target_lod, morphed);
-        }
-    }
-
     // Map from leaf to quadtree position
     vec2 tree_pos = lt_Leaf_to_Tree_64(leaf_pos, nodeID, false);
 
@@ -70,7 +48,6 @@ void main()
     o_vertex = current_v;
     o_lvl = key_lod;
     o_leaf_pos = leaf_pos;
-    o_morphed = morphed;
 
     gl_Position = toScreenSpace(current_v.p.xyz);
 }
@@ -84,7 +61,6 @@ void main()
 #ifdef FRAGMENT_SHADER
 
 layout (location = 0) in flat uint i_lvl;
-layout (location = 1) in flat uint i_morphed;
 layout (location = 2) in vec2 i_leaf_pos;
 layout (location = 3) in Vertex i_vertex;
 
@@ -117,7 +93,7 @@ void main()
     vec4 l_mv = normalize(light_pos_mv - p_mv);
 
     float nl =  max(dot(l_mv,n_mv), 0);
-    vec4 c = levelColor(i_lvl, i_morphed);
+    vec4 c = levelColor(i_lvl);
     o_color = vec4(c.xyz*nl, 1);
 }
 #endif

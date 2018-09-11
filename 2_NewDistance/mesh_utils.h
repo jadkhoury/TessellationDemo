@@ -20,14 +20,13 @@ namespace meshutils {
 
 // Loads a grid with the number of quads specified in grid_quads_count (rounded down to square)
 // Stores the resulting mesh in mesh_data
-// Returns expected edge length
-float LoadGrid(Mesh_Data* mesh_data)
+void LoadGrid(Mesh_Data* mesh_data)
 {
 
     float factor = 10.0;
 
     const uint16_t* indices;
-    int num_div = int(factor)- 1;
+    int num_div = 0;
     djg_mesh* mesh = djgm_load_plane(num_div, num_div);
 
     int count;
@@ -64,6 +63,8 @@ float LoadGrid(Mesh_Data* mesh_data)
     }
     mesh_data->quad_count = mesh_data->q_idx.count / 4;
     mesh_data->triangle_count = mesh_data->t_idx.count / 3;
+
+    mesh_data->avg_e_length = factor / (num_div + 1.0);
 }
 
 // Utility function to read from file
@@ -90,8 +91,7 @@ static char const * sgets( char * s, int size, char ** stream ) {
 // Creates unique Vertex objects for each unencountered set of position / normal / UV
 // Stores the result in mesh_data
 // File parsing taken from OpenSubdiv
-// Returns the expected edge length
-float ParseObj(string name, int axis, Mesh_Data* mesh_data)
+void ParseObj(string name, int axis, Mesh_Data* mesh_data)
 {
     // Opening file and stuff
     ifstream instream(name);
@@ -205,11 +205,6 @@ float ParseObj(string name, int axis, Mesh_Data* mesh_data)
             if (with_uvs) current_v.uv = uvs[it];
             uniqueIDX_to_vectorIDX[unique_idx] = vert_vector.size();
             vert_vector.push_back(current_v);
-             // cout << "Created vertex " << unique_idx << " at idx " << uniqueIDX_to_vectorIDX[unique_idx] << endl;
-             // cout << current_v.to_string() << endl;
-        } else {
-             // cout << "Vertex at " << unique_idx << " already created at  "<< uniqueIDX_to_vectorIDX[unique_idx]  << endl;
-             // cout << vert_vector[uniqueIDX_to_vectorIDX[unique_idx]].to_string() << endl;
         }
         idx_vector.push_back(uniqueIDX_to_vectorIDX[unique_idx]);
     }
@@ -244,7 +239,7 @@ float ParseObj(string name, int axis, Mesh_Data* mesh_data)
     facenormals.clear();
     idx_vector.clear();
     vert_vector.clear();
-    return cbrt(face_count);
+    mesh_data->avg_e_length = 1.0 / cbrt(face_count);
 }
 
 

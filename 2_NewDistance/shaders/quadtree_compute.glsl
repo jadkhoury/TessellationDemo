@@ -26,9 +26,9 @@ uniform int u_num_mesh_quad;
 uniform int u_max_node_count;
 
 uniform int u_cull;
+uniform int u_screen_res;
 
 #ifndef LOD_GLSL
-uniform int u_screen_res;
 uniform int u_mode;
 #endif
 

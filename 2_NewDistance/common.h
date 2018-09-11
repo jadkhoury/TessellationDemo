@@ -144,6 +144,7 @@ struct Mesh_Data
 
     BufferData v, q_idx, t_idx; // Buffers for vertices, quad indices, triangle indices
     int triangle_count = 0, quad_count = 0;
+    float avg_e_length;
 
     void CleanUp() {
         utility::EmptyBuffer(&v.bo);
