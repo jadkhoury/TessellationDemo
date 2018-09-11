@@ -100,23 +100,47 @@ copy_files_once(${OBJ_FILES})
 
 # **************** Project 2_NewDistance **************** #
 
- message(STATUS "**** 2_NewDistance ****")
+#  message(STATUS "**** 2_NewDistance ****")
 
- set(SRC_DIR 2_NewDistance/)
+#  set(SRC_DIR 2_NewDistance/)
 
- file(GLOB_RECURSE SHADERS ${SRC_DIR}/*.glsl)
- file(GLOB_RECURSE HEADERS ${SRC_DIR}/*.h)
+#  file(GLOB_RECURSE SHADERS ${SRC_DIR}/*.glsl)
+#  file(GLOB_RECURSE HEADERS ${SRC_DIR}/*.h)
 
- include_directories(${SRC_DIR})
- aux_source_directory(${SRC_DIR} SRC_FILES)
+#  include_directories(${SRC_DIR})
+#  aux_source_directory(${SRC_DIR} SRC_FILES)
 
- add_executable(new_distance ${SRC_FILES} ${SHADERS} ${HEADERS})
+#  add_executable(new_distance ${SRC_FILES} ${SHADERS} ${HEADERS})
 
- target_link_libraries(new_distance glad glfw imgui)
+#  target_link_libraries(new_distance glad glfw imgui)
 
- unset(SRC_FILES)
- unset(SHADERS)
- unset(HEADERS)
+#  unset(SRC_FILES)
+#  unset(SHADERS)
+#  unset(HEADERS)
+
+
+# **************** Project 3_Bench **************** #
+
+message(STATUS "**** 3_Bench ****")
+
+set(SRC_DIR 3_Bench/)
+
+file(GLOB_RECURSE SHADERS ${SRC_DIR}/*.glsl)
+file(GLOB_RECURSE HEADERS ${SRC_DIR}/*.h)
+
+include_directories(${SRC_DIR})
+aux_source_directory(${SRC_DIR} SRC_FILES)
+
+add_executable(bench ${SRC_FILES} ${SHADERS} ${HEADERS})
+
+target_link_libraries(bench glad glfw imgui)
+
+unset(SRC_FILES)
+unset(SHADERS)
+unset(HEADERS)
+
+
+
 
 
 

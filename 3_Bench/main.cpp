@@ -98,6 +98,7 @@ void BenchStats::UpdateTime()
 
 void BenchStats::UpdateStats()
 {
+#if 0
     frame_count++;
     sec_timer += delta_T;
     if (sec_timer < 1.0f) {
@@ -112,6 +113,7 @@ void BenchStats::UpdateStats()
         total_qt_gpu_render = 0;
         sec_timer = 0;
     }
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -160,8 +162,8 @@ void RenderImgui()
 
         while (refresh_time < ImGui::GetTime())
         {
-            values_gpu_compute[offset] = app.mesh.quadtree->ticks.gpu_compute * 1000.0f;
-            values_gpu_render[offset]  = app.mesh.quadtree->ticks.gpu_render  * 1000.0f;
+            values_gpu_compute[offset] = app.mesh.quadtree->ticks.compute.gpu * 1000.0f;
+            values_gpu_render[offset]  = app.mesh.quadtree->ticks.render.gpu  * 1000.0f;
             values_total_dt[offset] = bench.delta_T;
 
             values_fps[offset] = ImGui::GetIO().Framerate;
@@ -173,12 +175,12 @@ void RenderImgui()
         // QUADTREE COMPUTE DT
         tmp_max = *std::max_element(values_gpu_compute, values_gpu_compute+80);
         if (tmp_max > max_gpu_compute || tmp_max < 0.2 * max_gpu_compute) max_gpu_compute = tmp_max;
-        tmp_val = app.mesh.quadtree->ticks.gpu_compute * 1000.0;
+        tmp_val = app.mesh.quadtree->ticks.compute.gpu * 1000.0;
         ImGui::PlotLines("GPU compute dT", values_gpu_compute, IM_ARRAYSIZE(values_gpu_compute), offset,
                          std::to_string(tmp_val).c_str(), 0.0f, max_gpu_compute, ImVec2(0,80));
 
         //QUADTREE RENDER DT
-        tmp_val = app.mesh.quadtree->ticks.gpu_render * 1000.0;
+        tmp_val = app.mesh.quadtree->ticks.render.gpu * 1000.0;
         tmp_max = *std::max_element(values_gpu_render, values_gpu_render+80);
         if (tmp_max > max_gpu_render || tmp_max < 0.2 * max_gpu_render) max_gpu_render = tmp_max;
         ImGui::PlotLines("GPU render dT", values_gpu_render, IM_ARRAYSIZE(values_gpu_render), offset,
@@ -187,7 +189,7 @@ void RenderImgui()
 
         // FPS
         ImGui::PlotLines("FPS", values_fps, IM_ARRAYSIZE(values_fps), offset,
-                         std::to_string(ImGui::GetIO().Framerate).c_str(), 0.0f, 1000, ImVec2(0,80));
+                         std::to_string(ImGui::GetIO().Framerate).c_str(), 0.0f, 2500, ImVec2(0,80));
 
         // dT
         tmp_max = *std::max_element(values_total_dt, values_total_dt+80);
@@ -465,15 +467,83 @@ void Init()
 
 }
 
+float sqr(float x) {return x*x;}
+
 void Draw()
 {
+    int cnt = 10000;
+    static int i = 0;
+    float u = float(i) / cnt;
+    float zmin = 0.004f;
+    float zmax = 0.5f;
+    float alpha = sin(u * M_PI);
+    float z = zmax + alpha * (zmin - zmax);
+    ++i;
 
+    static struct {
+        double cpu, gpu, cpuSqr, gpuSqr;
+    } compute, batch, render = {0,0,0,0};
+    compute.cpu+= app.mesh.quadtree->ticks.compute.cpu;
+    compute.gpu+= app.mesh.quadtree->ticks.compute.gpu;
+    compute.cpuSqr+= sqr(app.mesh.quadtree->ticks.compute.cpu);
+    compute.gpuSqr+= sqr(app.mesh.quadtree->ticks.compute.gpu);
+
+    batch.cpu+= app.mesh.quadtree->ticks.batch.cpu;
+    batch.gpu+= app.mesh.quadtree->ticks.batch.gpu;
+    batch.cpuSqr+= sqr(app.mesh.quadtree->ticks.batch.cpu);
+    batch.gpuSqr+= sqr(app.mesh.quadtree->ticks.batch.gpu);
+
+    render.cpu+= app.mesh.quadtree->ticks.render.cpu;
+    render.gpu+= app.mesh.quadtree->ticks.render.gpu;
+    render.cpuSqr+= sqr(app.mesh.quadtree->ticks.render.cpu);
+    render.gpuSqr+= sqr(app.mesh.quadtree->ticks.render.gpu);
+
+    if (i == cnt-1) {
+        compute.cpu/= cnt;
+        compute.gpu/= cnt;
+        compute.cpuSqr/= cnt;
+        compute.gpuSqr/= cnt;
+
+        batch.cpu/= cnt;
+        batch.gpu/= cnt;
+        batch.cpuSqr/= cnt;
+        batch.gpuSqr/= cnt;
+
+        render.cpu/= cnt;
+        render.gpu/= cnt;
+        render.cpuSqr/= cnt;
+        render.gpuSqr/= cnt;
+
+        printf("compute : cpu_avg: %f cpu_stdev: %f gpu_avg: %f gpu_stdev: %f\n",
+               compute.cpu * 1e3,
+               sqrt(compute.cpuSqr - compute.cpu * compute.cpu)* 1e3,
+               compute.gpu * 1e3,
+               sqrt(compute.gpuSqr - compute.gpu * compute.gpu)* 1e3) ;
+        printf("batch   : cpu_avg: %f cpu_stdev: %f gpu_avg: %f gpu_stdev: %f\n",
+               batch.cpu* 1e3 ,
+               sqrt(batch.cpuSqr - batch.cpu * batch.cpu)* 1e3 ,
+               batch.gpu * 1e3,
+               sqrt(batch.gpuSqr - batch.gpu * batch.gpu) * 1e3);
+        printf("render  : cpu_avg: %f cpu_stdev: %f gpu_avg: %f gpu_stdev: %f\n",
+               render.cpu * 1e3,
+               sqrt(render.cpuSqr - render.cpu * render.cpu) * 1e3,
+               render.gpu * 1e3,
+               sqrt(render.gpuSqr - render.gpu * render.gpu) * 1e3);
+        cout << "XXXXXXXXXXXXXXXxx"  << endl;
+
+        abort();
+    }
+
+
+    app.cam.Position.z = z;
+    app.mesh.tranforms_manager->UpdateForNewView(app.cam);
     glViewport(app.gui_width, 0, app.cam.render_width, app.cam.render_height);
     app.mesh.Draw(bench.delta_T, app.mode);
     glViewport(0, 0, app.cam.render_width + app.gui_width, app.cam.render_height);
     bench.UpdateStats();
     RenderImgui();
 
+#if 0
     if (app.auto_lod && !app.mesh.quadtree->settings.uniform_on) {
         float inf = (app.mode == TERRAIN) ? 1.01f : 0.99f;
         float sup = (app.mode == TERRAIN) ? 0.99f : 1.01f;
@@ -491,6 +561,7 @@ void Draw()
             app.mesh.quadtree->UploadSettings();
         }
     }
+#endif
     bench.UpdateTime();
 }
 
@@ -523,8 +594,8 @@ int main(int argc, char **argv)
 {
     HandleArguments(argc, argv);
 
-    app.cam.render_width = 1024;
-    app.cam.render_height = 1024;
+    app.cam.render_width = 1920;
+    app.cam.render_height = 1080;
     app.gui_width = 352;
     app.gui_height = app.cam.render_height;
 
