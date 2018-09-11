@@ -31,6 +31,7 @@ float distanceToLod(vec3 pos)
     return -log2(lod);
 }
 
+#if FLAG_DISPLACE
 void computeTessLvlWithParent(uvec4 key, float height, out float lvl, out float parent_lvl) {
     vec4 p_mesh, pp_mesh;
     lt_Leaf_n_Parent_to_MeshPosition(triangle_centroid, key, p_mesh, pp_mesh);
@@ -42,6 +43,7 @@ void computeTessLvlWithParent(uvec4 key, float height, out float lvl, out float 
     lvl        = distanceToLod(p_mesh.xyz);
     parent_lvl = distanceToLod(pp_mesh.xyz);
 }
+#endif
 
 void computeTessLvlWithParent(uvec4 key, out float lvl, out float parent_lvl) {
     vec4 p_mesh, pp_mesh;
@@ -62,19 +64,6 @@ bool culltest(mat4 mvp, vec3 bmin, vec3 bmax)
         inside = inside && (dot(vec4(n, 1.0), frustum_planes[i]) >= 0);
     }
     return inside;
-}
-
-float closestPaneDistance(in mat4 MVP, in vec3 p)
-{
-    float signed_d = 0, min_d = 10e6;
-    bool inside = true;
-    for (int i = 0; i < 6 ; ++i) {
-        signed_d = dot(vec4(p,1), normalize(frustum_planes[i]));
-        if(signed_d < min_d){
-            min_d = signed_d;
-        }
-    }
-    return min_d;
 }
 
 #endif // LOD_GLSL

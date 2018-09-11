@@ -3,7 +3,6 @@
 ///
 /// VERTEX_SHADER
 ///
-
 #ifdef VERTEX_SHADER
 
 layout (location = 1) in vec2 i_vpos;
@@ -28,7 +27,7 @@ void main()
     uvec4 key = lt_getKey_64(instanceID);
     uvec2 nodeID = key.xy;
     uint meshPolygonID = key.z;
-    uint rootID = key.w & 3u;
+    uint rootID = key.w & 1u;
     uint key_lod = lt_level_64(key.xy);
 
     // Fetch target mesh-space triangle
@@ -36,7 +35,7 @@ void main()
     lt_getTargetTriangle(meshPolygonID, rootID, mesh_t);
 
     // Map from leaf to quadtree position
-    vec2 tree_pos = lt_Leaf_to_Tree_64(leaf_pos, nodeID, false);
+    vec2 tree_pos = lt_Leaf_to_Tree_64(leaf_pos, nodeID);
 
     // Interpolate
     Vertex current_v = interpolate(mesh_t, tree_pos, u_itpl_alpha);
@@ -58,7 +57,6 @@ void main()
 ///
 /// FRAGMENT_SHADER
 ///
-
 #ifdef FRAGMENT_SHADER
 
 layout (location = 0) in flat uint i_lvl;

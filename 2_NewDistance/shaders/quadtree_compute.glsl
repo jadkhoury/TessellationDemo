@@ -59,7 +59,7 @@ const vec2 unit_U = vec2(0,1);
  */
 void compute_writeKey(uvec2 new_nodeID, uvec4 current_key)
 {
-    uvec4 new_key = uvec4(new_nodeID, current_key.z, (current_key.w & 3u));
+    uvec4 new_key = uvec4(new_nodeID, current_key.zw);
     uint idx = atomicCounterIncrement(nodeCount_full[u_write_index]);
     u_SubdBufferOut[idx] = new_key;
 }
@@ -143,9 +143,9 @@ void cullPass(uvec4 key)
     vec4 b_min = vec4(10e6);
     vec4 b_max = vec4(-10e6);
 
-    mesh_coord[O] = lt_Leaf_to_MeshPosition(unit_O, key, false);
-    mesh_coord[U] = lt_Leaf_to_MeshPosition(unit_U, key, false);
-    mesh_coord[R] = lt_Leaf_to_MeshPosition(unit_R, key, false);
+    mesh_coord[O] = lt_Leaf_to_MeshPosition(unit_O, key);
+    mesh_coord[U] = lt_Leaf_to_MeshPosition(unit_U, key);
+    mesh_coord[R] = lt_Leaf_to_MeshPosition(unit_R, key);
 
 #if FLAG_DISPLACE
     mesh_coord[O] = displaceVertex(mesh_coord[O], cam_pos);
@@ -175,8 +175,6 @@ void main(void)
 
     uint invocation_idx = int(gl_GlobalInvocationID.x);
     uvec4 key = lt_getKey_64(invocation_idx);
-    // Removing u_morph_on / destroy bit
-    key.w = key.w & 3u;
 
     // Check if the current instance should work
     int active_nodes;
