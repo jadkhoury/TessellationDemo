@@ -6,10 +6,14 @@
 // ------------------------------ Declarations ------------------------------ //
 
 struct Vertex {
+#if 1
+    vec4 p;
+#else
     vec4 p;
     vec4 n;
     vec2 uv;
     vec2 align;
+#endif
 };
 
 struct Triangle {
@@ -38,7 +42,11 @@ buffer Data_Out_F {
 
 layout (std430, binding = MESH_V_B)
 readonly buffer Mesh_V {
+#if 1
     Vertex u_MeshVertex[];
+#else
+    vec4 u_MeshVertex[];
+#endif
 };
 
 layout (std430, binding = MESH_Q_IDX_B)

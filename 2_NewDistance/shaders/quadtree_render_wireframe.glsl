@@ -41,6 +41,7 @@ void main()
     // Map from leaf to quadtree position
     mat3 xf = keyToXform(key);
     vec2 tree_pos = vec2(xf * vec3(i_vpos, 1.0));
+#if 0
 
     vec3 t[3];
     getMeshTriangle(primID, t);
@@ -48,6 +49,18 @@ void main()
     // Interpolate
     Vertex current_v;
     current_v.p.xyz = berp(t, tree_pos);
+
+#else
+
+    vec3 v_in[3];
+    v_in[0] = u_MeshVertex[u_TriangleIdx[primID*3 + 0]].p.xyz;
+    v_in[1] = u_MeshVertex[u_TriangleIdx[primID*3 + 1]].p.xyz;
+    v_in[2] = u_MeshVertex[u_TriangleIdx[primID*3 + 2]].p.xyz;
+
+    Vertex current_v;
+    current_v.p.xyz = berp(v_in, tree_pos);
+
+#endif
 
     // Pass relevant values
     o_vertex = current_v;

@@ -25,7 +25,7 @@ vec4 toScreenSpace(vec3 v)
     if(u_render_MVP > 0)
         return MVP * vec4(v.x, v.y, v.z, 1);
     else
-        return vec4(v.xyz * 0.2, 1) ;
+        return vec4(v.xyz , 1) ;
 }
 
 vec4 levelColor(uint lvl, uint morphed)

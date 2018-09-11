@@ -23,8 +23,7 @@ namespace meshutils {
 // Returns expected edge length
 float LoadGrid(Mesh_Data* mesh_data)
 {
-
-    float factor = 10.0;
+    float factor = 1.0;
 
     const uint16_t* indices;
     int num_div = 0;
@@ -64,6 +63,7 @@ float LoadGrid(Mesh_Data* mesh_data)
     }
     mesh_data->quad_count = mesh_data->q_idx.count / 4;
     mesh_data->triangle_count = mesh_data->t_idx.count / 3;
+
 }
 
 // Utility function to read from file

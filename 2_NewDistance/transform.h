@@ -15,7 +15,7 @@ enum Camera_Movement {
 struct CameraManager
 {
 private:
-    const vec3 POS_TERRAIN    = vec3(3.695212, -3.568606, 0.218675);
+    const vec3 POS_TERRAIN    = vec3(0.3695212, -0.3568606, 0.0218675);
     const float YAW_TERRAIN   = -213.0f;
     const float PITCH_TERRAIN =  -24.0f;
 

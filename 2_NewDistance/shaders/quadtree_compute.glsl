@@ -29,24 +29,6 @@ uniform int u_displace_on;
 
 vec3 eye;
 
-/**
- *   U
- *   |\
- *   | \
- *   |  \
- *   |___\
- *   O    R
- * (Up, Origin, Right)
- *
- */
-
-const int O = 0;
-const int R = 1;
-const int U = 2;
-const vec2 unit_O = vec2(0,0);
-const vec2 unit_R = vec2(1,0);
-const vec2 unit_U = vec2(0,1);
-
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// COMPUTE PASS FUNCTIONS
@@ -95,7 +77,7 @@ void updateSubdBuffer(uint primID, uint key, int targetLod, int parentLod)
         uint children[2]; childrenKeys(key, children);
         compute_writeKey(primID, children[0]);
         compute_writeKey(primID, children[1]);
-    } else if (/* keep ? */ keyLod <= (parentLod + 1)) {
+    } else if (/* keep ? */ keyLod < (parentLod + 1)) {
         compute_writeKey(primID, key);
     } else /* merge ? */ {
         if (/* is root ? */isRootKey(key)) {
@@ -129,8 +111,7 @@ void main(void)
 
     int parentLod, targetLod;
     if (u_uniform_subdiv > 0) {
-        targetLod = u_uniform_level;
-        parentLod = u_uniform_level - 1;
+        targetLod = parentLod = u_uniform_level;
     } else {
         vec3 v_in[3];
         vec3 v[3], vp[3];

@@ -36,6 +36,7 @@ public:
 
         void Upload(uint pid)
         {
+            cout << "target: " << target_e_length << " lodFactor: " << lod_factor << endl;
             utility::SetUniformBool(pid, "u_uniform_subdiv", uniform_on);
             utility::SetUniformInt(pid, "u_uniform_level", uniform_lvl);
             utility::SetUniformFloat(pid, "u_lod_factor", lod_factor);
@@ -227,8 +228,8 @@ private:
         djgp_push_file(djp, strcat2(buf, shader_dir, "ltree_jk.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "LoD.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "noise.glsl"));
-        djgp_push_file(djp, strcat2(buf, shader_dir, "PN_interpolation.glsl"));
-        djgp_push_file(djp, strcat2(buf, shader_dir, "phong_interpolation.glsl"));
+//        djgp_push_file(djp, strcat2(buf, shader_dir, "PN_interpolation.glsl"));
+//        djgp_push_file(djp, strcat2(buf, shader_dir, "phong_interpolation.glsl"));
 
 
         djgp_push_file(djp, strcat2(buf, shader_dir, "quadtree_render_common.glsl"));
@@ -484,11 +485,10 @@ public:
     }
 
     void UpdateLodFactor(int res, float fov) {
-        float l = tan(glm::radians(fov) * 0.5)
+        float l = 2.0f * tan(glm::radians(fov) / 2.0f)
                   * settings.target_e_length
-                  * float(1 << settings.cpu_lod)
-                  / float(res)
-                  /10.0;
+                  * (1 << settings.cpu_lod)
+                  / res;
         settings.lod_factor = l;
     }
 
@@ -575,6 +575,7 @@ public:
             glDispatchComputeIndirect((long)NULL);
             glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT);
             glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+            glMemoryBarrier(GL_ALL_BARRIER_BITS);
         }
         glUseProgram(0);
 
@@ -616,7 +617,8 @@ RENDER_PASS:
          * - Render the triangles
          */
         glEnable(GL_DEPTH_TEST);
-        glFrontFace(GL_CCW);
+        glDisable(GL_CULL_FACE);
+
 
         glClearDepth(1.0);
         glClearColor(1,1,1,1);

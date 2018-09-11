@@ -87,6 +87,7 @@ public:
      */
     bool LoadMeshBuffers()
     {
+#if 0
         utility::EmptyBuffer(&mesh_data.v.bo);
         glCreateBuffers(1, &(mesh_data.v.bo));
         glNamedBufferStorage(mesh_data.v.bo,
@@ -116,6 +117,40 @@ public:
 
         cout << "Mesh has " << mesh_data.quad_count << " quads, "
              << mesh_data.triangle_count << " triangles " << endl;
+#else
+        const glm::vec4 vertices[] = {
+            {-1.0f, -1.0f, 0.0f, 1.0f},
+            {+1.0f, -1.0f, 0.0f, 1.0f},
+            {+1.0f, +1.0f, 0.0f, 1.0f},
+            {-1.0f, +1.0f, 0.0f, 1.0f}
+        };
+        if (glIsBuffer((mesh_data.v.bo)))
+            glDeleteBuffers(1, &(mesh_data.v.bo));
+        glGenBuffers(1, &(mesh_data.v.bo));
+        glBindBuffer(GL_ARRAY_BUFFER, (mesh_data.v.bo));
+        glBufferData(GL_ARRAY_BUFFER,
+                     sizeof(vertices),
+                     (const void*)vertices,
+                     GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+//        glBindBufferBase(GL_SHADER_STORAGE_BUFFER,
+//                         BUFFER_GEOMETRY_VERTICES,
+//                         (mesh_data.v.bo));
+
+        const uint32_t indexes[] = {
+            0, 1, 3,
+            2, 3, 1
+        };
+        if (glIsBuffer((mesh_data.t_idx.bo)))
+            glDeleteBuffers(1, &(mesh_data.t_idx.bo));
+        glGenBuffers(1, &(mesh_data.t_idx.bo));
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, (mesh_data.t_idx.bo));
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                     sizeof(indexes),
+                     (const void *)indexes,
+                     GL_STATIC_DRAW);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+#endif
 
         return (glGetError() == GL_NO_ERROR);
     }
