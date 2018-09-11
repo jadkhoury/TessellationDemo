@@ -9,8 +9,8 @@
 layout (location = 1) in vec2 i_vpos;
 
 layout (location = 0) out flat uint o_lvl;
-layout (location = 2) out vec2 o_leaf_pos;
-layout (location = 3) out Vertex o_vertex;
+layout (location = 1) out vec2 o_leaf_pos;
+layout (location = 2) out Vertex o_vertex;
 
 #ifndef NOISE_GLSL
 uniform float u_displace_factor;
@@ -41,8 +41,9 @@ void main()
     // Interpolate
     Vertex current_v = interpolate(mesh_t, tree_pos, u_itpl_alpha);
 
-    if (u_displace_on > 0)
+#if FLAG_DISPLACE
         current_v.p.xyz =  displaceVertex(current_v.p.xyz, cam_pos);
+#endif
 
     // Pass relevant values
     o_vertex = current_v;
@@ -61,15 +62,12 @@ void main()
 #ifdef FRAGMENT_SHADER
 
 layout (location = 0) in flat uint i_lvl;
-layout (location = 2) in vec2 i_leaf_pos;
-layout (location = 3) in Vertex i_vertex;
+layout (location = 1) in vec2 i_leaf_pos;
+layout (location = 2) in Vertex i_vertex;
 
 layout(location = 0) out vec4 o_color;
 
-
 uniform vec3 u_light_pos = vec3(0, 110, 00);
-
-const bool flat_n = true;
 
 void main()
 {
@@ -77,16 +75,16 @@ void main()
     vec3 p = i_vertex.p.xyz;
     vec4 p_mv = MV * i_vertex.p;
     //Normal
-    vec3 n;
+    vec3 n = i_vertex.n.xyz;
     vec3 dx = dFdx(p), dy = dFdy(p);
-    if (flat_n){
+#if FLAG_FLAT_N
         n = normalize(cross(dx,dy));
-    } else {
+#elif FLAG_DISPLACE
         float dp = sqrt(dot(dx,dx));
         vec2 s;
         float d = displace(p.xy, 1.0/(0.5*dp), s);
         n = normalize(vec3(-s * u_displace_factor,1));
-    }
+#endif
     vec4 n_mv = invMV * vec4(n,0);
 
     vec4 light_pos_mv =  V * vec4(u_light_pos, 1);

@@ -23,18 +23,8 @@ uniform int u_uniform_level;
 
 uniform int u_num_mesh_tri;
 uniform int u_num_mesh_quad;
-uniform int u_max_node_count;
 
-uniform int u_cull;
 uniform int u_screen_res;
-
-#ifndef LOD_GLSL
-uniform int u_mode;
-#endif
-
-uniform int u_displace_on;
-
-vec3 eye;
 
 /**
  *   U
@@ -115,17 +105,18 @@ void computePass(uvec4 key, uint invocation_idx, int active_nodes)
         should_merge = key_lvl > u_uniform_level;
     } else {
         float parentTargetLevel, targetLevel;
-        if(u_mode == TERRAIN && u_displace_on > 0) {
-            computeTessLvlWithParent(key, cam_height_local, targetLevel, parentTargetLevel);
-        } else {
-            computeTessLvlWithParent(key,targetLevel, parentTargetLevel);
-        }
+#if FLAG_DISPLACE
+        computeTessLvlWithParent(key, cam_height_local, targetLevel, parentTargetLevel);
+#else
+        computeTessLvlWithParent(key,targetLevel, parentTargetLevel);
+#endif
         should_divide = float(key_lvl) < targetLevel;
         should_merge  = float(key_lvl) >= parentTargetLevel + 1.0;
     }
 
     updateKey(key, should_divide, should_merge);
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -147,36 +138,34 @@ void cull_writeKey(uvec4 new_key)
  */
 void cullPass(uvec4 key)
 {
-    if(u_cull > 0)
-    {
-        mat4 mesh_coord;
-        vec4 b_min = vec4(10e6);
-        vec4 b_max = vec4(-10e6);
+#if FLAG_CULL
+    mat4 mesh_coord;
+    vec4 b_min = vec4(10e6);
+    vec4 b_max = vec4(-10e6);
 
-        mesh_coord[O] = lt_Leaf_to_MeshPosition(unit_O, key, false);
-        mesh_coord[U] = lt_Leaf_to_MeshPosition(unit_U, key, false);
-        mesh_coord[R] = lt_Leaf_to_MeshPosition(unit_R, key, false);
+    mesh_coord[O] = lt_Leaf_to_MeshPosition(unit_O, key, false);
+    mesh_coord[U] = lt_Leaf_to_MeshPosition(unit_U, key, false);
+    mesh_coord[R] = lt_Leaf_to_MeshPosition(unit_R, key, false);
 
-        if (u_displace_on > 0) {
-            mesh_coord[O] = displaceVertex(mesh_coord[O], cam_pos);
-            mesh_coord[U] = displaceVertex(mesh_coord[U], cam_pos);
-            mesh_coord[R] = displaceVertex(mesh_coord[R], cam_pos);
-        }
+#if FLAG_DISPLACE
+    mesh_coord[O] = displaceVertex(mesh_coord[O], cam_pos);
+    mesh_coord[U] = displaceVertex(mesh_coord[U], cam_pos);
+    mesh_coord[R] = displaceVertex(mesh_coord[R], cam_pos);
+#endif
 
-        b_min = min(b_min, mesh_coord[O]);
-        b_min = min(b_min, mesh_coord[U]);
-        b_min = min(b_min, mesh_coord[R]);
+    b_min = min(b_min, mesh_coord[O]);
+    b_min = min(b_min, mesh_coord[U]);
+    b_min = min(b_min, mesh_coord[R]);
 
-        b_max = max(b_max, mesh_coord[O]);
-        b_max = max(b_max, mesh_coord[U]);
-        b_max = max(b_max, mesh_coord[R]);
+    b_max = max(b_max, mesh_coord[O]);
+    b_max = max(b_max, mesh_coord[U]);
+    b_max = max(b_max, mesh_coord[R]);
 
-        if (culltest(MVP, b_min.xyz, b_max.xyz))
-            cull_writeKey(key);
-
-    } else {
+    if (culltest(MVP, b_min.xyz, b_max.xyz))
         cull_writeKey(key);
-    }
+#else
+    cull_writeKey(key);
+#endif
 }
 
 // *********************************** MAIN *********************************** //
@@ -192,30 +181,34 @@ void main(void)
     // Check if the current instance should work
     int active_nodes;
 
-#ifdef TRIANGLES
+#if FLAG_TRIANGLES
     active_nodes = max(u_num_mesh_tri, int(atomicCounter(nodeCount_full[u_read_index])));
-#elif defined(QUADS)
+#elif FLAG_QUADS
     active_nodes = max(u_num_mesh_quad * 2, int(atomicCounter(nodeCount_full[u_read_index])));
 #endif
 
     if (invocation_idx >= active_nodes)
         return;
 
+#if FLAG_DISPLACE
     // When subdividing heightfield, we set the plane height to the heightmap
     // value under the camera for more fidelity.
     // To avoid computing the procedural height value in each instance, we
-    // store it in a shared variable and push it to a buffer at the end of exe
+    // store it in a shared variable and push it to a buffer at the end
     if(gl_LocalInvocationIndex == 0){
         cam_height_local = getHeight(cam_pos.xy, u_screen_res);
     }
     barrier();
     memoryBarrierShared();
+#endif
 
     computePass(key, invocation_idx, active_nodes);
     cullPass(key);
 
+#if FLAG_DISPLACE
     if(invocation_idx == 0)
         cam_height_ssbo = cam_height_local;
+#endif
 
     return;
 }

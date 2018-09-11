@@ -132,8 +132,6 @@ void RenderImgui()
 {
 
     QuadTree::Settings& settings_ref = app.mesh.quadtree->settings;
-    float max_lod = (app.mode == TERRAIN) ? 200 : 10;
-    static bool oldMorphState;
 
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(ImVec2(app.gui_width, app.gui_height));
@@ -238,10 +236,15 @@ void RenderImgui()
             }
 
             if (ImGui::Checkbox("Wireframe", &settings_ref.wireframe_on)) {
-
                 app.mesh.quadtree->ReloadRenderProgram();
                 updateRenderParams();
             }
+            if(!settings_ref.wireframe_on){
+            ImGui::SameLine();
+            if (ImGui::Checkbox("Flat Normals", &settings_ref.flat_normal)) {
+                app.mesh.quadtree->ReloadRenderProgram();
+                updateRenderParams();
+            } }
             if (ImGui::Combo("Color mode", &settings_ref.color_mode,
                              "LoD & Morph\0White Wireframe\0Polygone Highlight\0Frustum\0Cull\0Debug\0\0")) {
                 app.mesh.quadtree->UploadSettings();
@@ -254,7 +257,9 @@ void RenderImgui()
 
             if (app.mode == TERRAIN){
                 if (ImGui::Checkbox("Displacement Mapping", &settings_ref.displace_on)) {
+                    app.mesh.quadtree->ReloadShaders();
                     app.mesh.quadtree->UploadSettings();
+                    updateRenderParams();
                 }
             }
             if(settings_ref.displace_on){
@@ -266,12 +271,6 @@ void RenderImgui()
                 app.mesh.quadtree->UploadSettings();
             }
             if (ImGui::Checkbox("Uniform", &settings_ref.uniform_on)) {
-                if(settings_ref.uniform_on){
-                    oldMorphState = settings_ref.morph_on ;
-                    settings_ref.morph_on = false;
-                } else {
-                    settings_ref.morph_on = oldMorphState;
-                }
                 app.mesh.quadtree->UploadSettings();
             }
             ImGui::SameLine();
@@ -284,7 +283,6 @@ void RenderImgui()
                 settings_ref.target_e_length = std::pow(2.0f, expo);
                 app.mesh.quadtree->UpdateLodFactor(app.cam.render_width, app.cam.fov);
                 app.mesh.quadtree->UploadSettings();
-
             }
             if (ImGui::Checkbox("Readback node count", &settings_ref.map_nodecount)) {
                 app.mesh.quadtree->UploadSettings();
@@ -310,11 +308,10 @@ void RenderImgui()
                 updateRenderParams();
 
             }
-            if (ImGui::Checkbox("Morph  ", &settings_ref.morph_on)) {
-                app.mesh.quadtree->UploadSettings();
-            }
             if (ImGui::Checkbox("Cull", &settings_ref.cull_on)) {
+                app.mesh.quadtree->ReloadComputeProgram();
                 app.mesh.quadtree->UploadSettings();
+                updateRenderParams();
             }
             ImGui::SameLine();
             if (ImGui::Checkbox("Freeze", &settings_ref.freeze)) {
@@ -325,14 +322,6 @@ void RenderImgui()
                 app.mesh.quadtree->Reinitialize();
                 updateRenderParams();
             }
-#ifndef CLEAN
-            if (ImGui::Checkbox("Debug morph", &settings_ref.morph_debug)) {
-                app.mesh.quadtree->UploadSettings();
-            }
-            if (ImGui::SliderFloat("morphK", &settings_ref.morph_k, 0, 1)) {
-                app.mesh.quadtree->UploadSettings();
-            }
-#endif
             if (app.mode == MESH) {
                 if (ImGui::Combo("Interpolation type", &settings_ref.itpl_type,
                                  "Linear\0PN Triangles\0Phong\0\0\0")) {

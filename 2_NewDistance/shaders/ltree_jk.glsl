@@ -26,33 +26,27 @@ struct Key {
     uint rootID;
 };
 
-layout (std430, binding = NODES_IN_B)
-readonly buffer Data_In {
+layout (std430, binding = NODES_IN_B) readonly buffer Data_In {
     uvec4 u_SubdBufferIn[];
 };
 
-layout (std430, binding = NODES_OUT_FULL_B)
-buffer Data_Out_F {
+layout (std430, binding = NODES_OUT_FULL_B) buffer Data_Out_F {
     uvec4 u_SubdBufferOut[];
 };
 
-layout (std430, binding = NODES_OUT_CULLED_B)
-buffer Data_Out_C {
+layout (std430, binding = NODES_OUT_CULLED_B) buffer Data_Out_C {
     uvec4 u_SubdBufferOut_culled[];
 };
 
-layout (std430, binding = MESH_V_B)
-readonly buffer Mesh_V {
+layout (std430, binding = MESH_V_B) readonly buffer Mesh_V {
     Vertex u_MeshVertex[];
 };
 
-layout (std430, binding = MESH_Q_IDX_B)
-readonly buffer Mesh_Q_Idx {
+layout (std430, binding = MESH_Q_IDX_B) readonly buffer Mesh_Q_Idx {
     uint u_QuadIdx[];
 };
-\
-layout (std430, binding = MESH_T_IDX_B) readonly
-buffer Mesh_T_Idx {
+
+layout (std430, binding = MESH_T_IDX_B) readonly buffer Mesh_T_Idx {
     uint  u_TriangleIdx[];
 };
 
@@ -275,9 +269,9 @@ void lt_getQuadMeshTriangle(uint meshPolygonID, uint rootID, out Triangle mesh_t
 
 void lt_getTargetTriangle(uint meshPolygonID, uint rootID, out Triangle mesh_t)
 {
-#ifdef TRIANGLES
+#if FLAG_TRIANGLES
         lt_getMeshTriangle(meshPolygonID, mesh_t);
-#elif defined(QUADS)
+#elif FLAG_QUADS
         lt_getQuadMeshTriangle(meshPolygonID, rootID, mesh_t);
 #endif
 

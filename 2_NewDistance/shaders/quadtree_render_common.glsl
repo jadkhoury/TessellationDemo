@@ -10,15 +10,12 @@ const vec4 MAGENTA = vec4(1,0,0.5,1);
 const vec4 YELLOW  = vec4(1,1,0,1);
 const vec4 BLACK   = vec4(0,0,0,1);
 
-uniform int u_displace_on;
-
 uniform float u_itpl_alpha;
 
 uniform int u_color_mode;
 uniform int u_render_MVP;
 
-layout(std140, binding = CAM_HEIGHT_B) uniform
-Cam_Height {
+layout(std140, binding = CAM_HEIGHT_B) uniform Cam_Height {
     float cam_height_ssbo;
 };
 
@@ -45,11 +42,11 @@ vec4 levelColor(uint lvl)
 }
 Vertex interpolate(Triangle mesh_t, vec2 v, float itpl_alpha)
 {
-#ifdef ITPL_LINEAR
+#if FLAG_ITPL_LINEAR
     return lt_interpolateVertex(mesh_t, v);
-#elif defined(ITPL_PN)
+#elif FLAG_ITPL_PN
     return PNInterpolation(mesh_t, v, itpl_alpha);
-#elif defined(ITPL_PHONG)
+#elif FLAG_ITPL_PHONG
     return PhongInterpolation(mesh_t, v, itpl_alpha);
 #else
     return lt_interpolateVertex(mesh_t, v);

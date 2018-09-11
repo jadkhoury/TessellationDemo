@@ -9,8 +9,8 @@
 layout (location = 1) in vec2 i_vpos;
 
 layout (location = 0) out flat uint o_lvl;
-layout (location = 2) out vec2 o_leaf_pos;
-layout (location = 3) out Vertex o_vertex;
+layout (location = 1) out vec2 o_leaf_pos;
+layout (location = 2) out Vertex o_vertex;
 
 #ifndef NOISE_GLSL
 uniform float u_displace_factor;
@@ -43,9 +43,9 @@ void main()
     // Interpolate
     Vertex current_v = interpolate(mesh_t, tree_pos, u_itpl_alpha);
 
-
-    if (u_displace_on > 0)
+#if FLAG_DISPLACE
         current_v.p.xyz =  displaceVertex(current_v.p.xyz, cam_pos);
+#endif
 
     // Pass relevant values
     o_vertex = current_v;
@@ -66,13 +66,13 @@ layout(triangles) in;
 layout(triangle_strip, max_vertices = 3) out;
 
 layout (location = 0) in flat uint i_lvl[];
-layout (location = 2) in vec2 i_leaf_pos[];
-layout (location = 3) in Vertex i_vertex[];
+layout (location = 1) in vec2 i_leaf_pos[];
+layout (location = 2) in Vertex i_vertex[];
 
 layout (location = 0) out flat uint o_lvl;
-layout (location = 2) out vec2 o_leaf_pos;
-layout (location = 3) out vec2 o_tri_pos;
-layout (location = 4) out Vertex o_vertex;
+layout (location = 1) out vec2 o_leaf_pos;
+layout (location = 2) out vec2 o_tri_pos;
+layout (location = 3) out Vertex o_vertex;
 
 void main()
 {
@@ -100,9 +100,9 @@ void main()
 #ifdef FRAGMENT_SHADER
 
 layout (location = 0) in flat uint i_lvl;
-layout (location = 2) in vec2 i_leaf_pos;
-layout (location = 3) in vec2 i_tri_pos;
-layout (location = 4) in Vertex i_vertex;
+layout (location = 1) in vec2 i_leaf_pos;
+layout (location = 2) in vec2 i_tri_pos;
+layout (location = 3) in Vertex i_vertex;
 
 layout(location = 0) out vec4 o_color;
 

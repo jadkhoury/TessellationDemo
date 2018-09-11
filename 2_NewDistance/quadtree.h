@@ -21,15 +21,13 @@ public:
         int color_mode;        // Switch color mode of the render
         bool projection_on;    // Toggle the MVP matrix
 
+        bool flat_normal; // Toggle wireframe visualisation
         bool wireframe_on; // Toggle wireframe visualisation
 
         int polygon_type; // Type of polygon of the mesh (changes number of root triangle)
-        bool morph_on;    // Toggle T-Junction Removal
         bool freeze;      // Toggle freeze i.e. stop updating the quadtree, but keep rendering
         int cpu_lod;      // Control CPU LoD, i.e. subdivision level of the instantiated triangle grid
         bool cull_on;     // Toggle Cull
-        bool morph_debug; // Toggle morph debuging
-        float morph_k;    // Control morph factor
 
         int itpl_type;    // Switch interpolation type
         float itpl_alpha; // Control interpolation factor
@@ -40,15 +38,10 @@ public:
             utility::SetUniformInt(pid, "u_uniform_level", uniform_lvl);
             utility::SetUniformFloat(pid, "u_lod_factor", lod_factor);
             utility::SetUniformFloat(pid, "u_target_edge_length", target_e_length);
-            utility::SetUniformBool(pid, "u_displace_on", displace_on);
             utility::SetUniformFloat(pid, "u_displace_factor", displace_factor);
             utility::SetUniformInt(pid, "u_color_mode", color_mode);
             utility::SetUniformBool(pid, "u_render_MVP", projection_on);
-            utility::SetUniformBool(pid, "u_cull", cull_on);
             utility::SetUniformInt(pid, "u_cpu_lod", cpu_lod);
-            utility::SetUniformBool(pid, "u_morph_on", morph_on);
-            utility::SetUniformBool(pid, "u_morph_debug", morph_debug);
-            utility::SetUniformFloat(pid, "u_morph_k", morph_k);
 
             utility::SetUniformFloat(pid, "u_itpl_alpha", itpl_alpha);
         }
@@ -116,9 +109,15 @@ private:
     void pushMacrosToProgram(djg_program* djp)
     {
         if(settings.polygon_type == TRIANGLES)
-            djgp_push_string(djp, "#define TRIANGLES 1\n");
+            djgp_push_string(djp, "#define FLAG_TRIANGLES 1\n");
         else if (settings.polygon_type == QUADS)
-            djgp_push_string(djp, "#define QUADS 1\n");
+            djgp_push_string(djp, "#define FLAG_QUADS 1\n");
+
+        if(settings.displace_on)
+            djgp_push_string(djp, "#define FLAG_DISPLACE 1\n");
+
+        if(settings.flat_normal)
+            djgp_push_string(djp, "#define FLAG_FLAT_N 1\n");
 
         djgp_push_string(djp, "#define TERRAIN %i\n", TERRAIN);
         djgp_push_string(djp, "#define MESH %i\n", MESH);
@@ -151,10 +150,14 @@ private:
             compute_program_ = 0;
         djg_program* djp = djgp_create();
         pushMacrosToProgram(djp);
+        if(settings.cull_on)
+            djgp_push_string(djp, "#define FLAG_CULL 1\n");
         char buf[1024];
-        djgp_push_file(djp, strcat2(buf, shader_dir, "gpu_noise_lib.glsl"));
+        if (settings.displace_on) {
+            djgp_push_file(djp, strcat2(buf, shader_dir, "gpu_noise_lib.glsl"));
+            djgp_push_file(djp, strcat2(buf, shader_dir, "noise.glsl"));
+        }
         djgp_push_file(djp, strcat2(buf, shader_dir, "ltree_jk.glsl"));
-        djgp_push_file(djp, strcat2(buf, shader_dir, "noise.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "LoD.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "quadtree_compute.glsl"));
         if (!djgp_to_gl(djp, 450, false, true, &compute_program_))
@@ -213,26 +216,30 @@ private:
 
         switch (settings.itpl_type) {
         case LINEAR:
-            djgp_push_string(djp, "#define ITPL_LINEAR 1\n");
+            djgp_push_string(djp, "#define FLAG_ITPL_LINEAR 1\n");
             break;
         case PN:
-            djgp_push_string(djp, "#define ITPL_PN 1\n");
+            djgp_push_string(djp, "#define FLAG_ITPL_PN 1\n");
             break;
         case PHONG:
-            djgp_push_string(djp, "#define ITPL_PHONG 1\n");
+            djgp_push_string(djp, "#define FLAG_ITPL_PHONG 1\n");
             break;
         default:
             break;
         }
 
         char buf[1024];
-        djgp_push_file(djp, strcat2(buf, shader_dir, "gpu_noise_lib.glsl"));
+        if (settings.displace_on) {
+            djgp_push_file(djp, strcat2(buf, shader_dir, "gpu_noise_lib.glsl"));
+            djgp_push_file(djp, strcat2(buf, shader_dir, "noise.glsl"));
+        }
         djgp_push_file(djp, strcat2(buf, shader_dir, "ltree_jk.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "LoD.glsl"));
-        djgp_push_file(djp, strcat2(buf, shader_dir, "noise.glsl"));
-        djgp_push_file(djp, strcat2(buf, shader_dir, "PN_interpolation.glsl"));
-        djgp_push_file(djp, strcat2(buf, shader_dir, "phong_interpolation.glsl"));
 
+        if (settings.itpl_type == PN)
+            djgp_push_file(djp, strcat2(buf, shader_dir, "PN_interpolation.glsl"));
+        else if (settings.itpl_type == PHONG)
+            djgp_push_file(djp, strcat2(buf, shader_dir, "phong_interpolation.glsl"));
 
         djgp_push_file(djp, strcat2(buf, shader_dir, "quadtree_render_common.glsl"));
 
@@ -445,6 +452,14 @@ public:
         configureRenderProgram();
         UploadSettings();
     }
+
+    void ReloadComputeProgram()
+    {
+        loadComputeProgram();
+        configureComputeProgram();
+        UploadSettings();
+    }
+
 
     void ReconfigureShaders()
     {

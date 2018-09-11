@@ -58,5 +58,4 @@ float getHeight(vec2 v, float f) {
 }
 
 
-
 #endif

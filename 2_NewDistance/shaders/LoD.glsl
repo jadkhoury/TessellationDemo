@@ -4,9 +4,6 @@
 #define LOD_GLSL
 
 uniform float u_lod_factor;
-uniform int u_mode;
-
-//#define BUFFER_HEIGHT
 
 layout(std140, binding = 0) uniform TransformBlock
 {
