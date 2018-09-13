@@ -15,10 +15,6 @@ uniform float u_itpl_alpha;
 uniform int u_color_mode;
 uniform int u_render_MVP;
 
-layout(std140, binding = CAM_HEIGHT_B) uniform Cam_Height {
-    float cam_height_ssbo;
-};
-
 vec4 toScreenSpace(vec3 v)
 {
     if(u_render_MVP > 0)

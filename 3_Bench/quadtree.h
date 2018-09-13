@@ -53,7 +53,7 @@ public:
     djg_clock* render_clock_;
     djg_clock* batch_clock_;
 private:
-    Commands* commands_;
+    CommandManager* commands_;
 
     struct ssbo_indices {
         int read = 0;
@@ -535,7 +535,7 @@ public:
         mesh_data_ = m_data;
         settings = init_settings;
 
-        commands_ = new Commands();
+        commands_ = new CommandManager();
         compute_clock_ = djgc_create();
         render_clock_ = djgc_create();
         batch_clock_ = djgc_create();

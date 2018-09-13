@@ -15,7 +15,6 @@ enum {NODES_IN_B,
       MESH_T_IDX_B,
       LEAF_VERT_B,
       LEAF_IDX_B,
-      CAM_HEIGHT_B,
       BINDINGS_COUNT
      } Bindings;
 
@@ -34,7 +33,7 @@ typedef struct {
     GLuint  num_groups_z;
 } DispatchIndirectCommand;
 
-class Commands
+class CommandManager
 {
 private:
 

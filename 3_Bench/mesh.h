@@ -154,13 +154,13 @@ public:
         init_settings.color_mode = LOD;
 
         init_settings.projection_on = true;
-        init_settings.wireframe_on = true;
+        init_settings.wireframe_on = false;
         init_settings.flat_normal = true;
 
 
         init_settings.polygon_type = TRIANGLES;
         init_settings.freeze = false;
-        init_settings.cpu_lod = 2;
+        init_settings.cpu_lod = 6;
         init_settings.cull_on = true;
 
         init_settings.itpl_type = PHONG;

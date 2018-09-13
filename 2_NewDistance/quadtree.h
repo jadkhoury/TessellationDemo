@@ -50,7 +50,7 @@ public:
     uint full_node_count, drawn_node_count;
 
 private:
-    Commands* commands_;
+    CommandManager* commands_;
 
     struct ssbo_indices {
         int read = 0;
@@ -61,8 +61,6 @@ private:
     // Buffers and Arrays
     GLuint nodes_bo_[3];
     GLuint transfo_bo_;
-    GLuint cam_height_bo_;
-
 
     BufferCombo leaf_geometry_;
 
@@ -131,7 +129,6 @@ private:
         djgp_push_string(djp, "#define NODECOUNTER_CULLED_B %i\n", NODECOUNTER_CULLED_B);
         djgp_push_string(djp, "#define LEAF_VERT_B %i\n", LEAF_VERT_B);
         djgp_push_string(djp, "#define LEAF_IDX_B %i\n", LEAF_IDX_B);
-        djgp_push_string(djp, "#define CAM_HEIGHT_B %i\n", CAM_HEIGHT_B);
 
         djgp_push_string(djp, "#define MESH_V_B %i\n", MESH_V_B);
         djgp_push_string(djp, "#define MESH_Q_IDX_B %i\n", MESH_Q_IDX_B);
@@ -214,19 +211,12 @@ private:
         djgp_push_string(djp, "#define CULL %i\n", CULL);
         djgp_push_string(djp, "#define DEBUG %i\n", DEBUG);
 
-        switch (settings.itpl_type) {
-        case LINEAR:
+        if (settings.itpl_type == PN)
             djgp_push_string(djp, "#define FLAG_ITPL_LINEAR 1\n");
-            break;
-        case PN:
-            djgp_push_string(djp, "#define FLAG_ITPL_PN 1\n");
-            break;
-        case PHONG:
+        else if (settings.itpl_type == PHONG)
             djgp_push_string(djp, "#define FLAG_ITPL_PHONG 1\n");
-            break;
-        default:
-            break;
-        }
+        else
+            djgp_push_string(djp, "#define FLAG_ITPL_LINEAR 1\n");
 
         char buf[1024];
         if (settings.displace_on) {
@@ -235,14 +225,11 @@ private:
         }
         djgp_push_file(djp, strcat2(buf, shader_dir, "ltree_jk.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "LoD.glsl"));
-
         if (settings.itpl_type == PN)
             djgp_push_file(djp, strcat2(buf, shader_dir, "PN_interpolation.glsl"));
         else if (settings.itpl_type == PHONG)
             djgp_push_file(djp, strcat2(buf, shader_dir, "phong_interpolation.glsl"));
-
         djgp_push_file(djp, strcat2(buf, shader_dir, "quadtree_render_common.glsl"));
-
         if (settings.wireframe_on)
             djgp_push_file(djp, strcat2(buf, shader_dir, "quadtree_render_wireframe.glsl"));
         else
@@ -390,14 +377,6 @@ private:
     }
 
 
-    bool loadCamHeightBuffer()
-    {
-        utility::EmptyBuffer(&cam_height_bo_);
-        glCreateBuffers(1, &cam_height_bo_);
-        glNamedBufferStorage(cam_height_bo_, sizeof(float), NULL, GL_DYNAMIC_STORAGE_BIT);
-        return (glGetError() == GL_NO_ERROR);
-    }
-
     ////////////////////////////////////////////////////////////////////////////////
     ///
     /// VAO functions
@@ -435,6 +414,7 @@ public:
         double cpu;
         double gpu_compute, gpu_render;
     } ticks;
+    bool capped;
 
     ////////////////////////////////////////////////////////////////////////////////
     ///
@@ -473,7 +453,6 @@ public:
         loadLeafVao();
         loadNodesBuffers();
         loadPrograms();
-        loadCamHeightBuffer();
         commands_->Init(leaf_geometry_.idx.count, wg_init_global_count_, init_node_count_);
     }
 
@@ -499,14 +478,26 @@ public:
         utility::SetUniformInt(compute_program_, "u_screen_res", s);
         utility::SetUniformInt(render_program_, "u_screen_res", s);
     }
-
+#define CAP
     void UpdateLodFactor(int res, float fov) {
         float l = 2.0f * tan(glm::radians(fov) / 2.0f)
                 * settings.target_e_length
                 * (1 << settings.cpu_lod)
                 / float(res)
                 / float(mesh_data_->avg_e_length);
+        capped = false;
+#ifdef CAP
+        const float cap = 0.043f;
+        if (l > cap) {
+            capped = true;
+            l = cap;
+        }
+#endif
+        cout << "lod_factor:  " << l
+             << ", -log2(lod_factor) = " << -log2(l)
+             << ((capped) ? " CAPPED " : "") << endl;
         settings.lod_factor = l;
+
     }
 
 
@@ -532,7 +523,7 @@ public:
         mesh_data_ = m_data;
         settings = init_settings;
 
-        commands_ = new Commands();
+        commands_ = new CommandManager();
         compute_clock_ = djgc_create();
         render_clock_ = djgc_create();
 
@@ -542,7 +533,6 @@ public:
         loadLeafBuffers(settings.cpu_lod);
         loadLeafVao();
         loadNodesBuffers();
-        loadCamHeightBuffer();
 
         wg_init_global_count_ = ceil(init_node_count_ / float(wg_local_count_));
 
@@ -588,7 +578,6 @@ public:
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_V_B, mesh_data_->v.bo);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_Q_IDX_B, mesh_data_->q_idx.bo);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_T_IDX_B, mesh_data_->t_idx.bo);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, CAM_HEIGHT_B, cam_height_bo_);
 
             glDispatchComputeIndirect((long)NULL);
 
@@ -645,7 +634,6 @@ RENDER_PASS:
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_Q_IDX_B, mesh_data_->q_idx.bo);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_T_IDX_B, mesh_data_->t_idx.bo);
             glBindBufferBase(GL_UNIFORM_BUFFER, 0, transfo_bo_);
-            glBindBufferBase(GL_UNIFORM_BUFFER, CAM_HEIGHT_B, cam_height_bo_);
 
             commands_->BindForRender();
             glBindVertexArray(leaf_geometry_.vao);
@@ -662,7 +650,6 @@ RENDER_PASS:
         glUseProgram(0);
         glDeleteBuffers(3, nodes_bo_);
         utility::EmptyBuffer(&transfo_bo_);
-        utility::EmptyBuffer(&cam_height_bo_);
         glDeleteProgram(compute_program_);
         glDeleteProgram(copy_program_);
         glDeleteProgram(render_program_);

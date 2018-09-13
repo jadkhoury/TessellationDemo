@@ -34,7 +34,7 @@ typedef struct {
     GLuint  num_groups_z;
 } DispatchIndirectCommand;
 
-class Commands
+class CommandManager
 {
 private:
 

@@ -9,12 +9,7 @@ layout (local_size_x = LOCAL_WG_SIZE_X,
 layout (binding = NODECOUNTER_FULL_B)   uniform atomic_uint nodeCount_full[16];
 layout (binding = NODECOUNTER_CULLED_B) uniform atomic_uint nodeCount_culled[16];
 
-layout (std140, binding = CAM_HEIGHT_B)
-buffer Cam_Height {
-    float cam_height_ssbo;
-};
 shared float cam_height_local;
-
 
 uniform int u_read_index, u_write_index;
 
@@ -67,24 +62,7 @@ void compute_writeKey(uvec2 new_nodeID, uvec4 current_key)
 /**
  * Writes the keys in the buffer as dictated by the merge / split operators
  */
-#if 0
-void updateKey (uvec4 key, bool should_divide, bool should_merge)
-{
-    uvec2 nodeID = key.xy;
-    if (should_divide && !lt_isLeaf_64(nodeID)) {
-        uvec2 childrenID[2];
-        lt_children_64(nodeID, childrenID);
-        for(int i = 0; i<2; ++i)
-            compute_writeKey(childrenID[i], key);
-    } else if (should_merge && !lt_isRoot_64(nodeID)) {
-        if (lt_isZeroChild_64(nodeID)) {
-            uvec2 parentID = lt_parent_64(nodeID);
-        }
-    } else {
-        compute_writeKey(nodeID, key);
-    }
-}
-#else
+
 void updateSubdBuffer(uvec4 key, int targetLod, int parentLod)
 {
     // extract subdivision level associated to the key
@@ -107,7 +85,6 @@ void updateSubdBuffer(uvec4 key, int targetLod, int parentLod)
         }
     }
 }
-#endif
 
 /* Emulates what was previously the Compute Pass:
  * - Compute the LoD stored in the key
@@ -216,8 +193,8 @@ void main(void)
     // When subdividing heightfield, we set the plane height to the heightmap
     // value under the camera for more fidelity.
     // To avoid computing the procedural height value in each instance, we
-    // store it in a shared variable and push it to a buffer at the end
-    if(gl_LocalInvocationIndex == 0){
+    // store it in a shared variable
+    if(gl_LocalInvocationIndex == 0 ){
         cam_height_local = getHeight(cam_pos.xy, u_screen_res);
     }
     barrier();
@@ -226,11 +203,6 @@ void main(void)
 
     computePass(key, invocation_idx, active_nodes);
     cullPass(key);
-
-#if FLAG_DISPLACE
-    if(invocation_idx == 0)
-        cam_height_ssbo = cam_height_local;
-#endif
 
     return;
 }

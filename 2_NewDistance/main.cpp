@@ -195,7 +195,7 @@ void RenderImgui()
         ImGui::PlotLines("Frame dT", values_total_dt, IM_ARRAYSIZE(values_total_dt), offset,
                          std::to_string(bench.delta_T).c_str(), 0.0f, max_dt, ImVec2(0,80));
 
-#define CLEAN
+//#define CLEAN
 
 #ifndef CLEAN
         ImGuiTime("avg GPU Compute dT (1s)", bench.avg_qt_gpu_compute);
@@ -279,7 +279,7 @@ void RenderImgui()
             }
             ImGui::Checkbox("Auto LoD", &app.auto_lod);
             float expo = log2(settings_ref.target_e_length);
-            if (ImGui::SliderFloat("Edge Length (2^x)", &expo, 1, 4.0)) {
+            if (ImGui::SliderFloat("Edge Length (2^x)", &expo, 1.0f, 10.0f)) {
                 settings_ref.target_e_length = std::pow(2.0f, expo);
                 app.mesh.quadtree->UpdateLodFactor(app.cam.render_width, app.cam.fov);
                 app.mesh.quadtree->UploadSettings();
@@ -301,7 +301,7 @@ void RenderImgui()
                 app.mesh.quadtree->Reinitialize();
                 updateRenderParams();
             }
-            if (ImGui::SliderInt("CPU LoD", &settings_ref.cpu_lod, 0, 4)) {
+            if (ImGui::SliderInt("CPU LoD", &settings_ref.cpu_lod, 0, 8)) {
                 app.mesh.quadtree->Reinitialize();
                 app.mesh.quadtree->UpdateLodFactor(app.cam.render_width, app.cam.fov);
                 app.mesh.quadtree->UploadSettings();
@@ -331,6 +331,9 @@ void RenderImgui()
                 if (ImGui::SliderFloat("alpha", &settings_ref.itpl_alpha, 0, 1)) {
                     app.mesh.quadtree->UploadSettings();
                 }
+            }
+            if (app.mesh.quadtree->capped) {
+                ImGui::Text(" LOD FACTOR CAPPED \n");
             }
         }
     }  ImGui::End();
@@ -475,18 +478,14 @@ void Draw()
     RenderImgui();
 
     if (app.auto_lod && !app.mesh.quadtree->settings.uniform_on) {
-        float inf = (app.mode == TERRAIN) ? 1.01f : 0.99f;
-        float sup = (app.mode == TERRAIN) ? 0.99f : 1.01f;
-        float& f = (app.mode == TERRAIN) ? app.mesh.quadtree->settings.target_e_length
-                                         : app.mesh.quadtree->settings.lod_factor;
-
-        static float upperFPS = 70, lowerFPS = 60;
+        float& target = app.mesh.quadtree->settings.target_e_length;
+        static float upperFPS = 75.0f, lowerFPS = 60.0f;
         if (bench.delta_T < 1.0/upperFPS) {
-            f *= sup;
+            target *= 0.99;
             app.mesh.quadtree->UpdateLodFactor(app.cam.render_width, app.cam.fov);
             app.mesh.quadtree->UploadSettings();
         } else if (bench.delta_T > 1.0/lowerFPS){
-            f *= inf;
+            target *= 1.01;
             app.mesh.quadtree->UpdateLodFactor(app.cam.render_width, app.cam.fov);
             app.mesh.quadtree->UploadSettings();
         }

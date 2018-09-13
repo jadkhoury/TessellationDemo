@@ -513,6 +513,7 @@ void Draw()
         render.gpu/= cnt;
         render.cpuSqr/= cnt;
         render.gpuSqr/= cnt;
+        printf("CPU LoD : %d\n", app.mesh.quadtree->settings.cpu_lod);
 
         printf("compute : cpu_avg: %f cpu_stdev: %f gpu_avg: %f gpu_stdev: %f\n",
                compute.cpu * 1e3,
