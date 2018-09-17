@@ -19,7 +19,6 @@ static const GLfloat one = 1.0;
 static const mat4 IDENTITY = mat4(1.0f);
 
 struct OpenGLApp {
-    bool pause;
     int gui_width, gui_height;
 
     bool lbutton_down, rbutton_down;
@@ -42,9 +41,10 @@ struct BenchStats {
     double delta_T;
 
     double avg_qt_gpu_compute, avg_qt_gpu_render;
-    double avg_tess_render;
     double  total_qt_gpu_compute, total_qt_gpu_render;
-    int frame_count, fps;
+    double  avg_frame_dt, total_frame_dt;
+
+    int frame_count, real_fps;
     double sec_timer;
     int last_frame_count;
 
@@ -80,12 +80,13 @@ void BenchStats::Init()
 
     avg_qt_gpu_compute = 0;
     avg_qt_gpu_render = 0;
-    avg_tess_render = 0;
+    avg_frame_dt = 0;
     frame_count = 0;
     total_qt_gpu_compute = 0;
     total_qt_gpu_render = 0;
+    total_frame_dt = 0;
     sec_timer = 0;
-    fps = 0;
+    real_fps = 0;
     last_frame_count = 0;
 }
 
@@ -103,13 +104,16 @@ void BenchStats::UpdateStats()
     if (sec_timer < 1.0f) {
         total_qt_gpu_compute += app.mesh.quadtree->ticks.gpu_compute;
         total_qt_gpu_render += app.mesh.quadtree->ticks.gpu_render;
+        total_frame_dt += delta_T;
     } else {
-        fps = frame_count - last_frame_count;
+        real_fps = frame_count - last_frame_count;
         last_frame_count = frame_count;
-        avg_qt_gpu_compute = total_qt_gpu_compute / double(fps);
-        avg_qt_gpu_render = total_qt_gpu_render / double(fps);
+        avg_qt_gpu_compute = total_qt_gpu_compute / double(real_fps);
+        avg_qt_gpu_render = total_qt_gpu_render / double(real_fps);
+        avg_frame_dt = total_frame_dt / double(real_fps);
         total_qt_gpu_compute = 0;
         total_qt_gpu_render = 0;
+        total_frame_dt = 0;
         sec_timer = 0;
     }
 }
@@ -145,15 +149,15 @@ void RenderImgui()
     {
         static float values_gpu_compute[80] = { 0 };
         static float values_gpu_render[80]  = { 0 };
-        static float values_total_dt[80] = { 0 };
+        static float values_frame_dt[80] = { 0 };
         static float values_fps[80] = { 0 };
 
         static int offset = 0;
         static float refresh_time = 0;
         static float max_gpu_compute = 0, max_gpu_render = 0;
-        static float max_dt = 0;
+        static float max_fps = 0, max_dt = 0;
 
-        static float tmp_max, tmp_val;
+        static float array_max, current_val;
 
         if (refresh_time == 0)
             refresh_time = ImGui::GetTime();
@@ -162,8 +166,7 @@ void RenderImgui()
         {
             values_gpu_compute[offset] = app.mesh.quadtree->ticks.gpu_compute * 1000.0f;
             values_gpu_render[offset]  = app.mesh.quadtree->ticks.gpu_render  * 1000.0f;
-            values_total_dt[offset] = bench.delta_T;
-
+            values_frame_dt[offset] = bench.delta_T * 1000.0f;
             values_fps[offset] = ImGui::GetIO().Framerate;
 
             offset = (offset+1) % IM_ARRAYSIZE(values_gpu_compute);
@@ -171,37 +174,43 @@ void RenderImgui()
         }
 
         // QUADTREE COMPUTE DT
-        tmp_max = *std::max_element(values_gpu_compute, values_gpu_compute+80);
-        if (tmp_max > max_gpu_compute || tmp_max < 0.2 * max_gpu_compute) max_gpu_compute = tmp_max;
-        tmp_val = app.mesh.quadtree->ticks.gpu_compute * 1000.0;
+        current_val = app.mesh.quadtree->ticks.gpu_compute * 1000.0;
+        array_max = *std::max_element(values_gpu_compute, values_gpu_compute+80);
+        if (array_max > max_gpu_compute || array_max < 0.2 * max_gpu_compute)
+            max_gpu_compute = array_max;
         ImGui::PlotLines("GPU compute dT", values_gpu_compute, IM_ARRAYSIZE(values_gpu_compute), offset,
-                         std::to_string(tmp_val).c_str(), 0.0f, max_gpu_compute, ImVec2(0,80));
+                         std::to_string(current_val).c_str(), 0.0f, max_gpu_compute, ImVec2(0,80));
 
         //QUADTREE RENDER DT
-        tmp_val = app.mesh.quadtree->ticks.gpu_render * 1000.0;
-        tmp_max = *std::max_element(values_gpu_render, values_gpu_render+80);
-        if (tmp_max > max_gpu_render || tmp_max < 0.2 * max_gpu_render) max_gpu_render = tmp_max;
+        current_val = app.mesh.quadtree->ticks.gpu_render * 1000.0;
+        array_max = *std::max_element(values_gpu_render, values_gpu_render+80);
+        if (array_max > max_gpu_render || array_max < 0.2 * max_gpu_render)
+            max_gpu_render = array_max;
         ImGui::PlotLines("GPU render dT", values_gpu_render, IM_ARRAYSIZE(values_gpu_render), offset,
-                         std::to_string(tmp_val).c_str(), 0.0f, max_gpu_render, ImVec2(0,80));
-
+                         std::to_string(current_val).c_str(), 0.0f, max_gpu_render, ImVec2(0,80));
 
         // FPS
+        current_val = 1.0 / bench.delta_T;
+        array_max = *std::max_element(values_fps, values_fps+80);
+        if (array_max > max_fps || array_max < 0.2 * max_fps) max_fps = array_max;
         ImGui::PlotLines("FPS", values_fps, IM_ARRAYSIZE(values_fps), offset,
-                         std::to_string(ImGui::GetIO().Framerate).c_str(), 0.0f, 1000, ImVec2(0,80));
+                         std::to_string(current_val).c_str(), 0.0f, max_fps, ImVec2(0,80));
 
         // dT
-        tmp_max = *std::max_element(values_total_dt, values_total_dt+80);
-        if (tmp_max > max_dt || tmp_max < 0.2 * max_dt) max_dt = tmp_max;
-        ImGui::PlotLines("Frame dT", values_total_dt, IM_ARRAYSIZE(values_total_dt), offset,
-                         std::to_string(bench.delta_T).c_str(), 0.0f, max_dt, ImVec2(0,80));
+        current_val = bench.delta_T * 1000.0f;
+        array_max = *std::max_element(values_frame_dt, values_frame_dt+80);
+        if (array_max > max_dt || array_max < 0.2 * max_dt) max_dt = array_max;
+        ImGui::PlotLines("Frame dT", values_frame_dt, IM_ARRAYSIZE(values_frame_dt), offset,
+                         std::to_string(current_val).c_str(), 0.0f, max_dt, ImVec2(0,80));
 
 //#define CLEAN
 
 #ifndef CLEAN
+        ImGui::Text("\nOutput FPS (1s) %d", bench.real_fps);
         ImGuiTime("avg GPU Compute dT (1s)", bench.avg_qt_gpu_compute);
         ImGuiTime("avg GPU Render  dT (1s)", bench.avg_qt_gpu_render);
-        ImGuiTime("avg Total GPU   dT (1s)", bench.avg_qt_gpu_render + bench.avg_qt_gpu_compute);
-        ImGui::Text("\n\n");
+        ImGuiTime("avg Frame dT (1s)      ", bench.avg_frame_dt);
+        ImGui::Text("\n");
 #endif
 
         if (ImGui::Combo("Mode", (int*)&app.mode, "Terrain\0Mesh\0\0")) {
@@ -212,10 +221,10 @@ void RenderImgui()
             app.mesh.quadtree->UpdateLodFactor(app.cam.render_width, app.cam.fov);
             app.mesh.quadtree->UploadSettings();
         }
+        ImGui::Text("\n");
 
         static bool advanced = false;
-        ImGui::Text("\n");
-        if (ImGui::Checkbox("Advanced Mode", &advanced) && advanced)
+        if (ImGui::Checkbox("Advanced Mode", &advanced))
             settings_ref.map_nodecount = advanced;
         if (advanced)
         {
@@ -301,7 +310,7 @@ void RenderImgui()
                 app.mesh.quadtree->Reinitialize();
                 updateRenderParams();
             }
-            if (ImGui::SliderInt("CPU LoD", &settings_ref.cpu_lod, 0, 8)) {
+            if (ImGui::SliderInt("CPU LoD", &settings_ref.cpu_lod, 0, 4)) {
                 app.mesh.quadtree->Reinitialize();
                 app.mesh.quadtree->UpdateLodFactor(app.cam.render_width, app.cam.fov);
                 app.mesh.quadtree->UploadSettings();
@@ -366,9 +375,6 @@ void keyboardCallback(GLFWwindow* window, int key, int scancode, int action,
             break;
         case GLFW_KEY_P:
             app.cam.PrintStatus();
-            break;
-        case GLFW_KEY_SPACE:
-            app.pause = !app.pause;
             break;
         default:
             break;
@@ -443,12 +449,12 @@ void resizeCallback(GLFWwindow* window, int new_width, int new_height) {
 ///
 /// The Program
 ///
+
 void Init()
 {
     cout << "******************************************************" << endl;
     cout << "INITIALIZATION" << endl;
 
-    app.pause = false;
     app.auto_lod = false;
 
     app.mode = TERRAIN;
@@ -580,13 +586,11 @@ int main(int argc, char **argv)
         while (!glfwWindowShouldClose(window)  && bench.delta_T < 5.0)
         {
             glfwPollEvents();
-            if (!app.pause)
-            {
-                ImGui_ImplGlfwGL3_NewFrame();
-                Draw();
-                ImGui_ImplGlfwGL3_RenderDrawData(ImGui::GetDrawData());
-                glfwSwapBuffers(window);
-            }
+            ImGui_ImplGlfwGL3_NewFrame();
+            Draw();
+            ImGui_ImplGlfwGL3_RenderDrawData(ImGui::GetDrawData());
+            glfwSwapBuffers(window);
+
         }
         ImGui_ImplGlfwGL3_Shutdown();
         ImGui::DestroyContext();

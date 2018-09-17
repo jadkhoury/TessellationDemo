@@ -37,8 +37,6 @@ private:
         Direction = glm::normalize(front);
 
         // Also re-calculate the Right and Up vector
-        // Normalize the vectors, because their length gets closer to 0 the more
-        // you look up or down which results in slower movement.
         Right = glm::normalize(glm::cross(Direction, WorldUp));
         Up    = glm::normalize(glm::cross(Right, Direction));
     }
@@ -127,8 +125,7 @@ public:
 
     // Processes input received from a mouse scroll-wheel event.
     // Only requires input on the vertical wheel-axis
-    void ProcessMouseScroll(float yoffset)
-    {
+    void ProcessMouseScroll(float yoffset) {
         Position += Direction * yoffset * scroll_sensitivity;
     }
 };

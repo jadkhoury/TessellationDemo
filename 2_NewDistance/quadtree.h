@@ -212,7 +212,7 @@ private:
         djgp_push_string(djp, "#define DEBUG %i\n", DEBUG);
 
         if (settings.itpl_type == PN)
-            djgp_push_string(djp, "#define FLAG_ITPL_LINEAR 1\n");
+            djgp_push_string(djp, "#define FLAG_ITPL_PN 1\n");
         else if (settings.itpl_type == PHONG)
             djgp_push_string(djp, "#define FLAG_ITPL_PHONG 1\n");
         else
@@ -478,25 +478,26 @@ public:
         utility::SetUniformInt(compute_program_, "u_screen_res", s);
         utility::SetUniformInt(render_program_, "u_screen_res", s);
     }
+
 #define CAP
     void UpdateLodFactor(int res, float fov) {
         float l = 2.0f * tan(glm::radians(fov) / 2.0f)
                 * settings.target_e_length
                 * (1 << settings.cpu_lod)
-                / float(res)
-                / float(mesh_data_->avg_e_length);
+                / float(res);
         capped = false;
 #ifdef CAP
-        const float cap = 0.043f;
+        const float cap = 0.43f;
         if (l > cap) {
             capped = true;
             l = cap;
         }
+//        cout << "l =" << l
+//             << ", l / avg_l = " << l/float(mesh_data_->avg_e_length)
+//             << ((capped) ? " CAPPED " : "")
+//             << endl;
 #endif
-        cout << "lod_factor:  " << l
-             << ", -log2(lod_factor) = " << -log2(l)
-             << ((capped) ? " CAPPED " : "") << endl;
-        settings.lod_factor = l;
+        settings.lod_factor = l / float(mesh_data_->avg_e_length);;
 
     }
 
