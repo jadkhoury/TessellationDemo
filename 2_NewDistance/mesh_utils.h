@@ -18,15 +18,14 @@
 
 namespace meshutils {
 
-// Loads a grid with the number of quads specified in grid_quads_count (rounded down to square)
+// Loads a grid with the number of quads specified in by num_div
 // Stores the resulting mesh in mesh_data
 void LoadGrid(Mesh_Data* mesh_data)
 {
-
     float factor = 10.0;
+    int num_div = 0;
 
     const uint16_t* indices;
-    int num_div = 0;
     djg_mesh* mesh = djgm_load_plane(num_div, num_div);
 
     int count;
@@ -88,14 +87,15 @@ static char const * sgets( char * s, int size, char ** stream ) {
 
 // Read a .obj from file and store it in mesh_data
 // Reads the data line by line
-// Creates unique Vertex objects for each unencountered set of position / normal / UV
+// Creates unique Vertex objects for each unencountered set of pos / normal / UV
 // Stores the result in mesh_data
 // File parsing taken from OpenSubdiv
 void ParseObj(string name, int axis, Mesh_Data* mesh_data)
 {
     // Opening file and stuff
     ifstream instream(name);
-    string contents((istreambuf_iterator<char>(instream)), istreambuf_iterator<char>());
+    string contents((istreambuf_iterator<char>(instream)),
+                    istreambuf_iterator<char>());
 
     char const* shapestr = contents.c_str();
 
@@ -156,9 +156,9 @@ void ParseObj(string name, int axis, Mesh_Data* mesh_data)
                     nvertsPerFace = nverts;
                 }
                 if (nverts != 3 && nverts != 4)
-                    throw runtime_error("Need quads or triangle faces");
+                    throw runtime_error("Need quad or triangle faces");
                 if (nverts != nvertsPerFace)
-                    throw runtime_error("Need faces with same number of vertices");
+                    throw runtime_error("Need faces with same nb of vertices");
                 face_count++;
             } break;
         default:

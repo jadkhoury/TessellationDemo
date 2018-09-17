@@ -57,7 +57,7 @@ public:
     float scroll_sensitivity;
 
     float fov;
-    int render_width, render_height;
+    int fb_width, fb_height;
 
     void PrintStatus()
     {
@@ -99,27 +99,22 @@ public:
 
     // Processes input received from a mouse input system.
     // Expects the offset value in both the x and y direction.
-    void ProcessMouseLeft(float xoffset, float yoffset, GLboolean constrainPitch = true)
+    void ProcessMouseLeft(float xoffset, float yoffset)
     {
         Yaw   += xoffset * look_sensitivity;
         Pitch += yoffset * look_sensitivity;
 
         // Make sure that when pitch is out of bounds, screen doesn't get flipped
-        if (constrainPitch)
-            Pitch = utility::clamp(Pitch, -89.0f, 89.0f);
-
-        // Update Front, Right and Up Vectors using the updated Euler angles
+        Pitch = utility::clamp(Pitch, -89.0f, 89.0f);
         updateCameraVectors();
     }
 
     // Processes input received from a mouse input system.
     // Expects the offset value in both the x and y direction.
-    void ProcessMouseRight(float xoffset, float yoffset, GLboolean constrainPitch = true)
+    void ProcessMouseRight(float xoffset, float yoffset)
     {
         Position += yoffset * move_sensitivity * WorldUp;
         Position -= xoffset * move_sensitivity * Right;
-
-        // Update Front, Right and Up Vectors using the updated Euler angles
         updateCameraVectors();
     }
 
@@ -166,10 +161,14 @@ private:
         mat4& MVP = block_.MVP;
         for (int i = 0; i < 3; ++i)
             for (int j = 0; j < 2; ++j) {
-                block_.frustum_planes[i*2+j].x = MVP[0][3] + (j == 0 ? MVP[0][i] : -MVP[0][i]);
-                block_.frustum_planes[i*2+j].y = MVP[1][3] + (j == 0 ? MVP[1][i] : -MVP[1][i]);
-                block_.frustum_planes[i*2+j].z = MVP[2][3] + (j == 0 ? MVP[2][i] : -MVP[2][i]);
-                block_.frustum_planes[i*2+j].w = MVP[3][3] + (j == 0 ? MVP[3][i] : -MVP[3][i]);
+                block_.frustum_planes[i*2+j].x =
+                        MVP[0][3] + (j == 0 ? MVP[0][i] : -MVP[0][i]);
+                block_.frustum_planes[i*2+j].y =
+                        MVP[1][3] + (j == 0 ? MVP[1][i] : -MVP[1][i]);
+                block_.frustum_planes[i*2+j].z =
+                        MVP[2][3] + (j == 0 ? MVP[2][i] : -MVP[2][i]);
+                block_.frustum_planes[i*2+j].w =
+                        MVP[3][3] + (j == 0 ? MVP[3][i] : -MVP[3][i]);
                 vec3 tmp = vec3(block_.frustum_planes[i*2+j]);
                 block_.frustum_planes[i*2+j] *= glm::length(tmp);
             }
@@ -199,7 +198,7 @@ public:
     {
         block_.fovy = cam.fov;
         block_.P = glm::perspective(glm::radians(block_.fovy),
-                                   cam.render_width/(float)cam.render_height,
+                                   cam.fb_width/(float)cam.fb_height,
                                    near_, far_);
         updateMV();
     }
@@ -207,7 +206,7 @@ public:
     void UpdateForNewSize(CameraManager& cam)
     {
         block_.P = glm::perspective(glm::radians(block_.fovy),
-                                   cam.render_width/(float)cam.render_height,
+                                   cam.fb_width/(float)cam.fb_height,
                                    near_, far_);
         updateMV();
     }
@@ -231,7 +230,7 @@ public:
         block_.fovy = cam.fov;
         block_.V = cam.GetViewMatrix();
         block_.P = glm::perspective(glm::radians( block_.fovy),
-                                   cam.render_width/(float)cam.render_height,
+                                   cam.fb_width/(float)cam.fb_height,
                                    near_, far_);
         updateMV();
     }

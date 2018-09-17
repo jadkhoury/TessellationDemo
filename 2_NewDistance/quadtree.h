@@ -13,20 +13,20 @@ public:
         bool uniform_on;       // Toggle uniform subdivision
         int uniform_lvl;       // Level of uniform subdivision
         float lod_factor;      // Factor scaling the adaptive subdivision
-        float target_e_length; // Target edge length on rendered grid
+        float target_length; // Target edge length on rendered grid
         bool map_nodecount;    // Toggle the readback of the node counters
         bool rotateMesh;       // Toggle mesh rotation (for mesh)
         bool displace_on;      // Toggle displacement mapping (for terrain)
         float displace_factor; // Factor for displacement mapping (for terrain)
         int color_mode;        // Switch color mode of the render
-        bool projection_on;    // Toggle the MVP matrix
+        bool MVP_on;    // Toggle the MVP matrix
 
         bool flat_normal; // Toggle wireframe visualisation
         bool wireframe_on; // Toggle wireframe visualisation
 
-        int polygon_type; // Type of polygon of the mesh (changes number of root triangle)
-        bool freeze;      // Toggle freeze i.e. stop updating the quadtree, but keep rendering
-        int cpu_lod;      // Control CPU LoD, i.e. subdivision level of the instantiated triangle grid
+        int polygon_type; // Type of polygon of the mesh
+        bool freeze;      // Toggle freeze = stop updating, but keep rendering
+        int cpu_lod;      // Control CPU LoD, i.e. lod of the instantiated grid
         bool cull_on;     // Toggle Cull
 
         int itpl_type;    // Switch interpolation type
@@ -37,10 +37,10 @@ public:
             utility::SetUniformBool(pid, "u_uniform_subdiv", uniform_on);
             utility::SetUniformInt(pid, "u_uniform_level", uniform_lvl);
             utility::SetUniformFloat(pid, "u_lod_factor", lod_factor);
-            utility::SetUniformFloat(pid, "u_target_edge_length", target_e_length);
+            utility::SetUniformFloat(pid, "u_target_edge_length", target_length);
             utility::SetUniformFloat(pid, "u_displace_factor", displace_factor);
             utility::SetUniformInt(pid, "u_color_mode", color_mode);
-            utility::SetUniformBool(pid, "u_render_MVP", projection_on);
+            utility::SetUniformBool(pid, "u_render_MVP", MVP_on);
             utility::SetUniformInt(pid, "u_cpu_lod", cpu_lod);
 
             utility::SetUniformFloat(pid, "u_itpl_alpha", itpl_alpha);
@@ -62,7 +62,7 @@ private:
     GLuint nodes_bo_[3];
     GLuint transfo_bo_;
 
-    BufferCombo leaf_geometry_;
+    BufferCombo leaf_;
 
     // Mesh data
     Mesh_Data* mesh_data_;
@@ -79,23 +79,26 @@ private:
     djg_clock* compute_clock_;
     djg_clock* render_clock_;
 
-    ////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
     ///
     /// Shader functions
     ///
 
     void configureComputeProgram()
     {
-        utility::SetUniformInt(compute_program_, "u_num_mesh_tri", mesh_data_->triangle_count);
-        utility::SetUniformInt(compute_program_, "u_num_mesh_quad", mesh_data_->quad_count);
-        utility::SetUniformInt(compute_program_, "u_max_node_count", max_node_count_);
+        utility::SetUniformInt(compute_program_, "u_num_mesh_tri",
+                               mesh_data_->triangle_count);
+        utility::SetUniformInt(compute_program_, "u_num_mesh_quad",
+                               mesh_data_->quad_count);
+        utility::SetUniformInt(compute_program_, "u_max_node_count",
+                               max_node_count_);
         settings.Upload(compute_program_);
     }
 
     void configureCopyProgram()
     {
-        utility::SetUniformInt(copy_program_, "u_num_vertices", leaf_geometry_.v.count);
-        utility::SetUniformInt(copy_program_, "u_num_indices", leaf_geometry_.idx.count);
+        utility::SetUniformInt(copy_program_, "u_num_vertices", leaf_.v.count);
+        utility::SetUniformInt(copy_program_, "u_num_indices", leaf_.idx.count);
 
     }
 
@@ -256,7 +259,7 @@ private:
         return v;
     }
 
-    ////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
     ///
     /// Buffer Function
     ///
@@ -360,17 +363,19 @@ private:
         vector<vec2> vertices = getLeafVertices(level);
         vector<uvec3> indices = getLeafIndices(level);
 
-        leaf_geometry_.v.count = vertices.size();
-        leaf_geometry_.v.size = leaf_geometry_.v.count * sizeof(vec2);
-        utility::EmptyBuffer(&leaf_geometry_.v.bo);
-        glCreateBuffers(1, &leaf_geometry_.v.bo);
-        glNamedBufferStorage(leaf_geometry_.v.bo, leaf_geometry_.v.size, (const void*)vertices.data(), 0);
+        leaf_.v.count = vertices.size();
+        leaf_.v.size = leaf_.v.count * sizeof(vec2);
+        utility::EmptyBuffer(&leaf_.v.bo);
+        glCreateBuffers(1, &leaf_.v.bo);
+        glNamedBufferStorage(leaf_.v.bo, leaf_.v.size,
+                             (const void*)vertices.data(), 0);
 
-        leaf_geometry_.idx.count = indices.size() * 3;
-        leaf_geometry_.idx.size =leaf_geometry_.idx.count * sizeof(uint);
-        utility::EmptyBuffer(&leaf_geometry_.idx.bo);
-        glCreateBuffers(1, &leaf_geometry_.idx.bo);
-        glNamedBufferStorage(leaf_geometry_.idx.bo, leaf_geometry_.idx.size, (const void*)indices.data(),  0);
+        leaf_.idx.count = indices.size() * 3;
+        leaf_.idx.size =leaf_.idx.count * sizeof(uint);
+        utility::EmptyBuffer(&leaf_.idx.bo);
+        glCreateBuffers(1, &leaf_.idx.bo);
+        glNamedBufferStorage(leaf_.idx.bo, leaf_.idx.size,
+                             (const void*)indices.data(),  0);
 
         return (glGetError() == GL_NO_ERROR);
     }
@@ -383,21 +388,21 @@ private:
 
     bool loadLeafVao()
     {
-        if (glIsVertexArray(leaf_geometry_.vao)) {
-            glDeleteVertexArrays(1, &leaf_geometry_.vao);
-            leaf_geometry_.vao = 0;
+        if (glIsVertexArray(leaf_.vao)) {
+            glDeleteVertexArrays(1, &leaf_.vao);
+            leaf_.vao = 0;
         }
-        glCreateVertexArrays(1, &leaf_geometry_.vao);
-        glVertexArrayAttribBinding(leaf_geometry_.vao, 1, 0);
-        glVertexArrayAttribFormat(leaf_geometry_.vao, 1, 2, GL_FLOAT, GL_FALSE, 0);
-        glEnableVertexArrayAttrib(leaf_geometry_.vao, 1);
-        glVertexArrayVertexBuffer(leaf_geometry_.vao, 0, leaf_geometry_.v.bo, 0, sizeof(vec2));
-        glVertexArrayElementBuffer(leaf_geometry_.vao, leaf_geometry_.idx.bo);
+        glCreateVertexArrays(1, &leaf_.vao);
+        glVertexArrayAttribBinding(leaf_.vao, 1, 0);
+        glVertexArrayAttribFormat(leaf_.vao, 1, 2, GL_FLOAT, GL_FALSE, 0);
+        glEnableVertexArrayAttrib(leaf_.vao, 1);
+        glVertexArrayVertexBuffer(leaf_.vao, 0, leaf_.v.bo, 0, sizeof(vec2));
+        glVertexArrayElementBuffer(leaf_.vao, leaf_.idx.bo);
 
         return (glGetError() == GL_NO_ERROR);
     }
 
-    ////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
     ///
     /// Pingpong functions
     ///
@@ -415,7 +420,7 @@ public:
     } ticks;
     bool capped;
 
-    ////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
     ///
     /// Update function
     ///
@@ -452,7 +457,7 @@ public:
         loadLeafVao();
         loadNodesBuffers();
         loadPrograms();
-        commands_->Init(leaf_geometry_.idx.count, wg_init_global_count_, init_node_count_);
+        commands_->Init(leaf_.idx.count, wg_init_global_count_);
     }
 
     void UploadSettings()
@@ -478,24 +483,17 @@ public:
         utility::SetUniformInt(render_program_, "u_screen_res", s);
     }
 
-#define CAP
     void UpdateLodFactor(int res, float fov) {
         float l = 2.0f * tan(glm::radians(fov) / 2.0f)
-                * settings.target_e_length
+                * settings.target_length
                 * (1 << settings.cpu_lod)
                 / float(res);
         capped = false;
-#ifdef CAP
         const float cap = 0.43f;
         if (l > cap) {
             capped = true;
             l = cap;
         }
-//        cout << "l =" << l
-//             << ", l / avg_l = " << l/float(mesh_data_->avg_e_length)
-//             << ((capped) ? " CAPPED " : "")
-//             << endl;
-#endif
         settings.lod_factor = l / float(mesh_data_->avg_e_length);;
 
     }
@@ -540,7 +538,7 @@ public:
             throw std::runtime_error("shader creation error");
 
         transfo_bo_ = transfo_bo;
-        commands_->Init(leaf_geometry_.idx.count, wg_init_global_count_, init_node_count_);
+        commands_->Init(leaf_.idx.count, wg_init_global_count_);
 
         ReconfigureShaders();
 
@@ -569,15 +567,21 @@ public:
         glUseProgram(compute_program_);
         {
             utility::SetUniformFloat(compute_program_, "deltaT", deltaT);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODES_IN_B, nodes_bo_[ssbo_idx_.read]);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODES_OUT_FULL_B, nodes_bo_[ssbo_idx_.write_full]);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODES_OUT_CULLED_B, nodes_bo_[ssbo_idx_.write_culled]);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODES_IN_B,
+                             nodes_bo_[ssbo_idx_.read]);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODES_OUT_FULL_B,
+                             nodes_bo_[ssbo_idx_.write_full]);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODES_OUT_CULLED_B,
+                             nodes_bo_[ssbo_idx_.write_culled]);
 
             glBindBufferBase(GL_UNIFORM_BUFFER, 0, transfo_bo_);
             commands_->BindForCompute(compute_program_);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_V_B, mesh_data_->v.bo);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_Q_IDX_B, mesh_data_->q_idx.bo);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_T_IDX_B, mesh_data_->t_idx.bo);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_V_B,
+                             mesh_data_->v.bo);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_Q_IDX_B,
+                             mesh_data_->q_idx.bo);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_T_IDX_B,
+                             mesh_data_->t_idx.bo);
 
             glDispatchComputeIndirect((long)NULL);
 
@@ -594,8 +598,8 @@ public:
         glUseProgram(copy_program_);
         {
             commands_->BindForCopy(copy_program_);
-            glBindBufferBase(GL_UNIFORM_BUFFER, LEAF_VERT_B, leaf_geometry_.v.bo);
-            glBindBufferBase(GL_UNIFORM_BUFFER, LEAF_IDX_B, leaf_geometry_.idx.bo);
+            glBindBufferBase(GL_UNIFORM_BUFFER, LEAF_VERT_B, leaf_.v.bo);
+            glBindBufferBase(GL_UNIFORM_BUFFER, LEAF_IDX_B, leaf_.idx.bo);
 
             glDispatchCompute(1,1,1);
             glMemoryBarrier(GL_COMMAND_BARRIER_BIT);
@@ -626,14 +630,18 @@ RENDER_PASS:
         glUseProgram(render_program_);
         {
             djgc_start(render_clock_);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODES_IN_B, nodes_bo_[ssbo_idx_.write_culled]);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_V_B, mesh_data_->v.bo);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_Q_IDX_B, mesh_data_->q_idx.bo);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_T_IDX_B, mesh_data_->t_idx.bo);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NODES_IN_B,
+                             nodes_bo_[ssbo_idx_.write_culled]);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_V_B,
+                             mesh_data_->v.bo);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_Q_IDX_B,
+                             mesh_data_->q_idx.bo);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MESH_T_IDX_B,
+                             mesh_data_->t_idx.bo);
             glBindBufferBase(GL_UNIFORM_BUFFER, 0, transfo_bo_);
 
             commands_->BindForRender();
-            glBindVertexArray(leaf_geometry_.vao);
+            glBindVertexArray(leaf_.vao);
             glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
             glBindVertexArray(0);
             djgc_stop(render_clock_);
@@ -650,9 +658,9 @@ RENDER_PASS:
         glDeleteProgram(compute_program_);
         glDeleteProgram(copy_program_);
         glDeleteProgram(render_program_);
-        glDeleteBuffers(1, &leaf_geometry_.v.bo);
-        glDeleteBuffers(1, &leaf_geometry_.idx.bo);
-        glDeleteVertexArrays(1, &leaf_geometry_.vao);
+        glDeleteBuffers(1, &leaf_.v.bo);
+        glDeleteBuffers(1, &leaf_.idx.bo);
+        glDeleteVertexArrays(1, &leaf_.vao);
         commands_->Cleanup();
     }
 };

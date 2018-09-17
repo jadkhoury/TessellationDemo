@@ -6,12 +6,12 @@ layout (local_size_x = LOCAL_WG_SIZE_X,
         local_size_y = LOCAL_WG_SIZE_Y,
         local_size_z = LOCAL_WG_SIZE_Z) in;
 
-layout (binding = NODECOUNTER_FULL_B)   uniform atomic_uint nodeCount_full[16];
-layout (binding = NODECOUNTER_CULLED_B) uniform atomic_uint nodeCount_culled[16];
+layout (binding = NODECOUNTER_FULL_B)   uniform atomic_uint nodeCount_full[2];
+layout (binding = NODECOUNTER_CULLED_B) uniform atomic_uint nodeCount_culled[2];
 
 shared float cam_height_local;
 
-uniform int u_read_index, u_write_index;
+uniform int u_read_index;
 
 uniform int u_uniform_subdiv;
 uniform int u_uniform_level;
@@ -55,7 +55,7 @@ const vec2 unit_U = vec2(0,1);
 void compute_writeKey(uvec2 new_nodeID, uvec4 current_key)
 {
     uvec4 new_key = uvec4(new_nodeID, current_key.zw);
-    uint idx = atomicCounterIncrement(nodeCount_full[u_write_index]);
+    uint idx = atomicCounterIncrement(nodeCount_full[1-u_read_index]);
     u_SubdBufferOut[idx] = new_key;
 }
 
@@ -127,7 +127,7 @@ void computePass(uvec4 key, uint invocation_idx, int active_nodes)
 // Store the new key in the Culled SSBO for the Render Pass
 void cull_writeKey(uvec4 new_key)
 {
-    uint idx = atomicCounterIncrement(nodeCount_culled[u_write_index]);
+    uint idx = atomicCounterIncrement(nodeCount_culled[1-u_read_index]);
     u_SubdBufferOut_culled[idx] =  new_key;
 }
 

@@ -118,21 +118,6 @@ struct Vertex
         s += "UV:  " + glm::to_string(uv)  + "\n";
         return s;
     }
-
-    Vertex(vec4 p, vec4 n)
-    {
-        this->p = p;
-        this->n = n;
-    }
-
-    Vertex(vec4 p, vec4 n, vec2 uv)
-    {
-        this->p = p;
-        this->n = n;
-        this->uv = uv;
-    }
-
-    Vertex() {}
 };
 
 // Stores all data necessary to represent a mesh
@@ -142,7 +127,7 @@ struct Mesh_Data
     uint* q_idx_array; // Array of indices for quad meshes
     uint* t_idx_array; // Array of indices for triangle meshes
 
-    BufferData v, q_idx, t_idx; // Buffers for vertices, quad indices, triangle indices
+    BufferData v, q_idx, t_idx; // Buffers for vertices, quad & triangle indices
     int triangle_count = 0, quad_count = 0;
     float avg_e_length;
 
@@ -155,6 +140,5 @@ struct Mesh_Data
         delete t_idx_array;
     }
 };
-
 
 #endif // COMMON_H

@@ -65,13 +65,12 @@ public:
             LoadMeshBuffers();
         } else if (mode == MESH){
             meshutils::ParseObj(filepath, 0, &mesh_data);
-            if (mesh_data.quad_count > 0 && mesh_data.triangle_count == 0) {
+            if (mesh_data.quad_count > 0 && mesh_data.triangle_count == 0)
                 init_settings.polygon_type = QUADS;
-            } else if (mesh_data.quad_count == 0 && mesh_data.triangle_count > 0) {
+            else if (mesh_data.quad_count == 0 && mesh_data.triangle_count > 0)
                 init_settings.polygon_type = TRIANGLES;
-            } else {
+            else
                 cout << "ERROR when parsing obj" << endl;
-            }
         }
     }
 
@@ -103,7 +102,9 @@ public:
                                  0);
         }
 
-        reorderIndices(mesh_data.t_idx_array, mesh_data.v_array, mesh_data.t_idx.count);
+        reorderIndices(mesh_data.t_idx_array,
+                       mesh_data.v_array,
+                       mesh_data.t_idx.count);
         utility::EmptyBuffer(&mesh_data.t_idx.bo);
         glCreateBuffers(1, &(mesh_data.t_idx.bo));
         if (mesh_data.triangle_count > 0) {
@@ -146,14 +147,14 @@ public:
         init_settings.uniform_on = false;
         init_settings.uniform_lvl = 0;
         init_settings.lod_factor = 1;
-        init_settings.target_e_length = 8;
+        init_settings.target_length = 8;
         init_settings.map_nodecount = false;
         init_settings.rotateMesh = (mode == MESH);
         init_settings.displace_on = (mode == TERRAIN);
         init_settings.displace_factor = 0.3f;
         init_settings.color_mode = LOD;
 
-        init_settings.projection_on = true;
+        init_settings.MVP_on = true;
         init_settings.wireframe_on = false;
         init_settings.flat_normal = false;
 
@@ -170,13 +171,15 @@ public:
         this->LoadMeshBuffers();
 
         this->tranforms_manager->Init(cam);
-        quadtree->Init(&(this->mesh_data), this->tranforms_manager->GetBo(), init_settings);
+        quadtree->Init(&(this->mesh_data), this->tranforms_manager->GetBo(),
+                       init_settings);
     }
 
     void Draw(float deltaT, uint mode)
     {
         if (!quadtree->settings.freeze &&  quadtree->settings.rotateMesh) {
-            tranforms_manager->RotateModel(2.0f * deltaT, vec3(0.0f, 0.0f, 1.0f));
+            tranforms_manager->RotateModel(2.0f * deltaT,
+                                           vec3(0.0f, 0.0f, 1.0f));
         }
         tranforms_manager->Upload();
         quadtree->Draw(deltaT);

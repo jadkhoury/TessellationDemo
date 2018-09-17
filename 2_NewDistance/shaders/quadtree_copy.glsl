@@ -5,11 +5,11 @@
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 layout (std430, binding = NODECOUNTER_FULL_B) buffer full_buffer {
-    uint nodeCount_full[16];
+    uint nodeCount_full[2];
 };
 
 layout (std430, binding = NODECOUNTER_CULLED_B) buffer culled_buffer {
-    uint nodeCount_culled[16];
+    uint nodeCount_culled[2];
 };
 
 layout (std430, binding = DISPATCH_COUNTER_B) buffer dispatch_out {
@@ -27,7 +27,7 @@ layout (std430, binding = DRAW_INDIRECT_B) buffer draw_out {
     uvec3  align;
 };
 
-uniform int u_read_index, u_delete_index;
+uniform int u_read_index;
 uniform int u_num_vertices, u_num_indices;
 
 void main(void)
@@ -41,8 +41,8 @@ void main(void)
     //Set the WG siwe for the next compute pass
     workgroup_size_x = uint(full_count / float(LOCAL_WG_COUNT)) + 1;
     // Reset the counters for next round
-    nodeCount_full[u_delete_index] = 0;
-    nodeCount_culled[u_delete_index] = 0;
+    nodeCount_full[1-u_read_index] = 0;
+    nodeCount_culled[1-u_read_index] = 0;
 }
 
 #endif
