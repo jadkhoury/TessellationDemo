@@ -116,7 +116,7 @@ void main()
 
     vec4 c = levelColor(i_lvl);
 
-    float wireframe_factor = gridFactor(i_tri_pos, 1.0);
+    float wireframe_factor = gridFactor(i_tri_pos, 0.5);
 
     o_color = vec4(c.xyz*wireframe_factor, 1);
 

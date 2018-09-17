@@ -25,17 +25,14 @@ vec4 toScreenSpace(vec3 v)
 
 vec4 levelColor(uint lvl)
 {
-    vec4 c = vec4(0.5, 0.5, 0.5, 1);
-    uint mod = lvl % 4;
-    if(mod == 0) {
-        c.r += 0.5;
-    } else if (mod == 1) {
-        c.g += 0.5;
-    } else if (mod == 2) {
-        c.b += 0.5;
-    }
-    return c;
+    vec3 c[4] = vec3[4] ( vec3(0.97,0.75,0.75), // red
+                          vec3(0.96), // gray
+                          vec3(0.78,0.88,0.78), // green
+                          vec3(0.75,0.80,0.93)  // blue
+                          );
+    return vec4(c[(lvl + 2) % 4], 1);
 }
+
 Vertex interpolate(Triangle mesh_t, vec2 v, float itpl_alpha)
 {
 #if FLAG_ITPL_LINEAR

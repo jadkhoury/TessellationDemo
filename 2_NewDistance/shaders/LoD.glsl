@@ -21,7 +21,6 @@ layout(std140, binding = 0) uniform TransformBlock
 
 const vec2 triangle_centroid = vec2(0.5);
 
-
 float distanceToLod(vec3 pos)
 {
     float d = distance(pos, cam_pos);

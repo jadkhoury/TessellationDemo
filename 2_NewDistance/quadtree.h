@@ -360,7 +360,6 @@ private:
         vector<vec2> vertices = getLeafVertices(level);
         vector<uvec3> indices = getLeafIndices(level);
 
-
         leaf_geometry_.v.count = vertices.size();
         leaf_geometry_.v.size = leaf_geometry_.v.count * sizeof(vec2);
         utility::EmptyBuffer(&leaf_geometry_.v.bo);
@@ -605,9 +604,6 @@ public:
 
         djgc_stop(compute_clock_);
         djgc_ticks(compute_clock_, &ticks.cpu, &ticks.gpu_compute);
-
-//         commands_->PrintWGCountInDispatch();
-//         commands_->PrintAtomicArray();
 
         glDisable(GL_RASTERIZER_DISCARD);
 RENDER_PASS:
