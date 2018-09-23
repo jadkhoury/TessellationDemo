@@ -259,10 +259,6 @@ void RenderImgui()
                 app.mesh.bintree->ReloadRenderProgram();
                 updateRenderParams();
             } }
-            if (ImGui::Combo("Color mode", &set.color_mode,
-                             "LoD & Morph\0White Wireframe\0Polygone Highlight\0Frustum\0Cull\0Debug\0\0")) {
-                app.mesh.bintree->UploadSettings();
-            }
             if(ImGui::DragFloat3("Light pos", app.light_pos, 0.1f)) {
                 vec3 l(app.light_pos[0], app.light_pos[1], app.light_pos[2]);
                 app.mesh.bintree->UpdateLightPos(l);
