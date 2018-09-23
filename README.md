@@ -41,7 +41,7 @@ The Bench subproject contains more or less the code from the demo, minus some la
 │   ├── glad
 │   │   └── ...
 │   ├── imgui_impl
-│   │   ├── ...
+│   │   └── ...
 │   ├── objs
 │   │   ├── bigguy.obj
 │   │   ├── bunny.obj
@@ -52,9 +52,9 @@ The Bench subproject contains more or less the code from the demo, minus some la
 │   │   ├── tangle_cube.obj
 │   │   └── triangle.obj
 │   └── submodules
-│       ├── ...
+│       └── ...
 ├── ComputeTess_bench
-│   ├── ...
+│   └── ...
 ├── ComputeTess_demo
 │   ├── bintree.h
 │   ├── commands.h
@@ -105,7 +105,9 @@ The Bench subproject contains more or less the code from the demo, minus some la
 
 ## The Code
 
-### `bintree.h`:
+### C++ files
+
+#### `bintree.h`:
 Class containing the CPU side of the main work of this project: the bintree algorithm.
 * Defines the `Settings` struct, containing all the parfameters of the bintrees, accessed by the GUI
 * Manages the 3 OpenGL programs corresponding to the 3 Passes to render one frame: 
@@ -121,11 +123,11 @@ Class containing the CPU side of the main work of this project: the bintree algo
 * Recieves as parameter at initialization a pointer to the `Mesh_Data` structure containing all data for the mesh, a pointer to the uniform buffer containing the transforms (managed by the `TransformsManager` in `transform.h`), as well as a set of initialization settings stored in a `BinTree::Settings` object.
 * Draws the mesh using our bintree implementation, by first updating the bintree once using the `compute_program_`, then copying the relevant parameters in the indirect command buffers in the `copy_program_`, and finally drawing the mesh in the `render_program_`
 
-### `commands.h`:  
+#### `commands.h`:  
 * Manages and binds the atomic counters keeping track of the number of primitives to instanciate. 
 * Manages and binds the indirect Draw and Dispatch buffers
 
-### `common.h`: 
+#### `common.h`: 
 Header file containging all the using & includes used across the project, along with: 
 * `struct BufferData`: Represents a buffer
 * `struct BufferCombo`: Usefull data structure to manage geometry buffers 
@@ -135,23 +137,23 @@ Header file containging all the using & includes used across the project, along 
     * 2D UV coordinate
 * `struct Mesh_Data`: Stores all data necessary to represent a mesh
 
-###  `mesh_utils.h`: 
+####  `mesh_utils.h`: 
 Namespace for generating and managing meshes (grids, obj parsing and storing in mesh_data...)
 
-###  `mesh.h`: 
+#### `mesh.h`: 
 * Class allowing the opaque use of our bintree algorithm for mesh rendering
 * Relays the camera and frustum settings to the Transforms Manager
 * Holds instances of the Bintree as well as the Transforms Manager
 
-###  `transform.h`: 
+####  `transform.h`: 
 Header file containing both the `CameraManager` and the `TransformsManager`.
 The `CameraManager` is responsible for treating the mouse input and updating the current camera setup accordingly.
 The `TransformsManager` then updates the transforms matrices accordingly, and pushes them in an uniform buffer, accessed all along our render pipeline.
 
-### `utility.h`:
+#### `utility.h`:
 Header containing the utility namespace for small usefull functions used across the project, as well as some OpenGL debug callbacks
 
-### `main.cpp`
+#### `main.cpp`
 * `OpenGLApp` struct that stores a few render settings, the default filepath, some mouse related temp variables, the light position, and instances of the Mesh class and the Camera Manager class
 * `BenchStats` struct that contains and updates the benchmarking variables
 * Displays the GUI using the `imgui` API
@@ -160,39 +162,42 @@ Header containing the utility namespace for small usefull functions used across 
 * Launch and manages the render loop
 * Handles arguments passed at the call of the program (`.obj` file path)
 
-### `bintree_compute.glsl`
+
+### GLSL Shaders
+
+#### `bintree_compute.glsl`
 Holds the compute pass of the render pipeline, that updates the bintree data structure and performs the frustum culling
 
-### `bintree_copy.glsl`
+#### `bintree_copy.glsl`
 Holds the BatcherKernel program, in charge of preparing the indirect draw command buffer for the current pass, and the dispatch indirect command buffer for the compute pass of the next pass
 
-### `bintree_render_common.glsl`
+#### `bintree_render_common.glsl`
 Holds a few function common to both the standard render program and the wireframe render program
 
-### `bintree_render_flat.glsl`
+#### `bintree_render_flat.glsl`
 Holds the standard render program: 
 * Vertex Shader: takes as input the vertex of the instanced triangle grid to render, reads a key from the bintree data structure, compute the vertex bintree space position, interpolates in world space position using the relevant interpolation method (either Linear, Phong, or Curved PN Triangles). If displacement mapping is activated, performs the displacement
 * Fragment Shader: use the world space position of the vertex to perform the shading. If displacement mapping is activated and flat normal is not, computes the vertex normal as gradient of the procedural displacement map
 
-### `bintree_render_wireframe.glsl`
+#### `bintree_render_wireframe.glsl`
 Similar to the `bintree_render_flat`, with the addition of a Geometry stage that allows us to use solid wireframe.
 
-### `gpu_noise_lib.glsl`
+#### `gpu_noise_lib.glsl`
 GLSL library to generate procedural noise, used in our heightmap generation
 
-### `LoD.glsl`
+#### `LoD.glsl`
 Contains functions relative to the distance based LoD computation and culling. Also defines the Transforms uniform buffer, used accross the shaders
 
-### `ltree_jk.glsl`
+#### `ltree_jk.glsl`
 My own implementation of the bintree management functions (key generation for parent/children, level evaluation, mapping from one space to another). The keys are implemented as ulong int, simulated as a uvec2 concatenation, allowing 63 levels of subdivision.
 
-### `noise.glsl`
+#### `noise.glsl`
 Contains function for the procedural heightmap computation, relying on gpu_noise_lib
 
-### `Phong.glsl`
+#### `Phong.glsl`
 Performs Phong interpolation on the current Vertex instance by using the normals, uv and coordinates of the currently rendered mesh polygon.
 
-### `PN.glsl`
+#### `PN.glsl`
 Similar to `Phong.glsl`, but for the Curved PN Triangles method.
 
 
