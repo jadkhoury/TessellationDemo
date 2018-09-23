@@ -38,7 +38,7 @@
 
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 
-const char* shader_dir = "../2_NewDistance/shaders/";
+const char* shader_dir = "../ComputeTess_demo/shaders/";
 
 using glm::vec2;
 using glm::vec3;

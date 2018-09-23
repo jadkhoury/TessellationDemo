@@ -1,7 +1,7 @@
 #include <cmath>
 // SOURCE FILES
 #include "common.h"
-#include "quadtree.h"
+#include "bintree.h"
 #include "mesh_utils.h"
 #include "mesh.h"
 
@@ -63,9 +63,9 @@ struct BenchStats {
 void updateRenderParams()
 {
     vec3 l(app.light_pos[0], app.light_pos[1], app.light_pos[2]);
-    app.mesh.quadtree->UpdateLightPos(l);
-    app.mesh.quadtree->UpdateMode(app.mode);
-    app.mesh.quadtree->UpdateScreenRes(std::max(app.cam.fb_height, app.cam.fb_width));
+    app.mesh.bintree->UpdateLightPos(l);
+    app.mesh.bintree->UpdateMode(app.mode);
+    app.mesh.bintree->UpdateScreenRes(std::max(app.cam.fb_height, app.cam.fb_width));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -103,8 +103,8 @@ void BenchStats::UpdateStats()
     frame_count++;
     sec_timer += delta_T;
     if (sec_timer < 1.0f) {
-        total_qt_gpu_compute += app.mesh.quadtree->ticks.gpu_compute;
-        total_qt_gpu_render += app.mesh.quadtree->ticks.gpu_render;
+        total_qt_gpu_compute += app.mesh.bintree->ticks.gpu_compute;
+        total_qt_gpu_render += app.mesh.bintree->ticks.gpu_render;
         total_frame_dt += delta_T;
     } else {
         real_fps = frame_count - last_frame_count;
@@ -136,7 +136,7 @@ void ImGuiTime(string s, float tmp)
 void RenderImgui()
 {
 
-    QuadTree::Settings& set = app.mesh.quadtree->settings;
+    BinTree::Settings& set = app.mesh.bintree->settings;
 
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(ImVec2(app.gui_width, app.gui_height));
@@ -165,8 +165,8 @@ void RenderImgui()
 
         while (refresh_time < ImGui::GetTime())
         {
-            values_compute[offset] = app.mesh.quadtree->ticks.gpu_compute * 1000;
-            values_render[offset]  = app.mesh.quadtree->ticks.gpu_render  * 1000;
+            values_compute[offset] = app.mesh.bintree->ticks.gpu_compute * 1000;
+            values_render[offset]  = app.mesh.bintree->ticks.gpu_render  * 1000;
             values_frame_dt[offset] = bench.delta_T * 1000;
             values_fps[offset] = ImGui::GetIO().Framerate;
 
@@ -174,8 +174,8 @@ void RenderImgui()
             refresh_time += 1.0f/30.0f;
         }
 
-        // QUADTREE COMPUTE DT
-        current_val = app.mesh.quadtree->ticks.gpu_compute * 1000;
+        // BINTREE COMPUTE DT
+        current_val = app.mesh.bintree->ticks.gpu_compute * 1000;
         array_max = *std::max_element(values_compute, values_compute+80);
         if (array_max > max_gpu_compute || array_max < 0.2 * max_gpu_compute)
             max_gpu_compute = array_max;
@@ -184,8 +184,8 @@ void RenderImgui()
                          std::to_string(current_val).c_str(),
                          0.0f, max_gpu_compute, ImVec2(0,80));
 
-        //QUADTREE RENDER DT
-        current_val = app.mesh.quadtree->ticks.gpu_render * 1000;
+        // BINTREE RENDER DT
+        current_val = app.mesh.bintree->ticks.gpu_render * 1000;
         array_max = *std::max_element(values_render, values_render+80);
         if (array_max > max_gpu_render || array_max < 0.2 * max_gpu_render)
             max_gpu_render = array_max;
@@ -212,23 +212,19 @@ void RenderImgui()
                          std::to_string(current_val).c_str(),
                          0.0f, max_dt, ImVec2(0,80));
 
-//#define CLEAN
-
-#ifndef CLEAN
         ImGui::Text("\nOutput FPS (1s) %d", bench.real_fps);
         ImGuiTime("avg GPU Compute dT (1s)", bench.avg_qt_gpu_compute);
         ImGuiTime("avg GPU Render  dT (1s)", bench.avg_qt_gpu_render);
         ImGuiTime("avg Frame dT (1s)      ", bench.avg_frame_dt);
         ImGui::Text("\n");
-#endif
 
         if (ImGui::Combo("Mode", (int*)&app.mode, "Terrain\0Mesh\0\0")) {
             app.mesh.CleanUp();
             app.cam.Init(app.mode);
             app.mesh.Init(app.mode, app.cam, app.filepath);
             updateRenderParams();
-            app.mesh.quadtree->UpdateLodFactor(app.cam.fb_width, app.cam.fov);
-            app.mesh.quadtree->UploadSettings();
+            app.mesh.bintree->UpdateLodFactor(app.cam.fb_width, app.cam.fov);
+            app.mesh.bintree->UploadSettings();
         }
         ImGui::Text("\n");
 
@@ -239,122 +235,122 @@ void RenderImgui()
         {
             ImGui::Text("\n------ Renderer Settings ------\n");
             if (ImGui::Checkbox("Render Projection", &set.MVP_on)) {
-                app.mesh.quadtree->UploadSettings();
+                app.mesh.bintree->UploadSettings();
             }
             if (ImGui::SliderFloat("FOV", &app.cam.fov, 5, 90)) {
-                app.mesh.quadtree->UpdateLodFactor(app.cam.fb_width, app.cam.fov);
+                app.mesh.bintree->UpdateLodFactor(app.cam.fb_width, app.cam.fov);
                 app.mesh.UpdateForFOV(app.cam);
-                app.mesh.quadtree->UploadSettings();
+                app.mesh.bintree->UploadSettings();
             }
             if (ImGui::Button("Reinit Camera")) {
                 app.cam.Init(app.mode);
                 app.mesh.InitTransforms(app.cam);
-                app.mesh.quadtree->UpdateLodFactor(app.cam.fb_width, app.cam.fov);
-                app.mesh.quadtree->UploadSettings();
+                app.mesh.bintree->UpdateLodFactor(app.cam.fb_width, app.cam.fov);
+                app.mesh.bintree->UploadSettings();
             }
 
             if (ImGui::Checkbox("Wireframe", &set.wireframe_on)) {
-                app.mesh.quadtree->ReloadRenderProgram();
+                app.mesh.bintree->ReloadRenderProgram();
                 updateRenderParams();
             }
             if(!set.wireframe_on){
             ImGui::SameLine();
             if (ImGui::Checkbox("Flat Normals", &set.flat_normal)) {
-                app.mesh.quadtree->ReloadRenderProgram();
+                app.mesh.bintree->ReloadRenderProgram();
                 updateRenderParams();
             } }
             if (ImGui::Combo("Color mode", &set.color_mode,
                              "LoD & Morph\0White Wireframe\0Polygone Highlight\0Frustum\0Cull\0Debug\0\0")) {
-                app.mesh.quadtree->UploadSettings();
+                app.mesh.bintree->UploadSettings();
             }
             if(ImGui::DragFloat3("Light pos", app.light_pos, 0.1f)) {
                 vec3 l(app.light_pos[0], app.light_pos[1], app.light_pos[2]);
-                app.mesh.quadtree->UpdateLightPos(l);
+                app.mesh.bintree->UpdateLightPos(l);
             }
 
             ImGui::Text("\n------ Mesh Settings ------\n");
 
             if (app.mode == TERRAIN){
                 if (ImGui::Checkbox("Displacement Mapping", &set.displace_on)) {
-                    app.mesh.quadtree->ReloadShaders();
-                    app.mesh.quadtree->UploadSettings();
+                    app.mesh.bintree->ReloadShaders();
+                    app.mesh.bintree->UploadSettings();
                     updateRenderParams();
                 }
             }
             if(set.displace_on){
                 if (ImGui::SliderFloat("Height Factor", &set.displace_factor, 0, 2)) {
-                    app.mesh.quadtree->UploadSettings();
+                    app.mesh.bintree->UploadSettings();
                 }
             }
             if (ImGui::Checkbox("Rotate Mesh", &set.rotateMesh)) {
-                app.mesh.quadtree->UploadSettings();
+                app.mesh.bintree->UploadSettings();
             }
             if (ImGui::Checkbox("Uniform", &set.uniform_on)) {
-                app.mesh.quadtree->UploadSettings();
+                app.mesh.bintree->UploadSettings();
             }
             ImGui::SameLine();
             if (ImGui::SliderInt("", &set.uniform_lvl, 0, 20)) {
-                app.mesh.quadtree->UploadSettings();
+                app.mesh.bintree->UploadSettings();
             }
             ImGui::Checkbox("Auto LoD", &app.auto_lod);
             float expo = log2(set.target_length);
             if (ImGui::SliderFloat("Edge Length (2^x)", &expo, 1.0f, 10.0f)) {
                 set.target_length = std::pow(2.0f, expo);
-                app.mesh.quadtree->UpdateLodFactor(app.cam.fb_width, app.cam.fov);
-                app.mesh.quadtree->UploadSettings();
+                app.mesh.bintree->UpdateLodFactor(app.cam.fb_width, app.cam.fov);
+                app.mesh.bintree->UploadSettings();
             }
             if (ImGui::Checkbox("Readback node count", &set.map_nodecount)) {
-                app.mesh.quadtree->UploadSettings();
+                app.mesh.bintree->UploadSettings();
             }
             if (set.map_nodecount) {
                 int leaf_tri = (1<<(set.cpu_lod*2));
                 ImGui::Text("Total    : "); ImGui::SameLine();
                 ImGui::Text("%s", utility::LongToString(
-                                app.mesh.quadtree->full_node_count).c_str());
+                                app.mesh.bintree->full_node_count).c_str());
                 ImGui::Text("Drawn    : "); ImGui::SameLine();
                 ImGui::Text("%s", utility::LongToString(
-                                app.mesh.quadtree->drawn_node_count).c_str());
+                                app.mesh.bintree->drawn_node_count).c_str());
                 ImGui::Text("Triangles: "); ImGui::SameLine();
                 ImGui::Text("%s", utility::LongToString(
-                                app.mesh.quadtree->drawn_node_count*leaf_tri).c_str());
+                                app.mesh.bintree->drawn_node_count*leaf_tri).c_str());
             }
             if (ImGui::Combo("Polygon type", &set.polygon_type, "Triangle\0Quad\0\0")) {
                 app.mesh.LoadMeshBuffers();
-                app.mesh.quadtree->Reinitialize();
+                app.mesh.bintree->Reinitialize();
                 updateRenderParams();
             }
             if (ImGui::SliderInt("CPU LoD", &set.cpu_lod, 0, 4)) {
-                app.mesh.quadtree->Reinitialize();
-                app.mesh.quadtree->UpdateLodFactor(app.cam.fb_width, app.cam.fov);
-                app.mesh.quadtree->UploadSettings();
+                app.mesh.bintree->Reinitialize();
+                app.mesh.bintree->UpdateLodFactor(app.cam.fb_width, app.cam.fov);
+                app.mesh.bintree->UploadSettings();
                 updateRenderParams();
 
             }
             if (ImGui::Checkbox("Cull", &set.cull_on)) {
-                app.mesh.quadtree->ReloadComputeProgram();
-                app.mesh.quadtree->UploadSettings();
+                app.mesh.bintree->ReloadComputeProgram();
+                app.mesh.bintree->UploadSettings();
                 updateRenderParams();
             }
             ImGui::SameLine();
             if (ImGui::Checkbox("Freeze", &set.freeze)) {
-                app.mesh.quadtree->ReconfigureShaders();
+                app.mesh.bintree->ReconfigureShaders();
             }
             ImGui::SameLine();
-            if (ImGui::Button("Reinitialize QuadTree")) {
-                app.mesh.quadtree->Reinitialize();
+            if (ImGui::Button("Reinitialize Bintree")) {
+                app.mesh.bintree->Reinitialize();
                 updateRenderParams();
             }
             if (app.mode == MESH) {
                 if (ImGui::Combo("Interpolation type", &set.itpl_type,
                                  "Linear\0PN Triangles\0Phong\0\0\0")) {
-                    app.mesh.quadtree->ReloadRenderProgram();
+                    app.mesh.bintree->ReloadRenderProgram();
                     updateRenderParams();
                 }
                 if (ImGui::SliderFloat("alpha", &set.itpl_alpha, 0, 1)) {
-                    app.mesh.quadtree->UploadSettings();
+                    app.mesh.bintree->UploadSettings();
                 }
             }
-            if (app.mesh.quadtree->capped) {
+            if (app.mesh.bintree->capped) {
                 ImGui::Text(" LOD FACTOR CAPPED \n");
             }
         }
@@ -380,11 +376,11 @@ void keyboardCallback(GLFWwindow* window, int key, int scancode, int action,
             glfwSetWindowShouldClose(window, GL_TRUE);
             break;
         case GLFW_KEY_R:
-            app.mesh.quadtree->ReloadShaders();
+            app.mesh.bintree->ReloadShaders();
             updateRenderParams();
             break;
         case GLFW_KEY_U:
-            app.mesh.quadtree->ReconfigureShaders();
+            app.mesh.bintree->ReconfigureShaders();
             break;
         case GLFW_KEY_P:
             app.cam.PrintStatus();
@@ -452,10 +448,10 @@ void resizeCallback(GLFWwindow* window, int new_width, int new_height) {
     app.cam.fb_width  = new_width - app.gui_width;
     app.cam.fb_height = new_height;
     app.gui_height = new_height;
-    app.mesh.quadtree->UpdateScreenRes(std::max(app.cam.fb_height, app.cam.fb_width));
+    app.mesh.bintree->UpdateScreenRes(std::max(app.cam.fb_height, app.cam.fb_width));
     app.mesh.UpdateForSize(app.cam);
-    app.mesh.quadtree->UpdateLodFactor(app.cam.fb_width, app.cam.fov);
-    app.mesh.quadtree->UploadSettings();
+    app.mesh.bintree->UpdateLodFactor(app.cam.fb_width, app.cam.fov);
+    app.mesh.bintree->UploadSettings();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -479,8 +475,8 @@ void Init()
     bench.Init();
     updateRenderParams();
 
-    app.mesh.quadtree->UpdateLodFactor(app.cam.fb_width, app.cam.fov);
-    app.mesh.quadtree->UploadSettings();
+    app.mesh.bintree->UpdateLodFactor(app.cam.fb_width, app.cam.fov);
+    app.mesh.bintree->UploadSettings();
 
     cout << "END OF INITIALIZATION" << endl;
     cout << "******************************************************" << endl << endl;
@@ -496,17 +492,17 @@ void Draw()
     bench.UpdateStats();
     RenderImgui();
 
-    if (app.auto_lod && !app.mesh.quadtree->settings.uniform_on) {
-        float& target = app.mesh.quadtree->settings.target_length;
+    if (app.auto_lod && !app.mesh.bintree->settings.uniform_on) {
+        float& target = app.mesh.bintree->settings.target_length;
         static float upperFPS = 75.0f, lowerFPS = 60.0f;
         if (bench.delta_T < 1.0/upperFPS) {
             target *= 0.99;
-            app.mesh.quadtree->UpdateLodFactor(app.cam.fb_width, app.cam.fov);
-            app.mesh.quadtree->UploadSettings();
+            app.mesh.bintree->UpdateLodFactor(app.cam.fb_width, app.cam.fov);
+            app.mesh.bintree->UploadSettings();
         } else if (bench.delta_T > 1.0/lowerFPS){
             target *= 1.01;
-            app.mesh.quadtree->UpdateLodFactor(app.cam.fb_width, app.cam.fov);
-            app.mesh.quadtree->UploadSettings();
+            app.mesh.bintree->UpdateLodFactor(app.cam.fb_width, app.cam.fov);
+            app.mesh.bintree->UploadSettings();
         }
     }
     bench.UpdateTime();

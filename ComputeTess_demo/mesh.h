@@ -1,16 +1,16 @@
 #ifndef MESH_H
 #define MESH_H
 
-#include "quadtree.h"
+#include "bintree.h"
 #include "common.h"
 #include "transform.h"
 
 class Mesh
 {
 public:
-    QuadTree* quadtree;
+    BinTree* bintree;
     TransformsManager* tranforms_manager;
-    QuadTree::Settings init_settings;
+    BinTree::Settings init_settings;
 
     Mesh_Data mesh_data;
 
@@ -56,7 +56,7 @@ public:
      * - Loads a grid for the terrain mode
      * - Loads an .obj file using the parsing function in mesh_utils.h
      * Depending on the index array filled by the parsing function, sets the
-     * quadtree to the correct polygon rendering mode
+     * bintree to the correct polygon rendering mode
      */
     void LoadMeshData(uint mode, string filepath = "")
     {
@@ -140,7 +140,7 @@ public:
 
     void Init(uint mode, CameraManager& cam, string filepath = "")
     {
-        quadtree = new QuadTree();
+        bintree = new BinTree();
         tranforms_manager = new TransformsManager();
         mesh_data = {};
 
@@ -171,23 +171,23 @@ public:
         this->LoadMeshBuffers();
 
         this->tranforms_manager->Init(cam);
-        quadtree->Init(&(this->mesh_data), this->tranforms_manager->GetBo(),
+        bintree->Init(&(this->mesh_data), this->tranforms_manager->GetBo(),
                        init_settings);
     }
 
     void Draw(float deltaT, uint mode)
     {
-        if (!quadtree->settings.freeze &&  quadtree->settings.rotateMesh) {
+        if (!bintree->settings.freeze &&  bintree->settings.rotateMesh) {
             tranforms_manager->RotateModel(2.0f * deltaT,
                                            vec3(0.0f, 0.0f, 1.0f));
         }
         tranforms_manager->Upload();
-        quadtree->Draw(deltaT);
+        bintree->Draw(deltaT);
     }
 
     void CleanUp()
     {
-        quadtree->CleanUp();
+        bintree->CleanUp();
         tranforms_manager->CleanUp();
         mesh_data.CleanUp();
     }

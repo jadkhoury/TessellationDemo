@@ -1,10 +1,10 @@
-#ifndef QUADTREE_H
-#define QUADTREE_H
+#ifndef BINTREE_H
+#define BINTREE_H
 
 #include "commands.h"
 #include "common.h"
 
-class QuadTree
+class BinTree
 {
 
 public:
@@ -145,7 +145,7 @@ private:
 
     bool loadComputeProgram()
     {
-        cout << "Quadtree - Loading Compute Program... ";
+        cout << "Bintree - Loading Compute Program... ";
         if (!glIsProgram(compute_program_))
             compute_program_ = 0;
         djg_program* djp = djgp_create();
@@ -159,7 +159,7 @@ private:
         }
         djgp_push_file(djp, strcat2(buf, shader_dir, "ltree_jk.glsl"));
         djgp_push_file(djp, strcat2(buf, shader_dir, "LoD.glsl"));
-        djgp_push_file(djp, strcat2(buf, shader_dir, "quadtree_compute.glsl"));
+        djgp_push_file(djp, strcat2(buf, shader_dir, "bintree_compute.glsl"));
         if (!djgp_to_gl(djp, 450, false, true, &compute_program_))
         {
             cout << "X" << endl;
@@ -175,7 +175,7 @@ private:
 
     bool loadCopyProgram()
     {
-        cout << "Quadtree - Loading Copy Program... ";
+        cout << "Bintree - Loading Copy Program... ";
         if (!glIsProgram(copy_program_))
             copy_program_ = 0;
         djg_program* djp = djgp_create();
@@ -183,7 +183,7 @@ private:
 
         char buf[1024];
 
-        djgp_push_file(djp, strcat2(buf, shader_dir, "quadtree_copy.glsl"));
+        djgp_push_file(djp, strcat2(buf, shader_dir, "bintree_copy.glsl"));
         if (!djgp_to_gl(djp, 450, false, true, &copy_program_))
         {
             cout << "X" << endl;
@@ -200,7 +200,7 @@ private:
 
     bool loadRenderProgram()
     {
-        cout << "Quadtree - Loading Render Program... ";
+        cout << "Bintree - Loading Render Program... ";
 
         if (!glIsProgram(render_program_))
             render_program_ = 0;
@@ -232,11 +232,11 @@ private:
             djgp_push_file(djp, strcat2(buf, shader_dir, "PN_interpolation.glsl"));
         else if (settings.itpl_type == PHONG)
             djgp_push_file(djp, strcat2(buf, shader_dir, "phong_interpolation.glsl"));
-        djgp_push_file(djp, strcat2(buf, shader_dir, "quadtree_render_common.glsl"));
+        djgp_push_file(djp, strcat2(buf, shader_dir, "bintree_render_common.glsl"));
         if (settings.wireframe_on)
-            djgp_push_file(djp, strcat2(buf, shader_dir, "quadtree_render_wireframe.glsl"));
+            djgp_push_file(djp, strcat2(buf, shader_dir, "bintree_render_wireframe.glsl"));
         else
-            djgp_push_file(djp, strcat2(buf, shader_dir, "quadtree_render_flat.glsl"));
+            djgp_push_file(djp, strcat2(buf, shader_dir, "bintree_render_flat.glsl"));
 
         if (!djgp_to_gl(djp, 450, false, true, &render_program_))
         {
@@ -505,7 +505,7 @@ public:
     ///
     ///
     /*
-     * Initialize the Quadtree:
+     * Initialize the Binary Tree:
      * - Recieve the mesh data and transform poniters
      * - Sets the settings to their initial values
      * - Generate the leaf geometry
@@ -517,7 +517,7 @@ public:
     void Init(Mesh_Data* m_data, GLuint transfo_bo, const Settings& init_settings)
     {
         cout << "******************************************************" << endl;
-        cout << "QUADTREE" << endl;
+        cout << "BINTREE" << endl;
         mesh_data_ = m_data;
         settings = init_settings;
 

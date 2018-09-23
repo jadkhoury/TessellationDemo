@@ -18,7 +18,6 @@ uniform float u_displace_factor;
 // ------------------------ Main ------------------------ //
 void main()
 {
-
     // Read VAO
     vec2 leaf_pos = i_vpos.xy;
 
@@ -34,7 +33,7 @@ void main()
     Triangle mesh_t;
     lt_getTargetTriangle(meshPolygonID, rootID, mesh_t);
 
-    // Map from leaf to quadtree position
+    // Map from leaf to binhtree position
     vec2 tree_pos = lt_Leaf_to_Tree_64(leaf_pos, nodeID);
 
     // Interpolate
@@ -48,8 +47,43 @@ void main()
     o_vertex = current_v;
     o_lvl = key_lod;
     o_leaf_pos = leaf_pos;
+}
+#endif
 
-    gl_Position = toScreenSpace(current_v.p.xyz);
+////////////////////////////////////////////////////////////////////////////////
+///
+/// GEOMETRY_SHADER
+///
+#ifdef GEOMETRY_SHADER
+
+
+layout(triangles) in;
+layout(triangle_strip, max_vertices = 3) out;
+
+layout (location = 0) in flat uint i_lvl[];
+layout (location = 1) in vec2 i_leaf_pos[];
+layout (location = 2) in Vertex i_vertex[];
+
+layout (location = 0) out flat uint o_lvl;
+layout (location = 1) out vec2 o_leaf_pos;
+layout (location = 2) out vec2 o_tri_pos;
+layout (location = 3) out Vertex o_vertex;
+
+void main()
+{
+    for (int i = 0; i < gl_in.length(); i++) {
+        //Passthrough
+        o_vertex = i_vertex[i];
+        o_lvl = i_lvl[i];
+        o_leaf_pos = i_leaf_pos[i];
+        // Triangle pos for solid wireframe
+        o_tri_pos = vec2(i>>1, i & 1u);
+
+        // Final screen position
+        gl_Position = toScreenSpace(o_vertex.p.xyz);
+        EmitVertex();
+    }
+    EndPrimitive();
 }
 #endif
 
@@ -61,38 +95,31 @@ void main()
 
 layout (location = 0) in flat uint i_lvl;
 layout (location = 1) in vec2 i_leaf_pos;
-layout (location = 2) in Vertex i_vertex;
+layout (location = 2) in vec2 i_tri_pos;
+layout (location = 3) in Vertex i_vertex;
 
 layout(location = 0) out vec4 o_color;
 
-uniform vec3 u_light_pos = vec3(0, 110, 00);
+// https://github.com/rreusser/glsl-solid-wireframe
+float gridFactor (vec2 vBC, float width) {
+    vec3 bary = vec3(vBC.x, vBC.y, 1.0 - vBC.x - vBC.y);
+    vec3 d = fwidth(bary);
+    vec3 a3 = smoothstep(d * (width - 0.5), d * (width + 0.5), bary);
+    return min(min(a3.x, a3.y), a3.z);
+}
 
 void main()
 {
     // Position
     vec3 p = i_vertex.p.xyz;
     vec4 p_mv = MV * i_vertex.p;
-    //Normal
-    vec3 n = i_vertex.n.xyz;
-    vec3 dx = dFdx(p), dy = dFdy(p);
-#if FLAG_FLAT_N
-        n = normalize(cross(dx,dy));
-#elif FLAG_DISPLACE
-        float dp = sqrt(dot(dx,dx));
-        vec2 s;
-        float d = displace(p.xy, 1.0/(0.5*dp), s);
-        n = normalize(vec3(-s * u_displace_factor/2.0, 1));
-#endif
-    vec3 n_mv = (invMV * vec4(n, 0)).xyz;
 
-    vec3 light_pos_mv =  (V * vec4(u_light_pos, 1)).xyz;
-    vec3 l_mv = normalize(light_pos_mv - p_mv.xyz);
-
-    float nl =  max(dot(l_mv, n_mv), 0);
     vec4 c = levelColor(i_lvl);
 
-    o_color = vec4(c.xyz*nl, 1);
-    //o_color = vec4(c.xyz*n.zzz, 1);
+    float wireframe_factor = gridFactor(i_tri_pos, 0.5);
+
+    o_color = vec4(c.xyz*wireframe_factor, 1);
+
 }
 #endif
 
