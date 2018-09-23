@@ -149,9 +149,9 @@ void cullPass(uvec4 key)
     mesh_coord[R] = lt_Leaf_to_MeshPosition(unit_R, key);
 
 #if FLAG_DISPLACE
-    mesh_coord[O] = displaceVertex(mesh_coord[O], cam_pos);
-    mesh_coord[U] = displaceVertex(mesh_coord[U], cam_pos);
-    mesh_coord[R] = displaceVertex(mesh_coord[R], cam_pos);
+    mesh_coord[O] = displaceVertex(mesh_coord[O], u_transforms.cam_pos);
+    mesh_coord[U] = displaceVertex(mesh_coord[U], u_transforms.cam_pos);
+    mesh_coord[R] = displaceVertex(mesh_coord[R], u_transforms.cam_pos);
 #endif
 
     b_min = min(b_min, mesh_coord[O]);
@@ -162,7 +162,7 @@ void cullPass(uvec4 key)
     b_max = max(b_max, mesh_coord[U]);
     b_max = max(b_max, mesh_coord[R]);
 
-    if (culltest(MVP, b_min.xyz, b_max.xyz))
+    if (culltest(u_transforms.MVP, b_min.xyz, b_max.xyz))
         cull_writeKey(key);
 #else
     cull_writeKey(key);
@@ -195,7 +195,7 @@ void main(void)
     // To avoid computing the procedural height value in each instance, we
     // store it in a shared variable
     if(gl_LocalInvocationIndex == 0 ){
-        cam_height_local = getHeight(cam_pos.xy, u_screen_res);
+        cam_height_local = getHeight(u_transforms.cam_pos.xy, u_screen_res);
     }
     barrier();
     memoryBarrierShared();

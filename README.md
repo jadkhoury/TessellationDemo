@@ -98,9 +98,10 @@ The Bench subproject contains more or less the code from the demo, minus some la
 * Rotate Mesh: rotates the mesh around the z axis
 * Uniform: Toggle uniform subdivision (with slider for level)
 * Edge Length: slider for the target edge length, in px, as power of two (4 on the slider = 2^4 = 8px)
-* Readback Node Count: Readbacks the number of nodes in the bintree, and the total number of rendered triangles (after culling) 
+* Readback Node Count: Readbacks the number of nodes in the bintree, and the total number of rendered triangles (after culling). Slightly affect performances.
 * Polygon Type: Switch between Triangles and Quads in terrain mode only (auto defined for mesh)
 * CPU LoD: Level of subdivision of the instanced mesh
+* Interpolation type: Switch between linear, PN and Phong interpolation (MESH mode only)
 * The rest is self-explanatory
 
 ## The Code

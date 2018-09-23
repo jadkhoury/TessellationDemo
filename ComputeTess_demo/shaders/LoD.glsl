@@ -17,13 +17,13 @@ layout(std140, binding = 0) uniform TransformBlock
 
     vec3 cam_pos;
     float fov;
-};
+} u_transforms;
 
 const vec2 triangle_centroid = vec2(0.5);
 
 float distanceToLod(vec3 pos)
 {
-    float d = distance(pos, cam_pos);
+    float d = distance(pos, u_transforms.cam_pos);
     float lod = (d * u_lod_factor);
     lod = clamp(lod, 0.0, 1.0) ;
     return - 2.0 * log2(lod);
@@ -33,8 +33,8 @@ float distanceToLod(vec3 pos)
 void computeTessLvlWithParent(uvec4 key, float height, out float lvl, out float parent_lvl) {
     vec4 p_mesh, pp_mesh;
     lt_Leaf_n_Parent_to_MeshPosition(triangle_centroid, key, p_mesh, pp_mesh);
-    p_mesh  = M * p_mesh;
-    pp_mesh = M * pp_mesh;
+    p_mesh  = u_transforms.M * p_mesh;
+    pp_mesh = u_transforms.M * pp_mesh;
     p_mesh.z = height;
     pp_mesh.z = height;
 
@@ -46,8 +46,8 @@ void computeTessLvlWithParent(uvec4 key, float height, out float lvl, out float 
 void computeTessLvlWithParent(uvec4 key, out float lvl, out float parent_lvl) {
     vec4 p_mesh, pp_mesh;
     lt_Leaf_n_Parent_to_MeshPosition(triangle_centroid, key, p_mesh, pp_mesh);
-    p_mesh  = M * p_mesh;
-    pp_mesh = M * pp_mesh;
+    p_mesh  = u_transforms.M * p_mesh;
+    pp_mesh = u_transforms.M * pp_mesh;
 
     lvl        = distanceToLod(p_mesh.xyz);
     parent_lvl = distanceToLod(pp_mesh.xyz);
@@ -57,9 +57,9 @@ bool culltest(mat4 mvp, vec3 bmin, vec3 bmax)
 {
     bool inside = true;
     for (int i = 0; i < 6; ++i) {
-        bvec3 b = greaterThan(frustum_planes[i].xyz, vec3(0));
+        bvec3 b = greaterThan(u_transforms.frustum_planes[i].xyz, vec3(0));
         vec3 n = mix(bmin, bmax, b);
-        inside = inside && (dot(vec4(n, 1.0), frustum_planes[i]) >= 0);
+        inside = inside && (dot(vec4(n, 1.0), u_transforms.frustum_planes[i]) >= 0);
     }
     return inside;
 }

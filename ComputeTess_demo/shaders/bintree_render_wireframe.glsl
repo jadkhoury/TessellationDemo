@@ -40,7 +40,7 @@ void main()
     Vertex current_v = interpolate(mesh_t, tree_pos, u_itpl_alpha);
 
 #if FLAG_DISPLACE
-        current_v.p.xyz =  displaceVertex(current_v.p.xyz, cam_pos);
+        current_v.p.xyz =  displaceVertex(current_v.p.xyz, u_transforms.cam_pos);
 #endif
 
     // Pass relevant values
@@ -112,7 +112,7 @@ void main()
 {
     // Position
     vec3 p = i_vertex.p.xyz;
-    vec4 p_mv = MV * i_vertex.p;
+    vec4 p_mv = u_transforms.MV * i_vertex.p;
 
     vec4 c = levelColor(i_lvl);
 

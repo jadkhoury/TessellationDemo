@@ -314,10 +314,12 @@ void RenderImgui()
                 ImGui::Text("%s", utility::LongToString(
                                 app.mesh.bintree->drawn_node_count*leaf_tri).c_str());
             }
-            if (ImGui::Combo("Polygon type", &set.polygon_type, "Triangle\0Quad\0\0")) {
-                app.mesh.LoadMeshBuffers();
-                app.mesh.bintree->Reinitialize();
-                updateRenderParams();
+            if (app.mode == TERRAIN) {
+                if (ImGui::Combo("Polygon type", &set.polygon_type, "Triangle\0Quad\0\0")) {
+                    app.mesh.LoadMeshBuffers();
+                    app.mesh.bintree->Reinitialize();
+                    updateRenderParams();
+                }
             }
             if (ImGui::SliderInt("CPU LoD", &set.cpu_lod, 0, 4)) {
                 app.mesh.bintree->Reinitialize();

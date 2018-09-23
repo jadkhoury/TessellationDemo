@@ -41,7 +41,7 @@ void main()
     Vertex current_v = interpolate(mesh_t, tree_pos, u_itpl_alpha);
 
 #if FLAG_DISPLACE
-        current_v.p.xyz =  displaceVertex(current_v.p.xyz, cam_pos);
+        current_v.p.xyz =  displaceVertex(current_v.p.xyz, u_transforms.cam_pos);
 #endif
 
     // Pass relevant values
@@ -71,7 +71,7 @@ void main()
 {
     // Position
     vec3 p = i_vertex.p.xyz;
-    vec4 p_mv = MV * i_vertex.p;
+    vec4 p_mv = u_transforms.MV * i_vertex.p;
     //Normal
     vec3 n = i_vertex.n.xyz;
     vec3 dx = dFdx(p), dy = dFdy(p);
@@ -83,16 +83,15 @@ void main()
         float d = displace(p.xy, 1.0/(0.5*dp), s);
         n = normalize(vec3(-s * u_displace_factor/2.0, 1));
 #endif
-    vec3 n_mv = (invMV * vec4(n, 0)).xyz;
+    vec3 n_mv = (u_transforms.invMV * vec4(n, 0)).xyz;
 
-    vec3 light_pos_mv =  (V * vec4(u_light_pos, 1)).xyz;
+    vec3 light_pos_mv =  (u_transforms.V * vec4(u_light_pos, 1)).xyz;
     vec3 l_mv = normalize(light_pos_mv - p_mv.xyz);
 
     float nl =  max(dot(l_mv, n_mv), 0);
     vec4 c = levelColor(i_lvl);
 
     o_color = vec4(c.xyz*nl, 1);
-    //o_color = vec4(c.xyz*n.zzz, 1);
 }
 #endif
 

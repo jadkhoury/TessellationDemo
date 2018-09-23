@@ -495,7 +495,6 @@ public:
             l = cap;
         }
         settings.lod_factor = l / float(mesh_data_->avg_e_length);;
-
     }
 
 

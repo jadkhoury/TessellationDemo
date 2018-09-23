@@ -18,7 +18,7 @@ uniform int u_render_MVP;
 vec4 toScreenSpace(vec3 v)
 {
     if(u_render_MVP > 0)
-        return MVP * vec4(v.x, v.y, v.z, 1);
+        return u_transforms.MVP * vec4(v.x, v.y, v.z, 1);
     else
         return vec4(v.xyz * 0.2, 1) ;
 }
