@@ -98,8 +98,6 @@ string LongToString(long l)
 ////////////////////////////////////////////////////////////////////////////////
 /// OPENGL DEBUG STUFF
 ///
-
-
 char *strcat2(char *dst, const char *src1, const char *src2)
 {
     strcpy(dst, src1);

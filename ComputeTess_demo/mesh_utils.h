@@ -13,7 +13,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
-/// namespace for generating and managing meshes
+/// Namespace for generating and managing meshes
 ///
 
 namespace meshutils {

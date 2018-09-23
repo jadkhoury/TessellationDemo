@@ -58,47 +58,7 @@ file(GLOB_RECURSE OBJ_FILES *.obj)
 copy_files_once(${OBJ_FILES})
 
 
-# **************** Project 0_FullProgram **************** #
-
-#message(STATUS "**** 0_FullProgram ****")
-
-#set(SRC_DIR 0_FullProgram)
-
-#file(GLOB_RECURSE SHADERS ${SRC_DIR}/*.glsl)
-#file(GLOB_RECURSE HEADERS ${SRC_DIR}/*.h)
-
-#include_directories(${SRC_DIR})
-#aux_source_directory(${SRC_DIR} SRC_FILES)
-
-#add_executable(program ${SRC_FILES} ${SHADERS} ${HEADERS} ${GLAD_C})
-
-#target_link_libraries(program glad glfw imgui)
-
-#unset(SRC_FILES)
-#unset(SHADERS)
-#unset(HEADERS)
-
-# **************** Project 1_DistancePipeline **************** #
-
-#message(STATUS "**** 1_DistancePipeline ****")
-
-#set(SRC_DIR 1_DistancePipeline)
-
-#file(GLOB_RECURSE SHADERS ${SRC_DIR}/*.glsl)
-#file(GLOB_RECURSE HEADERS ${SRC_DIR}/*.h)
-
-#include_directories(${SRC_DIR}})
-#aux_source_directory(${SRC_DIR} SRC_FILES)
-
-#add_executable(old_distance ${SRC_FILES} ${SHADERS} ${HEADERS} ${GLAD_C})
-
-#target_link_libraries(old_distance glad glfw imgui)
-
-#unset(SRC_FILES)
-#unset(SHADERS)
-#unset(HEADERS)
-
-# **************** Project 2_NewDistance **************** #
+# **************** Project DEMO **************** #
 
  message(STATUS "**** Compute Tessellation DEMO ****")
 
@@ -119,7 +79,7 @@ copy_files_once(${OBJ_FILES})
  unset(HEADERS)
 
 
-# **************** Project 3_Bench **************** #
+# **************** Project BENCHMARK **************** #
 
 message(STATUS "**** Compute Tessellation BENCHMARK ****")
 
@@ -138,9 +98,3 @@ target_link_libraries(bench glad glfw imgui)
 unset(SRC_FILES)
 unset(SHADERS)
 unset(HEADERS)
-
-
-
-
-
-
