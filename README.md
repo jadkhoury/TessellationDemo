@@ -1,4 +1,4 @@
-# Compute Shader Surface Subdivision
+# Adaptive GPU Tessellation with Compute Shaders 
 
 [![Build Status](https://travis-ci.org/jadkhoury/TessellationDemo.svg?branch=master)](https://travis-ci.org/jadkhoury/TessellationDemo) [![Build status](https://ci.appveyor.com/api/projects/status/445xn4iwo7p280yw?svg=true)](https://ci.appveyor.com/project/jadkhoury/tessellationdemo)
 
