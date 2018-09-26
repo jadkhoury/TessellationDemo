@@ -5,7 +5,7 @@
 
 This repository contains the demo code for the research project Tessellation On Compute Shader.
 Requires OpenGL 4.5 min. 
-Do not hesitate to contact me if you have any feedbacks, problems, remarks or question about the code, by contacting me at jad.n.ky@gmail.com
+Do not hesitate to contact me if you have any feedback, problem, remarks or questions about the code, by sending me a mail at jad.n.ky@gmail.com
 
 # Cloning
 
