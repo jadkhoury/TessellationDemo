@@ -4,7 +4,8 @@
 
 
 This repository contains the demo code for the research project Tessellation On Compute Shader.
-Requires OpenGL 4.5 min.
+Requires OpenGL 4.5 min. 
+Do not hesitate to contact me if you have any feedbacks, problems, remarks or question about the code, by contacting me at jad.n.ky@gmail.com
 
 # Cloning
 
@@ -34,7 +35,7 @@ or
 ```
 
 # Compute Tess Project
-The Bench subproject contains more or less the code from the demo, minus some late refratoring and including some code measuring and outputting the performances of our pipeline in a Zoom-Dezoom setup.
+The Bench subproject contains more or less the code from the demo, minus some late refratoring, and including some code measuring and outputting the performances of our pipeline in a Zoom-Dezoom setup.
 ```
 ├── CMakeLists.txt
 ├── common
@@ -79,7 +80,7 @@ The Bench subproject contains more or less the code from the demo, minus some la
 └── README.md
 
 ```
-## The GUI & imput
+## The GUI & Input
 ### Trackball model for the mouse: 
 * left-click + drag for camera rotation
 * right-click + drag for camera panning
@@ -90,17 +91,17 @@ The Bench subproject contains more or less the code from the demo, minus some la
 * Advanced Mode: toggles additional GUI controls
 * Render Projection: toggles the MVP Matrix
 * FoV: Controls field of view of camera
-* Reinit Cam: Reinitialize the camera for current mode
+* Reinit Cam: reinitialize the camera for current mode
 * Wireframe: toggles the solid wireframe shading
-* Flat Normal: toggles the flat normal computation in fragment shader, instead of procedural displaced normals (better performance and tessellation visualization)
+* Flat Normal: toggles the flat normal computation in fragment shader, instead of procedural displaced normals (better performances and tessellation visualization)
 * Displacement Mapping: Toggles the dislacement of the flat grid (TERRAIN mode only)
-* Height factor: manipulate the height of the displacement map
+* Height factor: manipulates the height of the displacement map
 * Rotate Mesh: rotates the mesh around the z axis
-* Uniform: Toggle uniform subdivision (with slider for level)
+* Uniform: toggle uniform subdivision (with slider for level)
 * Edge Length: slider for the target edge length, in px, as power of two (4 on the slider = 2^4 = 8px)
 * Readback Node Count: Readbacks the number of nodes in the bintree, and the total number of rendered triangles (after culling). Slightly affect performances.
-* Polygon Type: Switch between Triangles and Quads in terrain mode only (auto defined for mesh)
-* CPU LoD: Level of subdivision of the instanced mesh
+* Polygon Type: Switch between Triangles and Quads (TERRAIN mode only, auto defined for mesh)
+* CPU LoD: Level of subdivision of the instanced triangle grid
 * Interpolation type: Switch between linear, PN and Phong interpolation (MESH mode only)
 * The rest is self-explanatory
 
