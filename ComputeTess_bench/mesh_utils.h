@@ -196,6 +196,13 @@ void ParseObj(string name, int axis, Mesh_Data* mesh_data)
     for (int i = 0;  i < num_idx; i++)
     {
         iv = faceverts[i];
+
+        //support for negative face indices as per the spec
+        if (iv < 0)
+        {
+            iv = iv + Nv + 1;
+        }
+
         if (with_normals) in = facenormals[i];
         if (with_uvs)  it = faceuvs[i];
         unique_idx = iv + Nv * (in + Nn * it);
