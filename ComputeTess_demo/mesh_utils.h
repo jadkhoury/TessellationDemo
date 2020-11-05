@@ -101,7 +101,7 @@ void ParseObj(string name, int axis, Mesh_Data* mesh_data)
 
     char* str = const_cast<char *>(shapestr), line[256];
     bool done = false;
-    int face_count;
+    int face_count = 0;
 
 
     // Filling independent vectors from the data
