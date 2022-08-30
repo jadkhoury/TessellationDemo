@@ -11,7 +11,7 @@ Do not hesitate to contact me if you have any feedback, problem, remarks or ques
 
 Clone the repository and all its submodules using the following command:
 ```sh
-git clone git clone --recurse-submodules https://github.com/jadkhoury/TessellationDemo.git
+git clone --recurse-submodules https://github.com/jadkhoury/TessellationDemo.git
 ```
 
 If you accidentally omitted the `recurse-submodules` flag when cloning the repository you can retrieve the submodules like so:
